@@ -1,5 +1,5 @@
 <template>
-  <img :src="`/images/${image}.png`">
+  <img class="unitImg" :src="`/images/${image}.png`">
 </template>
 
 <script>
@@ -13,8 +13,10 @@ export default {
   data() {
     return {
       cssProps: {
-        width: `${this.width}px`,
-        height: `${this.height}px`,
+        width: `${this.width * 0.6}px`,
+        height: `${this.height * 0.6}px`,
+        left: `${this.width * 0.2}px`,
+        top: `${this.height * 0.2}px`,
       },
     }
   },
@@ -22,10 +24,11 @@ export default {
 </script>
 
 <style scoped>
-img {
+img.unitImg {
   width: v-bind('cssProps.width');
   height: v-bind('cssProps.height');
   position: absolute;
-  left: 0;
+  left: v-bind('cssProps.left');
+  top: v-bind('cssProps.top');
 }
 </style>
