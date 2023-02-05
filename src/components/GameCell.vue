@@ -1,6 +1,6 @@
 <template>
   <div class="cell">
-    <img :src="`/images/${terrain}.png`">
+    <img class="terrainImg" :src="`/images/${terrain}.png`">
     <GameUnit v-if="unit" :image="unit._type" :width="width" :height="height"/>
   </div>
 </template>
@@ -40,7 +40,7 @@ div {
   width: v-bind('cssProps.width');
   height: v-bind('cssProps.height');
 }
-img {
+img.terrainImg {
   /*border: solid 0.1px;*/
   width: v-bind('cssProps.width');
   height: v-bind('cssProps.height');

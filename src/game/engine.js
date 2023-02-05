@@ -1,6 +1,6 @@
 const TerrainTypes = new Set([
-    'wall',
     'empty',
+    'mountain',
 ])
 
 
