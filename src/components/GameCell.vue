@@ -1,6 +1,6 @@
 <template>
   <div class="cell">
-    <img class="terrainImg" :src="`/images/${terrain}.png`">
+    <img class="terrainImg" :class="{'selected': selected}" :src="`/images/${terrain}.png`">
     <GameUnit v-if="unit" :image="unit._type" :width="width" :height="height"/>
   </div>
 </template>
@@ -19,9 +19,9 @@ export default {
     height: Number,
     terrain: String,
     unit: Unit,
+    selected: Boolean,
   },
   data() {
-    if (this.unit) console.log(this.unit._type);
     return {
       cssProps: {
         width: `${this.width}px`,
@@ -44,5 +44,8 @@ img.terrainImg {
   /*border: solid 0.1px;*/
   width: v-bind('cssProps.width');
   height: v-bind('cssProps.height');
+}
+img.terrainImg.selected {
+  background-color: #42b983;
 }
 </style>

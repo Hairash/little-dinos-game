@@ -1,7 +1,7 @@
-const TerrainTypes = new Set([
-    'empty',
-    'mountain',
-])
+const TerrainTypes = {
+    EMPTY: 'empty',
+    MOUNTAIN: 'mountain',
+}
 
 
 class Cell {

@@ -1,12 +1,14 @@
 <template>
   <div class="board">
-    <div class="cell_line" v-for="(line, y) in field" :key=y>
+    <div class="cell_line" v-for="(line, y) in fieldT" :key=y>
       <template v-for="(cellData, x) in line" :key=x>
         <GameCell
           :width=cellWidth
           :height=cellHeight
           :terrain=cellData.terrain
           :unit=cellData.unit
+          :selected="(selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y)"
+          @click="processClick($event, x, y)"
         />
       </template>
     </div>
@@ -28,13 +30,18 @@ export default {
     height: Number,
   },
   data() {
+    // TODO: move field generation outside from the component, pass it as a parameter
     const field = this.generateField();
+    const fieldT = (m => m[0].map((x,i) => m.map(x => x[i])))(field)
     const cellWidth = 100;
     const cellHeight = 100;
+    let selectedCoords = null;
     return {
       field,
+      fieldT,
       cellWidth,
       cellHeight,
+      selectedCoords,
       cssProps: {
         cellHeight: `${cellHeight}px`,
       },
@@ -43,10 +50,10 @@ export default {
   methods: {
     generateField() {
       const field = [];
-      const terrainTypesArr = Array.from(Engine.TerrainTypes);
-      for (let y = 0; y < this.height; y++) {
+      const terrainTypesArr = Object.values(Engine.TerrainTypes);
+      for (let x = 0; x < this.width; x++) {
         const col = [];
-        for (let x = 0; x < this.width; x++) {
+          for (let y = 0; y < this.height; y++) {
           const r = Math.random();
           const terrain = terrainTypesArr[Math.floor(r * terrainTypesArr.length)];
           const cell = {
@@ -60,7 +67,24 @@ export default {
       }
       console.log(field);
       return field;
-    }
+    },
+    processClick(event, x, y) {
+      // console.log(x, y);
+      if (this.field[x][y].unit) {
+        this.selectedCoords = [x, y];
+      }
+      else if (this.selectedCoords) {
+        this.moveUnit(this.selectedCoords, [x, y]);
+      }
+    },
+    moveUnit(fromCoords, toCoords) {
+      let [x0, y0] = fromCoords;
+      let [x1, y1] = toCoords;
+      let unit = this.field[x0][y0].unit;
+      delete(this.field[x0][y0].unit);
+      this.field[x1][y1].unit = unit;
+      this.selectedCoords = null;
+    },
   }
 }
 </script>
