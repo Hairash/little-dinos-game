@@ -1,3 +1,9 @@
+const TerrainTypes = new Set([
+    'wall',
+    'empty',
+])
+
+
 class Cell {
     constructor(terrain) {
         this.unit = null;
@@ -13,5 +19,5 @@ class Unit {
 }
 
 export default {
-    Unit, Cell,
+    TerrainTypes, Cell, Unit,
 }

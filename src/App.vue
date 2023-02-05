@@ -1,5 +1,5 @@
 <template>
-  <GameGrid :width=10 :height=10 />
+  <GameGrid :width=8 :height=6 />
 </template>
 
 <script>

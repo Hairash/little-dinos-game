@@ -1,16 +1,18 @@
 <template>
-  <img :src="`/images/${terrain}.png`">
-<!--  <GameUnit />-->
+  <div class="cell">
+    <img :src="`/images/${terrain}.png`">
+    <GameUnit v-if="unit" :image="unit._type" :width="width" :height="height"/>
+  </div>
 </template>
 
 <script>
 import Unit from '../game/engine'
-// import GameUnit from './GameUnit'
+import GameUnit from './GameUnit'
 
 export default {
   name: "GameCell",
   components: {
-    // GameUnit,
+    GameUnit,
   },
   props: {
     width: Number,
@@ -19,7 +21,7 @@ export default {
     unit: Unit,
   },
   data() {
-    console.log(this.terrain);
+    if (this.unit) console.log(this.unit._type);
     return {
       cssProps: {
         width: `${this.width}px`,
@@ -32,12 +34,14 @@ export default {
 
 <style scoped>
 div {
+  position: relative;
   display: inline-block;
-  border: solid 1px;
+  border: solid 0.1px;
   width: v-bind('cssProps.width');
   height: v-bind('cssProps.height');
 }
 img {
+  /*border: solid 0.1px;*/
   width: v-bind('cssProps.width');
   height: v-bind('cssProps.height');
 }
