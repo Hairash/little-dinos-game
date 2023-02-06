@@ -13,7 +13,6 @@
       </template>
     </div>
   </div>
-
 </template>
 
 <script>
@@ -28,6 +27,7 @@ export default {
   props: {
     width: Number,
     height: Number,
+    currentPlayer: Number,
   },
   data() {
     // TODO: move field generation outside from the component, pass it as a parameter
@@ -71,7 +71,9 @@ export default {
     processClick(event, x, y) {
       // console.log(x, y);
       if (this.field[x][y].unit) {
-        this.selectedCoords = [x, y];
+        if (this.field[x][y].unit.player === this.currentPlayer) {
+          this.selectedCoords = [x, y];
+        }
       }
       else if (this.selectedCoords) {
         this.moveUnit(this.selectedCoords, [x, y]);
