@@ -12,9 +12,11 @@ class Cell {
 }
 
 class Unit {
-    constructor(player, _type) {
+    constructor(player, _type, movePoints) {
         this.player = player;
         this._type = _type;
+        this.movePoints = movePoints;
+        this.hasMoved = false;
     }
 }
 

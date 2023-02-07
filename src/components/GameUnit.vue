@@ -1,5 +1,6 @@
 <template>
   <img class="unitImg" :src="`/images/${image}.png`">
+  <span class="movePointsLabel" :class="{'hasMoved': hasMoved}">{{movePoints}}</span>
 </template>
 
 <script>
@@ -9,6 +10,8 @@ export default {
     width: Number,
     height: Number,
     image: String,
+    movePoints: Number,
+    hasMoved: Boolean,
   },
   data() {
     return {
@@ -30,5 +33,13 @@ img.unitImg {
   position: absolute;
   left: v-bind('cssProps.left');
   top: v-bind('cssProps.top');
+}
+span.movePointsLabel {
+  position: absolute;
+  right: 5px;
+  bottom: 2px;
+}
+span.movePointsLabel.hasMoved {
+  color: darkred;
 }
 </style>
