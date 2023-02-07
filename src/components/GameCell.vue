@@ -1,7 +1,13 @@
 <template>
   <div class="cell">
     <img class="terrainImg" :class="{'selected': selected}" :src="`/images/${terrain}.png`">
-    <GameUnit v-if="unit" :image="unit._type" :width="width" :height="height"/>
+    <GameUnit v-if="unit"
+      :image="unit._type"
+      :width="width"
+      :height="height"
+      :movePoints="unit.movePoints"
+      :has-moved="unit.hasMoved"
+    />
   </div>
 </template>
 

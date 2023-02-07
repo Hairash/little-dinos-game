@@ -1,5 +1,6 @@
 <template>
   <GameGrid :width=8 :height=6 :currentPlayer="currentPlayer"/>
+  <span class="curPlayerLabel">Current player: {{currentPlayer}}</span>
   <EndTurnBtn @click="processEndTurn"/>
 </template>
 
@@ -39,5 +40,9 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+}
+
+span.curPlayerLabel {
+  margin-right: 30px;
 }
 </style>

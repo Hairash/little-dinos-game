@@ -27,7 +27,7 @@ export default {
   props: {
     width: Number,
     height: Number,
-    currentPlayer: Number,
+    currentPlayer: Number,  // TODO: On player change reset selectedCoords
   },
   data() {
     // TODO: move field generation outside from the component, pass it as a parameter
@@ -47,6 +47,18 @@ export default {
       },
     }
   },
+  watch: {
+    currentPlayer() {
+      this.selectedCoords = null;
+      for (let x = 0; x < this.width; x++) {
+        for (let y = 0; y < this.height; y++) {
+          if (this.field[x][y].unit) {
+            this.field[x][y].unit.hasMoved = false;
+          }
+        }
+      }
+    }
+  },
   methods: {
     generateField() {
       const field = [];
@@ -59,8 +71,8 @@ export default {
           const cell = {
             terrain: terrain,
           }
-          if (r < 0.05) cell.unit = new Engine.Unit(0, 'dino1');
-          else if (r < 0.1) cell.unit = new Engine.Unit(1, 'dino2');
+          if (r < 0.05) cell.unit = new Engine.Unit(0, 'dino1', Math.round(r * 100) % 10 + 1);
+          else if (r < 0.1) cell.unit = new Engine.Unit(1, 'dino2', Math.round(r * 100) % 10 + 1);
           col.push(cell);
         }
         field.push(col);
@@ -70,22 +82,32 @@ export default {
     },
     processClick(event, x, y) {
       // console.log(x, y);
-      if (this.field[x][y].unit) {
-        if (this.field[x][y].unit.player === this.currentPlayer) {
+      const unit = this.field[x][y].unit;
+      if (unit) {
+        if (unit.player === this.currentPlayer && !unit.hasMoved) {
           this.selectedCoords = [x, y];
         }
       }
-      else if (this.selectedCoords) {
+      else if (this.selectedCoords && this.canMove(this.selectedCoords, [x, y])) {
         this.moveUnit(this.selectedCoords, [x, y]);
       }
     },
+    canMove(fromCoords, toCoords) {
+      const [x0, y0] = fromCoords;
+      const [x1, y1] = toCoords;
+      const unit = this.field[x0][y0].unit;
+      return (unit.movePoints >= (Math.abs(x0 - x1) + Math.abs(y0 - y1))) &&
+          this.field[x1][y1].terrain === Engine.TerrainTypes.EMPTY;
+    },
     moveUnit(fromCoords, toCoords) {
-      let [x0, y0] = fromCoords;
-      let [x1, y1] = toCoords;
-      let unit = this.field[x0][y0].unit;
+      const [x0, y0] = fromCoords;
+      const [x1, y1] = toCoords;
+      const unit = this.field[x0][y0].unit;
+      unit.hasMoved = true;
       delete(this.field[x0][y0].unit);
       this.field[x1][y1].unit = unit;
       this.selectedCoords = null;
+      console.log(this.field);
     },
   }
 }
