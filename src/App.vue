@@ -1,6 +1,9 @@
 <template>
   <GameGrid :width=8 :height=6 :currentPlayer="currentPlayer"/>
-  <span class="curPlayerLabel">Current player: {{currentPlayer}}</span>
+  <span class="curPlayerLabel">Current player:
+    <!-- Fix it. Make images for players -->
+    <img class="curPlayerImage" :src="`/images/dino${currentPlayer + 1}.png`">
+  </span>
   <EndTurnBtn @click="processEndTurn"/>
 </template>
 
@@ -26,7 +29,6 @@ export default {
     processEndTurn() {
       this.currentPlayer += 1;
       this.currentPlayer %= this.playersNum;
-      console.log(this.currentPlayer);
     }
   },
 }
@@ -44,5 +46,11 @@ export default {
 
 span.curPlayerLabel {
   margin-right: 30px;
+}
+
+img.curPlayerImage {
+  width: 30px;
+  height: 30px;
+  vertical-align: bottom;
 }
 </style>

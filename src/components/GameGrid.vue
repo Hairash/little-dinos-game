@@ -77,7 +77,7 @@ export default {
         }
         field.push(col);
       }
-      console.log(field);
+      // console.log(field);
       return field;
     },
     processClick(event, x, y) {
@@ -96,8 +96,72 @@ export default {
       const [x0, y0] = fromCoords;
       const [x1, y1] = toCoords;
       const unit = this.field[x0][y0].unit;
-      return (unit.movePoints >= (Math.abs(x0 - x1) + Math.abs(y0 - y1))) &&
-          this.field[x1][y1].terrain === Engine.TerrainTypes.EMPTY;
+      if (this.field[x1][y1].terrain !== Engine.TerrainTypes.EMPTY) return false;
+
+      // TODO: Refactor it. Make the function for the wave algorithm
+      const waveField = [];
+      for (let x = 0; x < this.width; x++) {
+        let col = [];
+        for (let y = 0; y < this.height; y++) {
+          if (this.field[x][y].terrain === Engine.TerrainTypes.EMPTY && !this.field[x][y].unit)
+            col.push(null);
+          else
+            col.push(-1);
+        }
+        waveField.push(col);
+      }
+
+      waveField[x0][y0] = 0;
+      const wave = [[x0, y0]];
+      while (wave.length > 0) {
+        const curCell = wave.shift();
+        const [x, y] = curCell;
+        const s = waveField[x][y] + 1;
+        if (s > unit.movePoints) return false;
+        for (const neighbour of this.getNeighbours(waveField, x, y)) {
+          const [curX, curY] = neighbour;
+          if (curX === x1 && curY === y1) return true;
+          if (waveField[curX][curY] === null || waveField[curX][curY] > s) {
+            waveField[curX][curY] = s;
+            wave.push([curX, curY]);
+          }
+        }
+      }
+      return false;
+    },
+    // showWave(wave) {
+    //   let waveS = '';
+    //   for (const el of wave) {
+    //     waveS += '(' + el + ')' + ', ';
+    //   }
+    //   console.log(waveS);
+    // },
+    // showField(field) {
+    //   const fieldT = (m => m[0].map((x,i) => m.map(x => x[i])))(field)
+    //   let fieldS = '';
+    //   for (let x = 0; x < fieldT.length; x++) {
+    //     const col = fieldT[x];
+    //     for (let y = 0; y < col.length; y++) {
+    //       let el = fieldT[x][y];
+    //       if (el === null) el = '.';
+    //       if (el === -1) el = '█'
+    //       fieldS += el + ' ';
+    //     }
+    //     fieldS += '\n'
+    //   }
+    //   console.log(fieldS);
+    // },
+    getNeighbours(field, x, y) {
+      const neighbours = [];
+      if (x > 0 && field[x - 1][y] !== -1)
+        neighbours.push([x - 1, y]);
+      if (x < field.length - 1 && field[x + 1][y] !== -1)
+        neighbours.push([x + 1, y]);
+      if (y > 0 && field[x][y - 1] !== -1)
+        neighbours.push([x, y - 1]);
+      if (y < field[0].length - 1 && field[x][y + 1] !== -1)
+        neighbours.push([x, y + 1]);
+      return neighbours;
     },
     moveUnit(fromCoords, toCoords) {
       const [x0, y0] = fromCoords;
@@ -107,7 +171,6 @@ export default {
       delete(this.field[x0][y0].unit);
       this.field[x1][y1].unit = unit;
       this.selectedCoords = null;
-      console.log(this.field);
     },
   }
 }
