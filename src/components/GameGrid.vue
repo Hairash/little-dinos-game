@@ -25,19 +25,19 @@ export default {
     GameCell,
   },
   props: {
-    width: Number,
-    height: Number,
-    currentPlayer: Number,  // TODO: On player change reset selectedCoords
+    field: Array[Array[Engine.Cell]],
+    currentPlayer: Number,
   },
   data() {
-    // TODO: move field generation outside from the component, pass it as a parameter
-    const field = this.generateField();
-    const fieldT = (m => m[0].map((x,i) => m.map(x => x[i])))(field)
-    const cellWidth = 100;
-    const cellHeight = 100;
+    const width = this.field.length;
+    const height = this.field[0].length;
+    const fieldT = (m => m[0].map((x,i) => m.map(x => x[i])))(this.field)
+    const cellWidth = 50;
+    const cellHeight = 50;
     let selectedCoords = null;
     return {
-      field,
+      width,
+      height,
       fieldT,
       cellWidth,
       cellHeight,
@@ -50,36 +50,9 @@ export default {
   watch: {
     currentPlayer() {
       this.selectedCoords = null;
-      for (let x = 0; x < this.width; x++) {
-        for (let y = 0; y < this.height; y++) {
-          if (this.field[x][y].unit) {
-            this.field[x][y].unit.hasMoved = false;
-          }
-        }
-      }
     }
   },
   methods: {
-    generateField() {
-      const field = [];
-      const terrainTypesArr = Object.values(Engine.TerrainTypes);
-      for (let x = 0; x < this.width; x++) {
-        const col = [];
-          for (let y = 0; y < this.height; y++) {
-          const r = Math.random();
-          const terrain = terrainTypesArr[Math.floor(r * terrainTypesArr.length)];
-          const cell = {
-            terrain: terrain,
-          }
-          if (r < 0.05) cell.unit = new Engine.Unit(0, 'dino1', Math.round(r * 100) % 10 + 1);
-          else if (r < 0.1) cell.unit = new Engine.Unit(1, 'dino2', Math.round(r * 100) % 10 + 1);
-          col.push(cell);
-        }
-        field.push(col);
-      }
-      // console.log(field);
-      return field;
-    },
     processClick(event, x, y) {
       // console.log(x, y);
       const unit = this.field[x][y].unit;
@@ -91,6 +64,10 @@ export default {
       else if (this.selectedCoords && this.canMove(this.selectedCoords, [x, y])) {
         this.moveUnit(this.selectedCoords, [x, y]);
       }
+    },
+    moveUnit(fromCoords, toCoords) {
+      this.$emit('moveUnit', fromCoords, toCoords);
+      this.selectedCoords = null;
     },
     canMove(fromCoords, toCoords) {
       const [x0, y0] = fromCoords;
@@ -162,15 +139,6 @@ export default {
       if (y < field[0].length - 1 && field[x][y + 1] !== -1)
         neighbours.push([x, y + 1]);
       return neighbours;
-    },
-    moveUnit(fromCoords, toCoords) {
-      const [x0, y0] = fromCoords;
-      const [x1, y1] = toCoords;
-      const unit = this.field[x0][y0].unit;
-      unit.hasMoved = true;
-      delete(this.field[x0][y0].unit);
-      this.field[x1][y1].unit = unit;
-      this.selectedCoords = null;
     },
   }
 }
