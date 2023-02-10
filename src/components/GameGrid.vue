@@ -7,6 +7,7 @@
           :height=cellHeight
           :terrain=cellData.terrain
           :unit=cellData.unit
+          :building=cellData.building
           :selected="(selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y)"
           @click="processClick($event, x, y)"
         />

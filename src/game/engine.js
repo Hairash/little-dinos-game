@@ -3,11 +3,15 @@ const TerrainTypes = {
     MOUNTAIN: 'mountain',
 }
 
+const BuildingTypes = {
+    BASE: 'base',
+}
 
 class Cell {
     constructor(terrain) {
-        this.unit = null;
         this.terrain = terrain;
+        this.building = null;
+        this.unit = null;
     }
 }
 
@@ -20,6 +24,13 @@ class Unit {
     }
 }
 
+class Building {
+    constructor(player, _type) {
+        this.player = player;
+        this._type = _type;
+    }
+}
+
 export default {
-    TerrainTypes, Cell, Unit,
+    TerrainTypes, BuildingTypes, Cell, Unit, Building,
 }
