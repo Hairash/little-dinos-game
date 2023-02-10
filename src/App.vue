@@ -49,8 +49,11 @@ export default {
           const cell = {
             terrain: terrain,
           }
-          if (r < 0.05) cell.unit = new Engine.Unit(0, 'dino1', Math.round(r * 100) % 10 + 1);
-          else if (r < 0.1) cell.unit = new Engine.Unit(1, 'dino2', Math.round(r * 100) % 10 + 1);
+          // Set units
+          if (r < 0.05) cell.unit = new Engine.Unit(0, 'dino1', Math.round(r * 1000) % 10 + 1);
+          else if (r < 0.1) cell.unit = new Engine.Unit(1, 'dino2', Math.round(r * 1000) % 10 + 1);
+          // Set buildings
+          else if (r < 0.12) cell.building = new Engine.Building(null, Engine.BuildingTypes.BASE);
           col.push(cell);
         }
         field.push(col);
@@ -65,6 +68,8 @@ export default {
       unit.hasMoved = true;
       delete(this.field[x0][y0].unit);
       this.field[x1][y1].unit = unit;
+      if (this.field[x1][y1].building) this.field[x1][y1].building.player = unit.player;
+      console.log(this.field[x1][y1]);
       this.killNeighbours(x1, y1, unit.player);
     },
     killNeighbours(x, y, player) {
@@ -92,10 +97,19 @@ export default {
     processEndTurn() {
       this.currentPlayer += 1;
       this.currentPlayer %= this.playersNum;
+      // Restore all unit's move points and produce new units
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
           if (this.field[x][y].unit) {
             this.field[x][y].unit.hasMoved = false;
+          }
+          else if (this.field[x][y].building && this.field[x][y].building.player === this.currentPlayer) {
+            this.field[x][y].unit = new Engine.Unit(
+              this.currentPlayer,
+              // TODO: make fair dict with images
+              `dino${this.currentPlayer + 1}`,
+              Math.ceil(Math.random() * 10),
+            )
           }
         }
       }
