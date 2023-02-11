@@ -19,10 +19,10 @@ export default {
     EndTurnBtn,
   },
   data() {
-    const playersNum = 2;
+    const playersNum = 4;
     let currentPlayer = 0;
-    const width = 18;
-    const height = 12;
+    const width = 28;
+    const height = 16;
     let field = null;
     return {
       playersNum,
@@ -49,14 +49,27 @@ export default {
           const cell = {
             terrain: terrain,
           }
-          // Set units
-          if (r < 0.05) cell.unit = new Engine.Unit(0, 'dino1', Math.round(r * 1000) % 10 + 1);
-          else if (r < 0.1) cell.unit = new Engine.Unit(1, 'dino2', Math.round(r * 1000) % 10 + 1);
+          // if (r < 0.05) cell.unit = new Engine.Unit(0, 'dino1', Math.round(r * 1000) % 10 + 1);
+          // else if (r < 0.1) cell.unit = new Engine.Unit(1, 'dino2', Math.round(r * 1000) % 10 + 1);
           // Set buildings
-          else if (r < 0.12) cell.building = new Engine.Building(null, Engine.BuildingTypes.BASE);
+          if (r < 0.05) cell.building = new Engine.Building(null, Engine.BuildingTypes.BASE);
           col.push(cell);
         }
         field.push(col);
+      }
+      // Set units
+      for (let player = 0; player < this.playersNum; player++) {
+        let x = Math.floor(Math.random() * this.width);
+        let y = Math.floor(Math.random() * this.height);
+        while (field[x][y].terrain === Engine.TerrainTypes.MOUNTAIN) {
+          x = Math.floor(Math.random() * this.width);
+          y = Math.floor(Math.random() * this.height);
+        }
+        field[x][y].unit = new Engine.Unit(
+          player,
+          `dino${player + 1}`,
+            5,
+        );
       }
       // console.log(field);
       return field;
