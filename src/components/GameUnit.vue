@@ -36,8 +36,15 @@ img.unitImg {
 }
 span.movePointsLabel {
   position: absolute;
-  right: 5px;
+  right: 2px;
   bottom: 2px;
+  font-weight: bold;
+  background-color: white;
+  border-radius: 6px;
+  height: 16px;
+  padding-left: 1px;
+  padding-right: 1px;
+  line-height: 18px;
 }
 span.movePointsLabel.hasMoved {
   color: darkred;
