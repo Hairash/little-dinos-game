@@ -1,6 +1,16 @@
 <template>
-  <GameGrid :field="field" :currentPlayer="currentPlayer" @moveUnit="moveUnit" />
-  <div class="infoLabel">
+  <div class="readyLabel" v-if="state === STATES.ready">
+    Player {{currentPlayer + 1}}, get ready!<br>
+    <button type="button" @click="this.state = this.STATES.play">Ready</button>
+  </div>
+  <GameGrid
+      :is-hidden="state === STATES.ready"
+      :fog-of-war-radius="fogOfWarRadius"
+      :field="field"
+      :currentPlayer="currentPlayer"
+      @moveUnit="moveUnit"
+  />
+  <div class="infoLabel" v-if="state === STATES.play">
     <span class="curPlayerLabel">Current player:
       <!-- TODO: Fix it. Make images for players (not units) -->
       <img class="curPlayerImage" :src="`/images/dino${currentPlayer + 1}.png`">
@@ -22,22 +32,36 @@ export default {
     EndTurnBtn,
   },
   data() {
-    const playersNum = 2;
-    let currentPlayer = 0;
+    const STATES = {
+      ready: 'ready',
+      play: 'play',
+    }
+    const playersNum = 3;
     const width = 26;
     const height = 16;
     const sectorsNum = 4;
+    const enableFogOfWar = true;
+    let fogOfWarRadius = 3;
+    const enableUndo = false;
+    // Initial state
+    let currentPlayer = 0;
     let field = null;
+    let state = STATES.ready;
     // TODO: Make prevState object
     let prevField = null;
     let prevPlayer = 0;
     return {
       playersNum,
-      currentPlayer,
       width,
       height,
       sectorsNum,
+      enableUndo,
+      enableFogOfWar,
+      fogOfWarRadius,
+      STATES,
+      currentPlayer,
       field,
+      state,
       prevField,
       prevPlayer,
     }
@@ -45,7 +69,7 @@ export default {
   created() {
     this.field = this.generateField();
     window.addEventListener('keyup', (e) => {
-      if (e.key === 'Enter') this.processEndTurn();
+      if (e.key === 'Enter') this.state = this.STATES.play;
     });
     window.addEventListener('contextmenu', (e) => {
       e.preventDefault();
@@ -53,7 +77,7 @@ export default {
     });
     window.addEventListener('mouseup', (e) => {
       e.preventDefault();
-      if (e.button === 1 && this.prevField) {
+      if (this.enableUndo && e.button === 1 && this.prevField) {
         // console.log('Revert');
         // console.log(this.prevField);
         // TODO: Make restore state function
@@ -173,6 +197,8 @@ export default {
       return neighbours;
     },
     processEndTurn() {
+      if (this.state === this.STATES.ready) return;
+      this.state = this.STATES.ready;
       // TODO: Make save state function
       this.prevField = structuredClone(this.field);
       this.prevPlayer = this.currentPlayer;
@@ -247,12 +273,8 @@ export default {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-
-div.infoLabel {
   color: white;
+  margin-top: 60px;
 }
 
 span.curPlayerLabel {
@@ -267,5 +289,13 @@ img.curPlayerImage {
 
 span.curActiveUnitsLabel {
   margin-right: 30px;
+}
+
+div.readyLabel {
+  position: fixed;
+  z-index: 100;
+  left: 0;
+  right: 0;
+  top: 50%;
 }
 </style>
