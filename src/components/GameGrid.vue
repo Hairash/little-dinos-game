@@ -3,12 +3,14 @@
     <div class="cell_line" v-for="(line, y) in fieldT" :key=y>
       <template v-for="(cellData, x) in line" :key=x>
         <GameCell
+          :hidden="isCellHidden(x, y)"
           :width=cellWidth
           :height=cellHeight
           :terrain=cellData.terrain
           :unit=cellData.unit
           :building=cellData.building
           :selected="(selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y)"
+          :highlighted="isCellHighlighted(x, y)"
           @click="processClick($event, x, y)"
         />
       </template>
@@ -26,6 +28,8 @@ export default {
     GameCell,
   },
   props: {
+    isHidden: Boolean,
+    fogOfWarRadius: Number,
     field: Array[Array[Engine.Cell]],
     currentPlayer: Number,
   },
@@ -36,6 +40,7 @@ export default {
     const cellWidth = 50;
     const cellHeight = 50;
     let selectedCoords = null;
+    let highlightedCoords = null;
     return {
       width,
       height,
@@ -43,6 +48,7 @@ export default {
       cellWidth,
       cellHeight,
       selectedCoords,
+      highlightedCoords,
       cssProps: {
         cellHeight: `${cellHeight}px`,
       },
@@ -60,6 +66,13 @@ export default {
       if (unit) {
         if (unit.player === this.currentPlayer && !unit.hasMoved) {
           this.selectedCoords = [x, y];
+          this.highlightedCoords = [];
+          for (let curX = 0; curX < this.width; curX++) {
+            for (let curY = 0; curY < this.height; curY++) {
+              if (curX === x && curY === y) continue;
+              if (this.canMove(this.selectedCoords, [curX, curY])) this.highlightedCoords.push([curX, curY]);
+            }
+          }
         }
       }
       else if (this.selectedCoords && this.canMove(this.selectedCoords, [x, y])) {
@@ -69,6 +82,7 @@ export default {
     moveUnit(fromCoords, toCoords) {
       this.$emit('moveUnit', fromCoords, toCoords);
       this.selectedCoords = null;
+      this.highlightedCoords = null;
     },
     canMove(fromCoords, toCoords) {
       const [x0, y0] = fromCoords;
@@ -141,12 +155,33 @@ export default {
         neighbours.push([x, y + 1]);
       return neighbours;
     },
+    isCellHidden(x, y) {
+      if (this.isHidden) return true;
+      for (let curX = Math.max(x - this.fogOfWarRadius, 0); curX <= Math.min(x + this.fogOfWarRadius, this.width - 1); curX++)
+        for (let curY = Math.max(y - this.fogOfWarRadius, 0); curY <= Math.min(y + this.fogOfWarRadius, this.height - 1); curY++)
+          if (
+              this.field[curX][curY].unit && this.field[curX][curY].unit.player === this.currentPlayer ||
+              this.field[curX][curY].building && this.field[curX][curY].building.player === this.currentPlayer
+          ) return false
+      return true
+    },
+    isCellHighlighted(x, y) {
+      if (!this.highlightedCoords) return false;
+      for (let coord of this.highlightedCoords) {
+        if (coord[0] === x && coord[1] === y) return true;
+      }
+      return false;
+    },
   }
 }
 </script>
 
 <style scoped>
-.cell_line {
+div.board {
+  color: #2c3e50;
+}
+
+div.cell_line {
   height: v-bind('cssProps.cellHeight');
 }
 

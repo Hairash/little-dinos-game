@@ -1,12 +1,15 @@
 <template>
-  <div class="cell">
-    <img class="terrainImg" :class="{'selected': selected}" :src="`/images/${terrain}.png`">
-    <GameBuilding v-if="building"
+  <div class="cell" :class="{'hidden': hidden, 'selected': selected, 'highlighted': highlighted}">
+    <img v-if="!hidden"
+      class="terrainImg"
+      :src="`/images/${terrain}.png`"
+    >
+    <GameBuilding v-if="!hidden && building"
       :image="getBuildingImg()"
       :width="width"
       :height="height"
     />
-    <GameUnit v-if="unit"
+    <GameUnit v-if="!hidden && unit"
       :image="unit._type"
       :width="width"
       :height="height"
@@ -34,6 +37,8 @@ export default {
     unit: Engine.Unit,
     building: Engine.Building,
     selected: Boolean,
+    highlighted: Boolean,
+    hidden: Boolean,
   },
   data() {
     return {
@@ -54,19 +59,25 @@ export default {
 </script>
 
 <style scoped>
-div {
+div.cell {
   position: relative;
   display: inline-block;
   border: solid 0.1px;
   width: v-bind('cssProps.width');
   height: v-bind('cssProps.height');
 }
+div.cell.hidden {
+  border: 0;
+}
 img.terrainImg {
   /*border: solid 0.1px;*/
   width: v-bind('cssProps.width');
   height: v-bind('cssProps.height');
 }
-img.terrainImg.selected {
+div.cell.selected {
   background-color: #42b983;
+}
+div.cell.highlighted {
+  background-color: rgba(66, 185, 131, 0.5);
 }
 </style>
