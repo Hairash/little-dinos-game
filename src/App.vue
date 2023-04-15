@@ -36,7 +36,7 @@ export default {
       ready: 'ready',
       play: 'play',
     }
-    const playersNum = 3;
+    const playersNum = 2;
     const width = 26;
     const height = 16;
     const sectorsNum = 4;

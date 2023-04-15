@@ -51,6 +51,7 @@ export default {
       highlightedCoords,
       cssProps: {
         cellHeight: `${cellHeight}px`,
+        lineWidth: `${(cellWidth + 2) * width}px`,
       },
     }
   },
@@ -182,6 +183,7 @@ div.board {
 }
 
 div.cell_line {
+  width: v-bind('cssProps.lineWidth');
   height: v-bind('cssProps.cellHeight');
 }
 
