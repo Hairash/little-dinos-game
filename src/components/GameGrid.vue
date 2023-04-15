@@ -1,19 +1,21 @@
 <template>
-  <div class="board">
-    <div class="cell_line" v-for="(line, y) in fieldT" :key=y>
-      <template v-for="(cellData, x) in line" :key=x>
-        <GameCell
-          :hidden="isCellHidden(x, y)"
-          :width=cellWidth
-          :height=cellHeight
-          :terrain=cellData.terrain
-          :unit=cellData.unit
-          :building=cellData.building
-          :selected="(selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y)"
-          :highlighted="isCellHighlighted(x, y)"
-          @click="processClick($event, x, y)"
-        />
-      </template>
+  <div class="game-grid-wrapper">
+    <div class="board">
+      <div class="cell_line" v-for="(line, y) in fieldT" :key=y>
+        <template v-for="(cellData, x) in line" :key=x>
+          <GameCell
+            :hidden="isCellHidden(x, y)"
+            :width=cellWidth
+            :height=cellHeight
+            :terrain=cellData.terrain
+            :unit=cellData.unit
+            :building=cellData.building
+            :selected="(selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y)"
+            :highlighted="isCellHighlighted(x, y)"
+            @click="processClick($event, x, y)"
+          />
+        </template>
+      </div>
     </div>
   </div>
 </template>
@@ -179,7 +181,19 @@ export default {
 
 <style scoped>
 div.board {
+  position: relative;
+  /* TODO: count it fair */
+  width: 1350px;
+  height: 865px;  /* Board height + bottom info label height */
   color: #2c3e50;
+}
+
+div.game-grid-wrapper {
+  overflow: auto;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
 }
 
 div.cell_line {
