@@ -1,8 +1,9 @@
 <template>
-  <div class="readyLabel" v-if="state === STATES.ready">
-    Player {{currentPlayer + 1}}, get ready!<br>
-    <button type="button" @click="this.state = this.STATES.play">Ready</button>
-  </div>
+  <FixedLabel
+    v-if="state === STATES.ready"
+    :onClickAction="() => this.state = this.STATES.play"
+    :currentPlayer="currentPlayer"
+  />
   <GameGrid
       :is-hidden="state === STATES.ready"
       :fog-of-war-radius="fogOfWarRadius"
@@ -22,6 +23,7 @@
 
 <script>
 import GameGrid from './components/GameGrid.vue'
+import FixedLabel from './components/FixedLabel.vue'
 import EndTurnBtn from './components/EndTurnBtn.vue'
 import Engine from "@/game/engine";
 
@@ -30,6 +32,7 @@ export default {
   components: {
     GameGrid,
     EndTurnBtn,
+    FixedLabel,
   },
   data() {
     const STATES = {
@@ -297,5 +300,14 @@ div.readyLabel {
   left: 0;
   right: 0;
   top: 50%;
+}
+
+div.infoLabel {
+  position: fixed;
+  padding-bottom: 28px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: black;
 }
 </style>
