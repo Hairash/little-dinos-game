@@ -20,7 +20,7 @@
 </template>
 
 <script>
-import Engine from '../game/engine'
+import Models from '../game/models'
 import GameUnit from './GameUnit'
 import GameBuilding from './GameBuilding'
 
@@ -34,8 +34,8 @@ export default {
     width: Number,
     height: Number,
     terrain: String,
-    unit: Engine.Unit,
-    building: Engine.Building,
+    unit: Models.Unit,
+    building: Models.Building,
     selected: Boolean,
     highlighted: Boolean,
     hidden: Boolean,
