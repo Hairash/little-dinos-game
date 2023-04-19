@@ -21,7 +21,7 @@
 </template>
 
 <script>
-import Engine from '../game/engine'
+import Models from '../game/models'
 import GameCell from './GameCell.vue'
 
 export default {
@@ -32,7 +32,7 @@ export default {
   props: {
     isHidden: Boolean,
     fogOfWarRadius: Number,
-    field: Array[Array[Engine.Cell]],
+    field: Array[Array[Models.Cell]],
     currentPlayer: Number,
   },
   data() {
@@ -60,6 +60,7 @@ export default {
   watch: {
     currentPlayer() {
       this.selectedCoords = null;
+      this.highlightedCoords = null;
     }
   },
   methods: {
@@ -91,14 +92,14 @@ export default {
       const [x0, y0] = fromCoords;
       const [x1, y1] = toCoords;
       const unit = this.field[x0][y0].unit;
-      if (this.field[x1][y1].terrain !== Engine.TerrainTypes.EMPTY) return false;
+      if (this.field[x1][y1].terrain !== Models.TerrainTypes.EMPTY) return false;
 
       // TODO: Refactor it. Make the function for the wave algorithm
       const waveField = [];
       for (let x = 0; x < this.width; x++) {
         let col = [];
         for (let y = 0; y < this.height; y++) {
-          if (this.field[x][y].terrain === Engine.TerrainTypes.EMPTY && !this.field[x][y].unit)
+          if (this.field[x][y].terrain === Models.TerrainTypes.EMPTY && !this.field[x][y].unit)
             col.push(null);
           else
             col.push(-1);
@@ -124,28 +125,6 @@ export default {
       }
       return false;
     },
-    // showWave(wave) {
-    //   let waveS = '';
-    //   for (const el of wave) {
-    //     waveS += '(' + el + ')' + ', ';
-    //   }
-    //   console.log(waveS);
-    // },
-    // showField(field) {
-    //   const fieldT = (m => m[0].map((x,i) => m.map(x => x[i])))(field)
-    //   let fieldS = '';
-    //   for (let x = 0; x < fieldT.length; x++) {
-    //     const col = fieldT[x];
-    //     for (let y = 0; y < col.length; y++) {
-    //       let el = fieldT[x][y];
-    //       if (el === null) el = '.';
-    //       if (el === -1) el = '█'
-    //       fieldS += el + ' ';
-    //     }
-    //     fieldS += '\n'
-    //   }
-    //   console.log(fieldS);
-    // },
     getNeighbours(field, x, y) {
       const neighbours = [];
       if (x > 0 && field[x - 1][y] !== -1)

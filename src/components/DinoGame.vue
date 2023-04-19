@@ -1,5 +1,5 @@
 <template>
-  <FixedLabel
+  <ReadyLabel
     v-if="state === STATES.ready"
     :onClickAction="() => this.state = this.STATES.play"
     :currentPlayer="currentPlayer"
@@ -11,41 +11,41 @@
       :currentPlayer="currentPlayer"
       @moveUnit="moveUnit"
   />
-  <div class="infoLabel" v-if="state === STATES.play">
-    <span class="curPlayerLabel">Current player:
-      <!-- TODO: Fix it. Make images for players (not units) -->
-      <img class="curPlayerImage" :src="`/images/dino${currentPlayer + 1}.png`">
-    </span>
-    <span class="curActiveUnitsLabel">Active units: {{ getCurrentActiveUnits() }}</span>
-    <EndTurnBtn @click="processEndTurn" />
-  </div>
+  <InfoLabel
+    v-if="state === STATES.play"
+    :currentPlayer="currentPlayer"
+    :getCurrentActiveUnits="getCurrentActiveUnits"
+    :handleEndTurnBtnClick="processEndTurn"
+  />
 </template>
 
 <script>
+import ReadyLabel from './ReadyLabel.vue'
 import GameGrid from './GameGrid.vue'
-import FixedLabel from './FixedLabel.vue'
-import EndTurnBtn from './EndTurnBtn.vue'
-import Engine from "@/game/engine";
+import InfoLabel from './InfoLabel.vue'
+import Models from "@/game/models";
+import { Engine } from "@/game/engine";
 
 export default {
   name: 'DinoGame',
   components: {
+    ReadyLabel,
     GameGrid,
-    EndTurnBtn,
-    FixedLabel,
+    InfoLabel,
   },
   data() {
     const STATES = {
       ready: 'ready',
       play: 'play',
     }
+    // Game settings
     const playersNum = 2;
     const width = 26;
     const height = 16;
     const sectorsNum = 4;
     const enableFogOfWar = true;
     let fogOfWarRadius = 3;
-    const enableUndo = false;
+    const enableUndo = true;
     // Initial state
     let currentPlayer = 0;
     let field = null;
@@ -53,6 +53,7 @@ export default {
     // TODO: Make prevState object
     let prevField = null;
     let prevPlayer = 0;
+    let engine = null;
     return {
       playersNum,
       width,
@@ -67,10 +68,17 @@ export default {
       state,
       prevField,
       prevPlayer,
+      engine,
     }
   },
   created() {
-    this.field = this.generateField();
+    this.engine = new Engine(
+      this.playersNum,
+      this.width,
+      this.height,
+      this.sectorsNum,
+    );
+    this.field = this.engine.generateField();
     window.addEventListener('keyup', (e) => {
       if (e.key === 'Enter') this.state = this.STATES.play;
     });
@@ -81,89 +89,13 @@ export default {
     window.addEventListener('mouseup', (e) => {
       e.preventDefault();
       if (this.enableUndo && e.button === 1 && this.prevField) {
-        // console.log('Revert');
-        // console.log(this.prevField);
-        // TODO: Make restore state function
-        this.currentPlayer = this.prevPlayer;
-        // TODO: What a hell?!
-        for (let x = 0; x < this.width; x++) {
-          for (let y = 0; y < this.height; y++) {
-            const prevCell = this.prevField[x][y];
-            const cell = this.field[x][y];
-            cell.unit = prevCell.unit;
-            cell.building = prevCell.building;
-          }
-        }
-        // this.field = structuredClone(this.prevField);
-        // console.log(this.field);
+        this.restoreField();
       }
     });
   },
   methods: {
-    generateField() {
-      const field = [];
-      // const terrainTypesArr = Object.values(Engine.TerrainTypes);
-      for (let x = 0; x < this.width; x++) {
-        const col = [];
-        for (let y = 0; y < this.height; y++) {
-          const r = Math.random();
-          // const terrain = terrainTypesArr[Math.floor(r * terrainTypesArr.length)];
-          // TODO: Make a fair terrain generation
-          const terrain = r > 0.75 ? Engine.TerrainTypes.MOUNTAIN : Engine.TerrainTypes.EMPTY
-          const cell = {
-            terrain: terrain,
-          }
-          // if (r < 0.05) cell.unit = new Engine.Unit(0, 'dino1', Math.round(r * 1000) % 10 + 1);
-          // else if (r < 0.1) cell.unit = new Engine.Unit(1, 'dino2', Math.round(r * 1000) % 10 + 1);
-          col.push(cell);
-        }
-        field.push(col);
-      }
-      // Set units
-      const sectors = [];
-      for (let player = 0; player < this.playersNum; player++) {
-        let x = Math.floor(Math.random() * this.width);
-        let y = Math.floor(Math.random() * this.height);
-        let [sectorX, sectorY] = this.getSector(x, y);
-        while (field[x][y].terrain === Engine.TerrainTypes.MOUNTAIN || !this.validateSector(sectorX, sectorY, sectors)) {
-          x = Math.floor(Math.random() * this.width);
-          y = Math.floor(Math.random() * this.height);
-          [sectorX, sectorY] = this.getSector(x, y);
-        }
-        // console.log(sectorX, sectorY);
-        sectors.push([sectorX, sectorY]);
-        field[x][y].building = new Engine.Building(
-          player,
-          Engine.BuildingTypes.BASE,
-        );
-        field[x][y].unit = new Engine.Unit(
-          player,
-          `dino${player + 1}`,
-          Math.ceil(Math.random() * 10),
-        );
-      }
-      // Set buildings
-      let failCtr = 0;
-      for (let building = 0; building < this.width * this.height * 0.03; building++) {
-        let x = Math.floor(Math.random() * this.width);
-        let y = Math.floor(Math.random() * this.height);
-        while (field[x][y].terrain === Engine.TerrainTypes.MOUNTAIN || !this.noBuildingsInDistance(field, x, y, 5)) {
-          x = Math.floor(Math.random() * this.width);
-          y = Math.floor(Math.random() * this.height);
-          failCtr++;
-          if (failCtr > 100) {
-            x = null;
-            y = null;
-            break;
-          }
-        }
-        if (x !== null && y !== null)
-          field[x][y].building = new Engine.Building(null, Engine.BuildingTypes.BASE);
-      }
-      // console.log(field);
-      return field;
-    },
     moveUnit(fromCoords, toCoords) {
+      // Store state before move
       this.prevField = structuredClone(this.field);
       this.prevPlayer = this.currentPlayer;
       // console.log(this.prevField);
@@ -189,13 +121,13 @@ export default {
     },
     getNeighbours(x, y) {
       const neighbours = [];
-      if (x > 0 && this.field[x - 1][y].terrain !== Engine.TerrainTypes.MOUNTAIN)
+      if (x > 0 && this.field[x - 1][y].terrain !== Models.TerrainTypes.MOUNTAIN)
         neighbours.push([x - 1, y]);
-      if (x < this.width - 1 && this.field[x + 1][y].terrain !== Engine.TerrainTypes.MOUNTAIN)
+      if (x < this.width - 1 && this.field[x + 1][y].terrain !== Models.TerrainTypes.MOUNTAIN)
         neighbours.push([x + 1, y]);
-      if (y > 0 && this.field[x][y - 1].terrain !== Engine.TerrainTypes.MOUNTAIN)
+      if (y > 0 && this.field[x][y - 1].terrain !== Models.TerrainTypes.MOUNTAIN)
         neighbours.push([x, y - 1]);
-      if (y < this.height - 1 && this.field[x][y + 1].terrain !== Engine.TerrainTypes.MOUNTAIN)
+      if (y < this.height - 1 && this.field[x][y + 1].terrain !== Models.TerrainTypes.MOUNTAIN)
         neighbours.push([x, y + 1]);
       return neighbours;
     },
@@ -214,7 +146,7 @@ export default {
             this.field[x][y].unit.hasMoved = false;
           }
           else if (this.field[x][y].building && this.field[x][y].building.player === this.currentPlayer) {
-            this.field[x][y].unit = new Engine.Unit(
+            this.field[x][y].unit = new Models.Unit(
               this.currentPlayer,
               // TODO: make fair dict with images
               `dino${this.currentPlayer + 1}`,
@@ -236,36 +168,21 @@ export default {
       }
       return ctr;
     },
-    getSector(x, y) {
-      return [Math.floor(x * this.sectorsNum / this.width), Math.floor(y * this.sectorsNum / this.height)]
-    },
-    validateSector(x, y, sectors) {
-      // console.log(x, y, sectors);
-      if (!(x === 0 || x === this.sectorsNum - 1 || y === 0 || y === this.sectorsNum - 1)) return false;
-      for (let sector of sectors) {
-        if (this.sectorsDistance([x, y], sector) < 2) return false;
-      }
-      return true;
-    },
-    sectorsDistance(s1, s2) {
-      const [s1X, s1Y] = s1;
-      const [s2X, s2Y] = s2;
-      return Math.max(Math.abs(s1X - s2X), Math.abs(s1Y - s2Y));
-    },
-    noBuildingsInDistance(field, x, y, r) {
-      console.log(x, y, r);
-      for (let curX = x - r; curX <= x + r; curX++) {
-        if (curX < 0 || curX >= this.width) continue;
-        for (let curY = y - r; curY <= y + r; curY++) {
-          if (curY < 0 || curY >= this.height) continue;
-          if (Math.abs(curX - x) + Math.abs(curY - y) > r) continue;
-          console.log(curX, curY);
-          console.log(field[curX][curY]);
-          if (field[curX][curY].building) return false;
+    restoreField() {
+      this.currentPlayer = this.prevPlayer;
+      // TODO: What a hell?!
+      for (let x = 0; x < this.width; x++) {
+        for (let y = 0; y < this.height; y++) {
+          const prevCell = this.prevField[x][y];
+          const cell = this.field[x][y];
+          // TODO: Some problem here with units and buildings - they are undefined
+          cell.unit = prevCell.unit;
+          cell.building = prevCell.building;
         }
       }
-      return true;
-    },
+      // this.field = structuredClone(this.prevField);
+      // console.log(this.field);
+    }
   },
 }
 </script>

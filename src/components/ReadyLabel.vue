@@ -11,7 +11,7 @@
 
 <script>
 export default {
-  name: 'FixedLabel',
+  name: 'ReadyLabel',
   props: {
     currentPlayer: Number,
     onClickAction: Function,
