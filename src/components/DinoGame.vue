@@ -24,7 +24,7 @@ import ReadyLabel from './ReadyLabel.vue'
 import GameGrid from './GameGrid.vue'
 import InfoLabel from './InfoLabel.vue'
 import Models from "@/game/models";
-import { Engine } from "@/game/engine";
+import { FieldEngine } from "@/game/fieldEngine";
 
 export default {
   name: 'DinoGame',
@@ -72,7 +72,7 @@ export default {
     }
   },
   created() {
-    this.engine = new Engine(
+    this.engine = new FieldEngine(
       this.playersNum,
       this.width,
       this.height,
@@ -105,31 +105,11 @@ export default {
       unit.hasMoved = true;
       delete(this.field[x0][y0].unit);
       this.field[x1][y1].unit = unit;
+      // capture the building
       if (this.field[x1][y1].building) this.field[x1][y1].building.player = unit.player;
       // console.log(this.field[x1][y1]);
-      this.killNeighbours(x1, y1, unit.player);
-    },
-    killNeighbours(x, y, player) {
-      // console.log('Kill')
-      const neighbours = this.getNeighbours(x, y);
-      for (const neighbour of neighbours) {
-        const [curX, curY] = neighbour;
-        if (this.field[curX][curY].unit && this.field[curX][curY].unit.player !== player) {
-          delete(this.field[curX][curY].unit);
-        }
-      }
-    },
-    getNeighbours(x, y) {
-      const neighbours = [];
-      if (x > 0 && this.field[x - 1][y].terrain !== Models.TerrainTypes.MOUNTAIN)
-        neighbours.push([x - 1, y]);
-      if (x < this.width - 1 && this.field[x + 1][y].terrain !== Models.TerrainTypes.MOUNTAIN)
-        neighbours.push([x + 1, y]);
-      if (y > 0 && this.field[x][y - 1].terrain !== Models.TerrainTypes.MOUNTAIN)
-        neighbours.push([x, y - 1]);
-      if (y < this.height - 1 && this.field[x][y + 1].terrain !== Models.TerrainTypes.MOUNTAIN)
-        neighbours.push([x, y + 1]);
-      return neighbours;
+      // kill neighbours
+      this.engine.killNeighbours(this.field, x1, y1, unit.player);
     },
     processEndTurn() {
       if (this.state === this.STATES.ready) return;

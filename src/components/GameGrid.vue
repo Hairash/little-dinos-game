@@ -21,8 +21,9 @@
 </template>
 
 <script>
-import Models from '../game/models'
 import GameCell from './GameCell.vue'
+import Models from '@/game/models'
+import { WaveEngine } from '@/game/waveEngine'
 
 export default {
   name: "GameGrid",
@@ -43,6 +44,7 @@ export default {
     const cellHeight = 50;
     let selectedCoords = null;
     let highlightedCoords = null;
+    const waveEngine = null;
     return {
       width,
       height,
@@ -51,11 +53,19 @@ export default {
       cellHeight,
       selectedCoords,
       highlightedCoords,
+      waveEngine,
       cssProps: {
         cellHeight: `${cellHeight}px`,
         lineWidth: `${(cellWidth + 2) * width}px`,
       },
     }
+  },
+  created() {
+    this.waveEngine = new WaveEngine(
+      this.field,
+      this.width,
+      this.height,
+    );
   },
   watch: {
     currentPlayer() {
@@ -94,48 +104,7 @@ export default {
       const unit = this.field[x0][y0].unit;
       if (this.field[x1][y1].terrain !== Models.TerrainTypes.EMPTY) return false;
 
-      // TODO: Refactor it. Make the function for the wave algorithm
-      const waveField = [];
-      for (let x = 0; x < this.width; x++) {
-        let col = [];
-        for (let y = 0; y < this.height; y++) {
-          if (this.field[x][y].terrain === Models.TerrainTypes.EMPTY && !this.field[x][y].unit)
-            col.push(null);
-          else
-            col.push(-1);
-        }
-        waveField.push(col);
-      }
-
-      waveField[x0][y0] = 0;
-      const wave = [[x0, y0]];
-      while (wave.length > 0) {
-        const curCell = wave.shift();
-        const [x, y] = curCell;
-        const s = waveField[x][y] + 1;
-        if (s > unit.movePoints) return false;
-        for (const neighbour of this.getNeighbours(waveField, x, y)) {
-          const [curX, curY] = neighbour;
-          if (curX === x1 && curY === y1) return true;
-          if (waveField[curX][curY] === null || waveField[curX][curY] > s) {
-            waveField[curX][curY] = s;
-            wave.push([curX, curY]);
-          }
-        }
-      }
-      return false;
-    },
-    getNeighbours(field, x, y) {
-      const neighbours = [];
-      if (x > 0 && field[x - 1][y] !== -1)
-        neighbours.push([x - 1, y]);
-      if (x < field.length - 1 && field[x + 1][y] !== -1)
-        neighbours.push([x + 1, y]);
-      if (y > 0 && field[x][y - 1] !== -1)
-        neighbours.push([x, y - 1]);
-      if (y < field[0].length - 1 && field[x][y + 1] !== -1)
-        neighbours.push([x, y + 1]);
-      return neighbours;
+      return this.waveEngine.canReach(x0, y0, x1, y1, unit.movePoints);
     },
     isCellHidden(x, y) {
       if (this.isHidden) return true;
