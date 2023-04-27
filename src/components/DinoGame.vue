@@ -33,15 +33,18 @@ export default {
     GameGrid,
     InfoLabel,
   },
+  props: {
+    playersNum: Number,
+    width: Number,
+    height: Number,
+  },
   data() {
     const STATES = {
       ready: 'ready',
       play: 'play',
     }
+    // TODO: Move to props
     // Game settings
-    const playersNum = 2;
-    const width = 26;
-    const height = 16;
     const sectorsNum = 4;
     const enableFogOfWar = true;
     let fogOfWarRadius = 3;
@@ -55,9 +58,6 @@ export default {
     let prevPlayer = 0;
     let engine = null;
     return {
-      playersNum,
-      width,
-      height,
       sectorsNum,
       enableUndo,
       enableFogOfWar,
