@@ -1,6 +1,6 @@
 import Models from './models'
 
-class Engine {
+class FieldEngine {
   constructor(playersNum, width, height, sectorsNum) {
     this.playersNum = playersNum;
     this.width = width;
@@ -105,8 +105,32 @@ class Engine {
     }
     return true;
   }
+
+  killNeighbours(field, x, y, player) {
+    // console.log('Kill')
+    const neighbours = this.getNeighbours(field, x, y);
+    for (const neighbour of neighbours) {
+      const [curX, curY] = neighbour;
+      if (field[curX][curY].unit && field[curX][curY].unit.player !== player) {
+        delete(field[curX][curY].unit);
+      }
+    }
+  }
+
+  getNeighbours(field, x, y) {
+    const neighbours = [];
+    if (x > 0 && field[x - 1][y].terrain !== Models.TerrainTypes.MOUNTAIN)
+      neighbours.push([x - 1, y]);
+    if (x < this.width - 1 && field[x + 1][y].terrain !== Models.TerrainTypes.MOUNTAIN)
+      neighbours.push([x + 1, y]);
+    if (y > 0 && field[x][y - 1].terrain !== Models.TerrainTypes.MOUNTAIN)
+      neighbours.push([x, y - 1]);
+    if (y < this.height - 1 && field[x][y + 1].terrain !== Models.TerrainTypes.MOUNTAIN)
+      neighbours.push([x, y + 1]);
+    return neighbours;
+  }
 }
 
 export {
-  Engine,
+  FieldEngine,
 }
