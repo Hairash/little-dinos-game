@@ -45,6 +45,8 @@ export default {
     let selectedCoords = null;
     let highlightedCoords = null;
     const waveEngine = null;
+    console.log((cellWidth + 2) * width);
+    console.log((cellHeight + 2) * height + 35);
     return {
       width,
       height,
@@ -57,6 +59,7 @@ export default {
       cssProps: {
         cellHeight: `${cellHeight}px`,
         lineWidth: `${(cellWidth + 2) * width}px`,
+        boardHeight: `${(cellHeight + 2) * height + 35}px`,  // Board height + bottom info label height
       },
     }
   },
@@ -130,9 +133,8 @@ export default {
 <style scoped>
 div.board {
   position: relative;
-  /* TODO: count it fair */
-  width: 1350px;
-  height: 865px;  /* Board height + bottom info label height */
+  width: v-bind('cssProps.lineWidth');
+  height: v-bind('cssProps.boardHeight');
   color: #2c3e50;
 }
 

@@ -5,6 +5,9 @@
   />
   <DinoGame
     v-if="state === STATES.game"
+    :playersNum = "settings.playersNum"
+    :width = "settings.width"
+    :height = "settings.height"
   />
 </template>
 
@@ -24,13 +27,17 @@ export default {
       game: 'game',
     }
     const state = STATES.setup;
+    let settings = null;
     return {
       STATES,
       state,
+      settings,
     }
   },
   methods: {
-    handleStartBtnClick() {
+    handleStartBtnClick(settings) {
+      console.log(settings);
+      this.settings = settings;
       this.state = this.STATES.game;
     },
   },
@@ -44,6 +51,5 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: white;
-  margin-top: 60px;
 }
 </style>
