@@ -8,6 +8,10 @@
     :playersNum = "settings.playersNum"
     :width = "settings.width"
     :height = "settings.height"
+    :sectorsNum = "settings.sectorsNum"
+    :enableFogOfWar = "settings.enableFogOfWar"
+    :fogOfWarRadius = "settings.fogOfWarRadius"
+    :enableUndo = "settings.enableUndo"
   />
 </template>
 

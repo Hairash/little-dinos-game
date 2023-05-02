@@ -37,37 +37,31 @@ export default {
     playersNum: Number,
     width: Number,
     height: Number,
+    sectorsNum: Number,
+    enableFogOfWar: Boolean,
+    fogOfWarRadius: Number,
+    enableUndo: Boolean,
   },
   data() {
     const STATES = {
       ready: 'ready',
       play: 'play',
     }
-    // TODO: Move to props
-    // Game settings
-    const sectorsNum = 4;
-    const enableFogOfWar = true;
-    let fogOfWarRadius = 3;
-    const enableUndo = true;
     // Initial state
     let currentPlayer = 0;
     let field = null;
     let state = STATES.ready;
     // TODO: Make prevState object
-    let prevField = null;
-    let prevPlayer = 0;
+    // let prevField = null;
+    // let prevPlayer = 0;
     let engine = null;
     return {
-      sectorsNum,
-      enableUndo,
-      enableFogOfWar,
-      fogOfWarRadius,
       STATES,
       currentPlayer,
       field,
       state,
-      prevField,
-      prevPlayer,
+      // prevField,
+      // prevPlayer,
       engine,
     }
   },
@@ -95,9 +89,10 @@ export default {
   },
   methods: {
     moveUnit(fromCoords, toCoords) {
+      console.log('moveUnit start');
       // Store state before move
-      this.prevField = structuredClone(this.field);
-      this.prevPlayer = this.currentPlayer;
+      // this.prevField = structuredClone(this.field);
+      // this.prevPlayer = this.currentPlayer;
       // console.log(this.prevField);
       const [x0, y0] = fromCoords;
       const [x1, y1] = toCoords;
@@ -110,13 +105,14 @@ export default {
       // console.log(this.field[x1][y1]);
       // kill neighbours
       this.engine.killNeighbours(this.field, x1, y1, unit.player);
+      console.log('moveUnit finish');
     },
     processEndTurn() {
       if (this.state === this.STATES.ready) return;
       this.state = this.STATES.ready;
       // TODO: Make save state function
-      this.prevField = structuredClone(this.field);
-      this.prevPlayer = this.currentPlayer;
+      // this.prevField = structuredClone(this.field);
+      // this.prevPlayer = this.currentPlayer;
       this.currentPlayer += 1;
       this.currentPlayer %= this.playersNum;
       // Restore all unit's move points and produce new units
@@ -137,6 +133,7 @@ export default {
       }
     },
     getCurrentActiveUnits() {
+      console.log('getCurrentActiveUnits start');
       let ctr = 0;
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
@@ -146,6 +143,7 @@ export default {
           }
         }
       }
+      console.log('getCurrentActiveUnits finish');
       return ctr;
     },
     restoreField() {

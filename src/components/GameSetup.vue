@@ -39,15 +39,20 @@ export default {
       },
     };
     return {
-      playersNum: 2,
-      width: 26,
-      height: 16,
+      playersNum: 4,
+      width: 50,
+      height: 50,
+      // TODO: make them changeable
+      sectorsNum: 4,
+      enableFogOfWar: true,
+      fogOfWarRadius: 3,
+      enableUndo: false,
       LIMITS,
     };
   },
   methods: {
     processClick() {
-      const settings = {
+      let settings = {
         playersNum: this.playersNum,
         width: this.width,
         height: this.height,
@@ -55,6 +60,13 @@ export default {
       if (!this.isInputValid(settings)) {
         alert('Invalid input');
         return;
+      }
+      settings = {
+        ...settings,
+        sectorsNum: this.sectorsNum,
+        enableFogOfWar: this.enableFogOfWar,
+        fogOfWarRadius: this.fogOfWarRadius,
+        enableUndo: this.enableUndo,
       }
       this.handleClick(settings);
     },
