@@ -29,7 +29,7 @@ div.fixed-label {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 1);
   color: white;
   font-size: 2rem;
   z-index: 1000;

@@ -67,7 +67,7 @@ div.cell {
   height: v-bind('cssProps.height');
 }
 div.cell.hidden {
-  border: 0;
+  border: solid 0.1px black;
 }
 img.terrainImg {
   /*border: solid 0.1px;*/
