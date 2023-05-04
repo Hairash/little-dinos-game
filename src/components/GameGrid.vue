@@ -5,8 +5,8 @@
         <template v-for="(cellData, x) in line" :key=x>
           <GameCell
             :hidden="fieldOutput[x][y].isHidden"
-            :width=cellWidth
-            :height=cellHeight
+            :width=cellSize
+            :height=cellSize
             :terrain=cellData.terrain
             :unit=cellData.unit
             :building=cellData.building
@@ -40,8 +40,7 @@ export default {
     const width = this.field.length;
     const height = this.field[0].length;
     const fieldT = (m => m[0].map((x, i) => m.map(x => x[i])))(this.field)
-    const cellWidth = 50;
-    const cellHeight = 50;
+    const cellSize = 30;
     let selectedCoords = null;
     let highlightedCoords = null;
     const waveEngine = null;
@@ -54,16 +53,15 @@ export default {
       width,
       height,
       fieldT,
-      cellWidth,
-      cellHeight,
+      cellSize,
       selectedCoords,
       highlightedCoords,
       waveEngine,
       fieldOutput,
       cssProps: {
-        cellHeight: `${cellHeight}px`,
-        lineWidth: `${(cellWidth + 2) * width}px`,
-        boardHeight: `${(cellHeight + 2) * height + 35}px`,  // Board height + bottom info label height
+        cellHeight: `${cellSize}px`,
+        lineWidth: `${(cellSize + 2) * width}px`,
+        boardHeight: `${(cellSize + 2) * height + 35}px`,  // Board height + bottom info label height
       },
     }
   },
@@ -73,6 +71,7 @@ export default {
       this.width,
       this.height,
     );
+    // this.calculateCellSize();
     this.setVisibility();
   },
   watch: {
@@ -86,6 +85,18 @@ export default {
     }
   },
   methods: {
+    calculateCellSize() {
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      const maxWidth = windowWidth / this.width;
+      const maxHeight = windowHeight / this.height;
+      this.cellSize = Math.floor(Math.min(maxWidth, maxHeight));
+      this.cssProps = {
+        cellHeight: `${this.cellSize}px`,
+        lineWidth: `${(this.cellSize + 2) * this.width}px`,
+        boardHeight: `${(this.cellSize + 2) * this.height + 35}px`,  // Board height + bottom info label height
+      };
+    },
     setVisibility() {
       // Remove all visibility
       for (let curX = 0; curX < this.width; curX++) {
@@ -274,7 +285,6 @@ div.game-grid-wrapper {
   position: relative;
   width: 100%;
   height: 100%;
-  max-height: 100%;
 }
 
 div.cell_line {

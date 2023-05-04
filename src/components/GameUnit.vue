@@ -14,12 +14,16 @@ export default {
     hasMoved: Boolean,
   },
   data() {
+    const fontSize = Math.max(this.width * 0.3, 12);
+    const labelHeight = fontSize + 2;
     return {
       cssProps: {
         width: `${this.width * 0.6}px`,
         height: `${this.height * 0.6}px`,
         left: `${this.width * 0.2}px`,
         top: `${this.height * 0.2}px`,
+        fontSize: `${fontSize}px`,
+        labelHeight: `${labelHeight}px`,
       },
     }
   },
@@ -38,15 +42,17 @@ span.movePointsLabel {
   position: absolute;
   right: 2px;
   bottom: 2px;
+  font-size: v-bind('cssProps.fontSize');
   font-weight: bold;
   background-color: white;
-  border-radius: 6px;
-  height: 16px;
+  border-radius: 4px;
+  height: v-bind('cssProps.fontSize');
   padding-left: 1px;
   padding-right: 1px;
-  line-height: 18px;
+  line-height: v-bind('cssProps.labelHeight');
 }
 span.movePointsLabel.hasMoved {
-  color: darkred;
+  background-color: darkred;
+  color: #DDDDDD;
 }
 </style>
