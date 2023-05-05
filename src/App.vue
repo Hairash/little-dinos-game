@@ -5,7 +5,7 @@
   />
   <DinoGame
     v-if="state === STATES.game"
-    :playersNum = "settings.playersNum"
+    :players = "settings.players"
     :width = "settings.width"
     :height = "settings.height"
     :sectorsNum = "settings.sectorsNum"

@@ -70,21 +70,26 @@ export default {
       this.field,
       this.width,
       this.height,
+      this.fogOfWarRadius,
     );
     // this.calculateCellSize();
     this.setVisibility();
   },
   watch: {
     currentPlayer() {
+      // TODO: Refactor it
+      this.initMove();
+    }
+  },
+  methods: {
+    initMove() {
       this.selectedCoords = null;
       this.highlightedCoords = null;
       // Remove highlights
       this.removeHighlights();
       // Add visibility
       this.setVisibility();
-    }
-  },
-  methods: {
+    },
     calculateCellSize() {
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
@@ -104,6 +109,7 @@ export default {
           this.fieldOutput[curX][curY].isHidden = true;
         }
       }
+      // TODO: Refactor. Use engine function
       const playerObjectCoords = this.getPlayerObjectCoords(this.currentPlayer);
       for (const coords of playerObjectCoords) {
         const [x, y] = coords;
