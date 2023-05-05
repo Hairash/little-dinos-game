@@ -2,10 +2,11 @@ import Models from './models'
 // import utils from './utils'
 
 class WaveEngine {
-  constructor(field, width, height) {
+  constructor(field, width, height, fogOfWarRadius) {
     this.field = field;
     this.width = width;
     this.height = height;
+    this.fogOfWarRadius = fogOfWarRadius;
   }
 
   getReachableCoordsArr(x0, y0, movePoints) {
@@ -92,6 +93,43 @@ class WaveEngine {
       neighbours.push([x, y + 1]);
     // console.log('getNeighbours finish');
     return neighbours;
+  }
+
+  getPlayerObjectCoords(player) {
+    const coords = [];
+    for (let curX = 0; curX < this.width; curX++) {
+      for (let curY = 0; curY < this.height; curY++) {
+        if (
+          (this.field[curX][curY].unit && this.field[curX][curY].unit.player === player) ||
+          (this.field[curX][curY].building && this.field[curX][curY].building.player === player)
+        )
+          coords.push([curX, curY]);
+      }
+    }
+    return coords;
+  }
+
+  areExistingCoords(curX, curY) {
+    return curX >= 0 && curX < this.width && curY >= 0 && curY < this.height;
+  }
+
+  getCurrentVisibilitySet(player) {
+    console.log('getCurrentVisibilitySet start');
+    const visibleCoordsSet = new Set();
+    const playerObjectCoords = this.getPlayerObjectCoords(player);
+    for (const coords of playerObjectCoords) {
+      const [x, y] = coords;
+      for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
+        for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
+          if (this.areExistingCoords(curX, curY)) {
+            visibleCoordsSet.add([curX, curY]);
+            // console.log(curX, curY);
+          }
+        }
+      }
+    }
+    console.log('getCurrentVisibilitySet finish');
+    return visibleCoordsSet;
   }
 }
 

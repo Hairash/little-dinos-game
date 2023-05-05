@@ -3,13 +3,15 @@
     v-if="state === STATES.ready"
     :onClickAction="() => this.state = this.STATES.play"
     :currentPlayer="currentPlayer"
+    :player="players[currentPlayer]"
   />
   <GameGrid
-      :is-hidden="state === STATES.ready"
-      :fog-of-war-radius="fogOfWarRadius"
-      :field="field"
-      :currentPlayer="currentPlayer"
-      @moveUnit="moveUnit"
+    ref="gameGridRef"
+    :is-hidden="state === STATES.ready"
+    :fog-of-war-radius="fogOfWarRadius"
+    :field="field"
+    :currentPlayer="currentPlayer"
+    @moveUnit="moveUnit"
   />
   <InfoLabel
     v-if="state === STATES.play"
@@ -25,6 +27,7 @@ import GameGrid from './GameGrid.vue'
 import InfoLabel from './InfoLabel.vue'
 import Models from "@/game/models";
 import { FieldEngine } from "@/game/fieldEngine";
+import { WaveEngine } from "@/game/waveEngine";
 
 export default {
   name: 'DinoGame',
@@ -34,7 +37,7 @@ export default {
     InfoLabel,
   },
   props: {
-    playersNum: Number,
+    players: Array,
     width: Number,
     height: Number,
     sectorsNum: Number,
@@ -48,6 +51,7 @@ export default {
       play: 'play',
     }
     // Initial state
+    const playersNum = this.players.length;
     let currentPlayer = 0;
     let field = null;
     let state = STATES.ready;
@@ -57,12 +61,14 @@ export default {
     let engine = null;
     return {
       STATES,
+      playersNum,
       currentPlayer,
       field,
       state,
       // prevField,
       // prevPlayer,
       engine,
+      unitCoordsArr: [],
     }
   },
   created() {
@@ -73,8 +79,16 @@ export default {
       this.sectorsNum,
     );
     this.field = this.engine.generateField();
+    this.waveEngine = new WaveEngine(
+      this.field,
+      this.width,
+      this.height,
+      this.fogOfWarRadius,
+    )
     window.addEventListener('keyup', (e) => {
       if (e.key === 'Enter') this.state = this.STATES.play;
+      // TODO: Add test mode
+      // if (e.key === 'Enter') this.makeBotUnitMove();
     });
     window.addEventListener('contextmenu', (e) => {
       e.preventDefault();
@@ -131,6 +145,102 @@ export default {
           }
         }
       }
+      this.startTurn();
+    },
+    startTurn() {
+      if (this.players[this.currentPlayer]._type === Models.PlayerTypes.BOT) {
+        this.makeBotMove();
+      }
+      else {
+        this.$refs.gameGridRef.initMove();
+      }
+    },
+    makeBotMove() {
+      this.state = this.STATES.play;
+      console.log(`Player ${this.currentPlayer + 1} turn start`);
+      this.unitCoordsArr = this.getCurrentUnitCoords();
+      while (this.unitCoordsArr.length > 0)
+        this.makeBotUnitMove();
+      this.processEndTurn();
+    },
+    makeBotUnitMove() {
+      if (this.players[this.currentPlayer]._type !== Models.PlayerTypes.BOT) return;
+      if (this.state !== this.STATES.play) return;
+      if (this.unitCoordsArr.length === 0) {
+        this.processEndTurn();
+        return;
+      }
+      const coords = this.unitCoordsArr.shift();
+      let visibilitySet = this.waveEngine.getCurrentVisibilitySet(this.currentPlayer);
+      visibilitySet = new Set(Array.from(visibilitySet).map(coords => JSON.stringify(coords)));
+      console.log(visibilitySet);
+
+      const [x, y] = coords;
+      const unit = this.field[x][y].unit;
+      const reachableCoordsArr = this.waveEngine.getReachableCoordsArr(x, y, unit.movePoints);
+      if (reachableCoordsArr.length === 0) return;
+      // Capture the building
+      const reachableVisibleCoordsArr = this.getReachableVisibleCoordsArr(reachableCoordsArr, visibilitySet);
+      const buildingCoords = this.findFreeBuilding(reachableVisibleCoordsArr);
+      console.log(`reachableVisibleCoordsArr: ${reachableVisibleCoordsArr}`);
+      console.log(buildingCoords);
+      if (buildingCoords) {
+        this.moveUnit(coords, buildingCoords);
+        return;
+      }
+      // Atack enemy
+      const enemyCoords = this.findEnemy(reachableVisibleCoordsArr, visibilitySet);
+      console.log(enemyCoords);
+      if (enemyCoords) {
+        this.moveUnit(coords, enemyCoords);
+        return;
+      }
+      // TODO: Move to the building
+      // TODO: Random long move, avoid own buildings
+      const idx = Math.floor(Math.random() * reachableCoordsArr.length);
+      const toCoords = reachableCoordsArr[idx];
+      console.log(coords);
+      console.log(unit.movePoints);
+      console.log(toCoords);
+      this.moveUnit(coords, toCoords);
+      // this.$refs.gameGridRef.setVisibility();
+    },
+    getReachableVisibleCoordsArr(reachableCoordsArr, visibilitySet) {
+      return reachableCoordsArr.filter(coords => visibilitySet.has(JSON.stringify(coords)));
+    },
+    findEnemy(coordsArr, visibilitySet) {
+      return coordsArr.find(([x, y]) =>
+        this.isEnemyNeighbour(visibilitySet, x, y)
+      );
+    },
+    isEnemyNeighbour(visibilitySet, x, y) {
+      const neighbours = this.engine.getNeighbours(this.field, x, y);
+      console.log(`neighbours: ${neighbours}`);
+      const res = neighbours.find(([curX, curY]) =>
+        visibilitySet.has(JSON.stringify([curX, curY])) &&
+        this.field[curX][curY].unit &&
+        this.field[curX][curY].unit.player !== this.currentPlayer
+      )
+      console.log(res);
+      return res;
+    },
+    findFreeBuilding(coordsArr) {
+      return coordsArr.find(([x, y]) =>
+        this.field[x][y].building &&
+        this.field[x][y].building.player !== this.currentPlayer
+      );
+    },
+    getCurrentUnitCoords() {
+      const coordsArr = [];
+      for (let x = 0; x < this.width; x++) {
+        for (let y = 0; y < this.height; y++) {
+          const unit = this.field[x][y].unit;
+          if (unit && unit.player === this.currentPlayer && !unit.hasMoved) {
+            coordsArr.push([x, y]);
+          }
+        }
+      }
+      return coordsArr;
     },
     getCurrentActiveUnits() {
       console.log('getCurrentActiveUnits start');

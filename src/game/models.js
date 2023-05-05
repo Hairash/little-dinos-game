@@ -7,6 +7,11 @@ const BuildingTypes = {
     BASE: 'base',
 }
 
+const PlayerTypes = {
+    HUMAN: 'human',
+    BOT: 'bot',
+}
+
 class Cell {
     constructor(terrain) {
         this.terrain = terrain;
@@ -31,10 +36,18 @@ class Building {
     }
 }
 
+class Player {
+    constructor(_type) {
+        this._type = _type;
+    }
+}
+
 export default {
     TerrainTypes,
     BuildingTypes,
+    PlayerTypes,
     Cell,
     Unit,
     Building,
+    Player,
 }

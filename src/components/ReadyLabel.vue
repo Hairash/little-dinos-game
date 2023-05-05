@@ -1,7 +1,7 @@
 <template>
   <div class="fixed-label">
     <div>
-      <div>Player {{currentPlayer + 1}}, get ready!</div>
+      <div>Player {{currentPlayer + 1}} {{ player._type }}, get ready!</div>
       <div>
         <button type="button" @click="onClickAction">Ready</button>
       </div>
@@ -10,9 +10,12 @@
 </template>
 
 <script>
+import Models from '@/game/models';
+
 export default {
   name: 'ReadyLabel',
   props: {
+    player: Models.Player,
     currentPlayer: Number,
     onClickAction: Function,
   },
