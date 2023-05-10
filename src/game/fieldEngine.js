@@ -1,5 +1,6 @@
 import Models from './models'
 
+// TODO: Make one file with all engines
 class FieldEngine {
   constructor(playersNum, width, height, sectorsNum) {
     this.playersNum = playersNum;
