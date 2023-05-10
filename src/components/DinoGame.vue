@@ -37,7 +37,8 @@ export default {
     InfoLabel,
   },
   props: {
-    players: Array,
+    humanPlayersNum: Number,
+    botPlayersNum: Number,
     width: Number,
     height: Number,
     sectorsNum: Number,
@@ -51,7 +52,11 @@ export default {
       play: 'play',
     }
     // Initial state
-    const playersNum = this.players.length;
+    const playersNum = this.humanPlayersNum + this.botPlayersNum;
+    let players = Array.from({ length: this.humanPlayersNum }, () => new Models.Player(Models.PlayerTypes.HUMAN));
+    players = players.concat(Array.from({ length: this.botPlayersNum }, () => new Models.Player(Models.PlayerTypes.BOT)));
+    console.log(players);
+    // Array.from({ length: this.playersNum }, () => new Models.Player(Models.PlayerTypes.HUMAN));
     let currentPlayer = 0;
     let field = null;
     let state = STATES.ready;
@@ -62,6 +67,7 @@ export default {
     return {
       STATES,
       playersNum,
+      players,
       currentPlayer,
       field,
       state,
@@ -85,6 +91,7 @@ export default {
       this.height,
       this.fogOfWarRadius,
     )
+    // this.players = this.createPlayers();
     window.addEventListener('keyup', (e) => {
       if (e.key === 'Enter') this.state = this.STATES.play;
       // TODO: Add test mode
@@ -102,6 +109,14 @@ export default {
     });
   },
   methods: {
+    createPlayers() {
+      console.log(this.humanPlayersNum);
+      let players = Array.from({ length: this.humanPlayersNum }, () => new Models.Player(Models.PlayerTypes.HUMAN));
+      players = players.concat(Array.from({ length: this.botPlayersNum }, () => new Models.Player(Models.PlayerTypes.BOT)));
+      console.log(players);
+      // TODO: Shuffle it
+      this.players = players;
+    },
     moveUnit(fromCoords, toCoords) {
       console.log('moveUnit start');
       // Store state before move
@@ -159,6 +174,8 @@ export default {
       this.state = this.STATES.play;
       console.log(`Player ${this.currentPlayer + 1} turn start`);
       this.unitCoordsArr = this.getCurrentUnitCoords();
+      // TODO: Choose order of moves (calculate, which move is more profitable)
+      // Ideal algorhytm
       while (this.unitCoordsArr.length > 0)
         this.makeBotUnitMove();
       this.processEndTurn();
@@ -189,6 +206,7 @@ export default {
         return;
       }
       // Atack enemy
+      // TODO: Add max kill
       const enemyCoords = this.findEnemy(reachableVisibleCoordsArr, visibilitySet);
       console.log(enemyCoords);
       if (enemyCoords) {
@@ -196,6 +214,7 @@ export default {
         return;
       }
       // TODO: Move to the building
+      // Random move
       // TODO: Random long move, avoid own buildings
       const idx = Math.floor(Math.random() * reachableCoordsArr.length);
       const toCoords = reachableCoordsArr[idx];
