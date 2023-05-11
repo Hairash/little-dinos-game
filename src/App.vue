@@ -13,6 +13,7 @@
     :enableFogOfWar = "settings.enableFogOfWar"
     :fogOfWarRadius = "settings.fogOfWarRadius"
     :enableUndo = "settings.enableUndo"
+    :loadGame = "settings.loadGame"
   />
 </template>
 
@@ -32,7 +33,7 @@ export default {
       game: 'game',
     }
     const state = STATES.setup;
-    let settings = null;
+    let settings = {};
     return {
       STATES,
       state,
