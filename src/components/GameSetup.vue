@@ -36,7 +36,12 @@
         </option>
       </select>
     </div> -->
-    <button type="button" @click="processClick">Start game</button>
+    <div>
+      <button type="button" @click="processStartBtnClick">Start game</button>
+    </div>
+    <div>
+      <button type="button" @click="processLoadBtnClick" v-if="loadGamePossible">Load previous game</button>
+    </div>
   </div>
 </template>
 
@@ -84,15 +89,21 @@ export default {
       enableFogOfWar: true,
       fogOfWarRadius: 3,
       enableUndo: false,
+      loadGame: false,
+      loadGamePossible: false,
       LIMITS,
       // PLAYER_TYPES,
     };
+  },
+  mounted() {
+    console.log('getItem');
+    this.loadGamePossible = !!localStorage.getItem('field');
   },
   methods: {
     updateHumanPlayers() {
       this.humanPlayerNames.length = this.humanPlayersNum;
     },
-    processClick() {
+    processStartBtnClick() {
       let settings = {
         width: this.width,
         height: this.height,
@@ -113,8 +124,23 @@ export default {
         enableFogOfWar: this.enableFogOfWar,
         fogOfWarRadius: this.fogOfWarRadius,
         enableUndo: this.enableUndo,
+        loadGame: this.loadGame,
       }
       this.handleClick(settings);
+    },
+    processLoadBtnClick() {
+      if (this.loadGamePossible) {
+        this.humanPlayersNum = JSON.parse(localStorage.getItem('humanPlayersNum'));
+        this.botPlayersNum = JSON.parse(localStorage.getItem('botPlayersNum'));
+        this.width = JSON.parse(localStorage.getItem('width'));
+        this.height = JSON.parse(localStorage.getItem('height'));
+        this.sectorsNum = JSON.parse(localStorage.getItem('sectorsNum'));
+        this.enableFogOfWar = JSON.parse(localStorage.getItem('enableFogOfWar'));
+        this.fogOfWarRadius = JSON.parse(localStorage.getItem('fogOfWarRadius'));
+        this.enableUndo = JSON.parse(localStorage.getItem('enableUndo'));
+        this.loadGame = true;
+      }
+      this.processStartBtnClick();
     },
     isInputValid(settings) {
       for (const key in settings) {

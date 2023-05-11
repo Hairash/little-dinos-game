@@ -45,6 +45,7 @@ export default {
     enableFogOfWar: Boolean,
     fogOfWarRadius: Number,
     enableUndo: Boolean,
+    loadGame: Boolean,
   },
   data() {
     const STATES = {
@@ -84,7 +85,7 @@ export default {
       this.height,
       this.sectorsNum,
     );
-    this.field = this.engine.generateField();
+    this.loadField();
     this.waveEngine = new WaveEngine(
       this.field,
       this.width,
@@ -160,7 +161,33 @@ export default {
           }
         }
       }
+      if (this.currentPlayer === 0)
+        this.saveState();
       this.startTurn();
+    },
+    saveState() {
+      console.log('Save state');
+      localStorage.setItem('field', JSON.stringify(this.field));
+      localStorage.setItem('humanPlayersNum', JSON.stringify(this.humanPlayersNum));
+      localStorage.setItem('botPlayersNum', JSON.stringify(this.botPlayersNum));
+      localStorage.setItem('width', JSON.stringify(this.width));
+      localStorage.setItem('height', JSON.stringify(this.height));
+      localStorage.setItem('sectorsNum', JSON.stringify(this.sectorsNum));
+      localStorage.setItem('enableFogOfWar', JSON.stringify(this.enableFogOfWar));
+      localStorage.setItem('fogOfWarRadius', JSON.stringify(this.fogOfWarRadius));
+      localStorage.setItem('enableUndo', JSON.stringify(this.enableUndo));
+    },
+    loadField() {
+      if (this.loadGame) {
+        console.log('getItem');
+        const fieldFromStorage = localStorage.getItem('field');
+        // TODO: Fix JSON.parse to avoid warning - convert units and buildings to the correct type
+        this.field = JSON.parse(fieldFromStorage);
+        console.log(this.field);
+      }
+      else {
+        this.field = this.engine.generateField();
+      }
     },
     startTurn() {
       if (this.players[this.currentPlayer]._type === Models.PlayerTypes.BOT) {
