@@ -152,12 +152,7 @@ export default {
             this.field[x][y].unit.hasMoved = false;
           }
           else if (this.field[x][y].building && this.field[x][y].building.player === this.currentPlayer) {
-            this.field[x][y].unit = new Models.Unit(
-              this.currentPlayer,
-              // TODO: make fair dict with images
-              `dino${this.currentPlayer + 1}`,
-              Math.ceil(Math.random() * 10),
-            )
+            this.field[x][y].unit = this.engine.createNewUnit(this.currentPlayer);
           }
         }
       }

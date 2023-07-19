@@ -45,11 +45,7 @@ class FieldEngine {
         player,
         Models.BuildingTypes.BASE,
       );
-      field[x][y].unit = new Models.Unit(
-        player,
-        `dino${player + 1}`,
-        Math.ceil(Math.random() * 10),
-      );
+      field[x][y].unit = this.createNewUnit(player);
     }
     // Set buildings
     let failCtr = 0;
@@ -71,6 +67,32 @@ class FieldEngine {
     }
     // console.log(field);
     return field;
+  }
+
+  createNewUnit(player) {
+    /*
+    Unit map:
+    1..10 - regular dinos
+    11 - destructor
+    */
+
+    const unitTypeNum = Math.ceil(Math.random() * 11);
+    let unitType;
+    let movePoints;
+    if (unitTypeNum >= 1 && unitTypeNum <= 10) {
+      unitType = 'dino';
+      movePoints = unitTypeNum;
+    } else if (unitTypeNum === 11) {
+      unitType = 'destructor';
+      movePoints = 1;
+    }
+
+    return new Models.Unit(
+      player,
+      // TODO: make fair dict with images
+      unitType,
+      movePoints,
+    )
   }
 
   getSector(x, y) {
