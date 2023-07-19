@@ -1,4 +1,4 @@
-import Models from './models'
+import Models from './models';
 // import utils from './utils'
 
 class WaveEngine {
@@ -135,4 +135,4 @@ class WaveEngine {
 
 export {
   WaveEngine,
-}
+};

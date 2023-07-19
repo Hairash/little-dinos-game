@@ -7,17 +7,17 @@ function showWave(wave) {
 }
 
 function showField(field) {
-  const fieldT = (m => m[0].map((x,i) => m.map(x => x[i])))(field)
+  const fieldT = (m => m[0].map((x,i) => m.map(x => x[i])))(field);
   let fieldS = '';
   for (let x = 0; x < fieldT.length; x++) {
     const col = fieldT[x];
     for (let y = 0; y < col.length; y++) {
       let el = fieldT[x][y];
       if (el === null) el = '.';
-      if (el === -1) el = '█'
+      if (el === -1) el = '█';
       fieldS += el + ' ';
     }
-    fieldS += '\n'
+    fieldS += '\n';
   }
   console.log(fieldS);
 }
@@ -25,4 +25,4 @@ function showField(field) {
 export default {
   showWave,
   showField,
-}
+};

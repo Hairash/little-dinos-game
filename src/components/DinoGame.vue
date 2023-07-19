@@ -63,8 +63,8 @@ export default {
     let field = null;
     let state = STATES.ready;
     // TODO: Make prevState object
-    // let prevField = null;
-    // let prevPlayer = 0;
+    let prevField = null;
+    let prevPlayer = 0;
     let engine = null;
     return {
       STATES,
@@ -73,8 +73,8 @@ export default {
       currentPlayer,
       field,
       state,
-      // prevField,
-      // prevPlayer,
+      prevField,
+      prevPlayer,
       engine,
       unitCoordsArr: [],
     }
@@ -122,8 +122,10 @@ export default {
     moveUnit(fromCoords, toCoords) {
       console.log('moveUnit start');
       // Store state before move
-      // this.prevField = structuredClone(this.field);
-      // this.prevPlayer = this.currentPlayer;
+      if (this.enableUndo) {
+        this.prevField = structuredClone(this.field);
+        this.prevPlayer = this.currentPlayer;
+      }
       // console.log(this.prevField);
       const [x0, y0] = fromCoords;
       const [x1, y1] = toCoords;
@@ -142,8 +144,10 @@ export default {
       if (this.state === this.STATES.ready) return;
       this.state = this.STATES.ready;
       // TODO: Make save state function
-      // this.prevField = structuredClone(this.field);
-      // this.prevPlayer = this.currentPlayer;
+      if (this.enableUndo) {
+        this.prevField = structuredClone(this.field);
+        this.prevPlayer = this.currentPlayer;
+      }
       this.currentPlayer += 1;
       this.currentPlayer %= this.playersNum;
       // Restore all unit's move points and produce new units

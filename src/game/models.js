@@ -1,16 +1,16 @@
 const TerrainTypes = {
     EMPTY: 'empty',
     MOUNTAIN: 'mountain',
-}
+};
 
 const BuildingTypes = {
     BASE: 'base',
-}
+};
 
 const PlayerTypes = {
     HUMAN: 'human',
     BOT: 'bot',
-}
+};
 
 class Cell {
     constructor(terrain) {
@@ -50,4 +50,4 @@ export default {
     Unit,
     Building,
     Player,
-}
+};

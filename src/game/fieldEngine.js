@@ -1,4 +1,4 @@
-import Models from './models'
+import Models from './models';
 
 // TODO: Make one file with all engines
 class FieldEngine {
@@ -18,10 +18,10 @@ class FieldEngine {
         const r = Math.random();
         // const terrain = terrainTypesArr[Math.floor(r * terrainTypesArr.length)];
         // TODO: Make a fair terrain generation
-        const terrain = r > 0.75 ? Models.TerrainTypes.MOUNTAIN : Models.TerrainTypes.EMPTY
+        const terrain = r > 0.75 ? Models.TerrainTypes.MOUNTAIN : Models.TerrainTypes.EMPTY;
         const cell = {
           terrain: terrain,
-        }
+        };
         // if (r < 0.05) cell.unit = new Models.Unit(0, 'dino1', Math.round(r * 1000) % 10 + 1);
         // else if (r < 0.1) cell.unit = new Models.Unit(1, 'dino2', Math.round(r * 1000) % 10 + 1);
         col.push(cell);
@@ -74,7 +74,7 @@ class FieldEngine {
   }
 
   getSector(x, y) {
-    return [Math.floor(x * this.sectorsNum / this.width), Math.floor(y * this.sectorsNum / this.height)]
+    return [Math.floor(x * this.sectorsNum / this.width), Math.floor(y * this.sectorsNum / this.height)];
   }
 
   validateSector(x, y, sectors) {
@@ -134,4 +134,4 @@ class FieldEngine {
 
 export {
   FieldEngine,
-}
+};
