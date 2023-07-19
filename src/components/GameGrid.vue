@@ -33,6 +33,7 @@ export default {
   props: {
     isHidden: Boolean,
     fogOfWarRadius: Number,
+    enableFogOfWar: Boolean,
     field: Array[Array[Models.Cell]],
     currentPlayer: Number,
   },
@@ -103,6 +104,8 @@ export default {
       };
     },
     setVisibility() {
+      if (!this.enableFogOfWar) return;
+
       // Remove all visibility
       for (let curX = 0; curX < this.width; curX++) {
         for (let curY = 0; curY < this.height; curY++) {
@@ -124,6 +127,8 @@ export default {
       }
     },
     setVisibilityForArea(x, y, r) {
+      if (!this.enableFogOfWar) return;
+
       // Make all area ivisible
       for (let curX = x - r; curX <= x + r; curX++) {
         for (let curY = y - r; curY <= y + r; curY++) {
@@ -225,6 +230,7 @@ export default {
       // Remove visibility after move
       this.setVisibilityForArea(x, y, this.fogOfWarRadius);
       // Add visibility
+      if (!this.enableFogOfWar) return;
       [x, y] = toCoords;
       for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
         for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
