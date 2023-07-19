@@ -4,7 +4,7 @@
 
 <script>
 export default {
-  name: "GameUnit",
+  name: "GameBuilding",
   props: {
     width: Number,
     height: Number,

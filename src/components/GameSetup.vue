@@ -28,6 +28,10 @@
       <label for="botPlayersNum">Number of bot players:</label>
       <input type="number" id="botPlayersNum" v-model.number="botPlayersNum" min="0" max="7" />
     </div>
+    <div>
+      <label for="fogOfWar">Enable Fog of War:</label>
+      <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar" />
+    </div>
     <!-- <div v-for="(player, index) in players" :key="index">
       <label :for="'playerType' + index">Player {{ index + 1 }}:</label>
       <select :id="'playerType' + index" v-model="players[index]._type">

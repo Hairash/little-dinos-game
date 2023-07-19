@@ -9,6 +9,7 @@
     ref="gameGridRef"
     :is-hidden="state === STATES.ready"
     :fog-of-war-radius="fogOfWarRadius"
+    :enable-fog-of-war="enableFogOfWar"
     :field="field"
     :currentPlayer="currentPlayer"
     @moveUnit="moveUnit"
@@ -215,7 +216,9 @@ export default {
         return;
       }
       const coords = this.unitCoordsArr.shift();
-      let visibilitySet = this.waveEngine.getCurrentVisibilitySet(this.currentPlayer);
+      let visibilitySet = this.enableFogOfWar ?
+        this.waveEngine.getCurrentVisibilitySet(this.currentPlayer) :
+        new Set();
       visibilitySet = new Set(Array.from(visibilitySet).map(coords => JSON.stringify(coords)));
       console.log(visibilitySet);
 
@@ -224,7 +227,10 @@ export default {
       const reachableCoordsArr = this.waveEngine.getReachableCoordsArr(x, y, unit.movePoints);
       if (reachableCoordsArr.length === 0) return;
       // Capture the building
-      const reachableVisibleCoordsArr = this.getReachableVisibleCoordsArr(reachableCoordsArr, visibilitySet);
+      const reachableVisibleCoordsArr = this.enableFogOfWar ?
+        this.getReachableVisibleCoordsArr(reachableCoordsArr, visibilitySet) :
+        reachableCoordsArr;
+
       const buildingCoords = this.findFreeBuilding(reachableVisibleCoordsArr);
       console.log(`reachableVisibleCoordsArr: ${reachableVisibleCoordsArr}`);
       console.log(buildingCoords);
@@ -263,7 +269,7 @@ export default {
       const neighbours = this.engine.getNeighbours(this.field, x, y);
       console.log(`neighbours: ${neighbours}`);
       const res = neighbours.find(([curX, curY]) =>
-        visibilitySet.has(JSON.stringify([curX, curY])) &&
+        (!this.enableFogOfWar || visibilitySet.has(JSON.stringify([curX, curY]))) &&
         this.field[curX][curY].unit &&
         this.field[curX][curY].unit.player !== this.currentPlayer
       )
