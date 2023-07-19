@@ -10,7 +10,7 @@
       :height="height"
     />
     <GameUnit v-if="!hidden && unit"
-      :image="unit._type"
+      :image="getUnitImg()"
       :width="width"
       :height="height"
       :movePoints="unit.movePoints"
@@ -49,6 +49,9 @@ export default {
     }
   },
   methods: {
+    getUnitImg() {
+      return `${this.unit._type}${this.unit.player + 1}`;
+    },
     getBuildingImg() {
       let buildingImg = this.building._type;
       if (this.building.player !== null) buildingImg += `${this.building.player + 1}`;
