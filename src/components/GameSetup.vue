@@ -29,8 +29,16 @@
       <input type="number" id="botPlayersNum" v-model.number="botPlayersNum" min="0" max="7" />
     </div>
     <div>
-      <label for="fogOfWar">Enable Fog of War:</label>
+      <label for="fogOfWar">Enable fog of war:</label>
       <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar" />
+    </div>
+    <div v-if="enableFogOfWar">
+      <label for="fogOfWarRadius">Fog of war radius:</label>
+      <input type="number" id="fogOfWarRadius" v-model.number="fogOfWarRadius" min="1" max="20"/>
+    </div>
+    <div>
+      <label for="Undo">Enable undo:</label>
+      <input type="checkbox" id="Undo" v-model="enableUndo" />
     </div>
     <!-- <div v-for="(player, index) in players" :key="index">
       <label :for="'playerType' + index">Player {{ index + 1 }}:</label>
