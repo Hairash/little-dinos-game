@@ -40,13 +40,13 @@ export default {
   data() {
     const width = this.field.length;
     const height = this.field[0].length;
-    const fieldT = (m => m[0].map((x, i) => m.map(x => x[i])))(this.field)
+    const fieldT = (m => m[0].map((x, i) => m.map(x => x[i])))(this.field);
     const cellSize = 30;
     let selectedCoords = null;
     let highlightedCoords = null;
     const waveEngine = null;
-    const fieldOutput = Array.from({ length: height }, () =>
-      Array.from({ length: width }, () => ({ isHidden: false, isHighlighted: false }))
+    const fieldOutput = Array.from({ length: width }, () =>
+      Array.from({ length: height }, () => ({ isHidden: false, isHighlighted: false }))
     );
     // console.log((cellWidth + 2) * width);
     // console.log((cellHeight + 2) * height + 35);
