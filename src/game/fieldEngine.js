@@ -93,14 +93,14 @@ class FieldEngine {
   }
 
   noBuildingsInDistance(field, x, y, r) {
-    console.log(x, y, r);
+    // console.log(x, y, r);
     for (let curX = x - r; curX <= x + r; curX++) {
       if (curX < 0 || curX >= this.width) continue;
       for (let curY = y - r; curY <= y + r; curY++) {
         if (curY < 0 || curY >= this.height) continue;
         if (Math.abs(curX - x) + Math.abs(curY - y) > r) continue;
-        console.log(curX, curY);
-        console.log(field[curX][curY]);
+        // console.log(curX, curY);
+        // console.log(field[curX][curY]);
         if (field[curX][curY].building) return false;
       }
     }
