@@ -1,12 +1,17 @@
 <template>
-  <img class="unitImg" :src="`/images/${image}.png`">
-  <span class="movePointsLabel" :class="{'hasMoved': hasMoved}">{{movePoints}}</span>
+  <div class="unitContainer" :class="{'hidden': hidden}">
+    <img class="unitImg" :src="`/images/${image}.png`">
+    <span class="movePointsLabel" :class="{'hasMoved': hasMoved}">{{movePoints}}</span>
+  </div>
 </template>
 
 <script>
+import { TRANSITION_DELAY } from '../game/const'
+
 export default {
   name: "GameUnit",
   props: {
+    hidden: Boolean,
     width: Number,
     height: Number,
     image: String,
@@ -24,6 +29,7 @@ export default {
         top: `${this.height * 0.2}px`,
         fontSize: `${fontSize}px`,
         labelHeight: `${labelHeight}px`,
+        transitionOpacity: `opacity ${TRANSITION_DELAY}s`,
       },
     }
   },
@@ -31,6 +37,12 @@ export default {
 </script>
 
 <style scoped>
+div.unitContainer {
+  transition: v-bind('cssProps.transitionOpacity');
+}
+div.unitContainer.hidden {
+  opacity: 0;
+}
 img.unitImg {
   width: v-bind('cssProps.width');
   height: v-bind('cssProps.height');
