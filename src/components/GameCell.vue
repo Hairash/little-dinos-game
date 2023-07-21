@@ -1,15 +1,18 @@
 <template>
   <div class="cell" :class="{'hidden': hidden, 'selected': selected, 'highlighted': highlighted}">
-    <img v-if="!hidden"
+    <img
       class="terrainImg"
+      :class="{'hidden': hidden}"
       :src="`/images/${terrain}.png`"
     >
-    <GameBuilding v-if="!hidden && building"
+    <GameBuilding v-if="building"
+      :hidden="hidden"
       :image="getBuildingImg()"
       :width="width"
       :height="height"
     />
-    <GameUnit v-if="!hidden && unit"
+    <GameUnit v-if="unit"
+      :hidden="hidden"
       :image="unit._type"
       :width="width"
       :height="height"
@@ -23,6 +26,7 @@
 import Models from '../game/models'
 import GameUnit from './GameUnit'
 import GameBuilding from './GameBuilding'
+import { TRANSITION_DELAY } from '../game/const'
 
 export default {
   name: "GameCell",
@@ -45,6 +49,8 @@ export default {
       cssProps: {
         width: `${this.width}px`,
         height: `${this.height}px`,
+        transitionBorder: `border ${TRANSITION_DELAY}s`,
+        transitionOpacity: `opacity ${TRANSITION_DELAY}s`,
       },
     }
   },
@@ -65,14 +71,18 @@ div.cell {
   border: solid 0.1px;
   width: v-bind('cssProps.width');
   height: v-bind('cssProps.height');
+  transition: v-bind('cssProps.transitionBorder');
 }
 div.cell.hidden {
   border: solid 0.1px black;
 }
 img.terrainImg {
-  /*border: solid 0.1px;*/
   width: v-bind('cssProps.width');
   height: v-bind('cssProps.height');
+  transition: v-bind('cssProps.transitionOpacity');
+}
+img.terrainImg.hidden {
+  opacity: 0;
 }
 div.cell.selected {
   background-color: #42b983;

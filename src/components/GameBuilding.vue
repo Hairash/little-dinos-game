@@ -1,11 +1,14 @@
 <template>
-  <img class="buildingImg" :src="`/images/${image}.png`">
+  <img class="buildingImg" :class="{'hidden': hidden}" :src="`/images/${image}.png`">
 </template>
 
 <script>
+import { TRANSITION_DELAY } from '../game/const'
+
 export default {
   name: "GameBuilding",
   props: {
+    hidden: Boolean,
     width: Number,
     height: Number,
     image: String,
@@ -17,6 +20,7 @@ export default {
         height: `${this.height * 0.9}px`,
         left: `${this.width * 0.05}px`,
         top: `${this.height * 0.05}px`,
+        transitionOpacity: `opacity ${TRANSITION_DELAY}s`,
       },
     }
   },
@@ -30,5 +34,9 @@ img.buildingImg {
   position: absolute;
   left: v-bind('cssProps.left');
   top: v-bind('cssProps.top');
+  transition: v-bind('cssProps.transitionOpacity');
+}
+img.buildingImg.hidden {
+  opacity: 0;
 }
 </style>
