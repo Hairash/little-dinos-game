@@ -43,7 +43,6 @@ export default {
     const fieldT = (m => m[0].map((x, i) => m.map(x => x[i])))(this.field);
     const cellSize = 30;
     let selectedCoords = null;
-    let highlightedCoords = null;
     const waveEngine = null;
     const fieldOutput = Array.from({ length: width }, () =>
       Array.from({ length: height }, () => ({ isHidden: false, isHighlighted: false }))
@@ -56,7 +55,6 @@ export default {
       fieldT,
       cellSize,
       selectedCoords,
-      highlightedCoords,
       waveEngine,
       fieldOutput,
       cssProps: {
@@ -79,51 +77,45 @@ export default {
   watch: {
     currentPlayer() {
       // TODO: Refactor it
-      this.initMove();
+      this.initTurn();
     }
   },
   methods: {
-    initMove() {
+    initTurn() {
       this.selectedCoords = null;
-      this.highlightedCoords = null;
-      // Remove highlights
       this.removeHighlights();
-      // Add visibility
       this.setVisibility();
     },
-    calculateCellSize() {
-      const windowWidth = window.innerWidth;
-      const windowHeight = window.innerHeight;
-      const maxWidth = windowWidth / this.width;
-      const maxHeight = windowHeight / this.height;
-      this.cellSize = Math.floor(Math.min(maxWidth, maxHeight));
-      this.cssProps = {
-        cellHeight: `${this.cellSize}px`,
-        lineWidth: `${(this.cellSize + 2) * this.width}px`,
-        boardHeight: `${(this.cellSize + 2) * this.height + 35}px`,  // Board height + bottom info label height
-      };
-    },
-    setVisibility() {
+    // Needed for scale in future
+    // calculateCellSize() {
+    //   const windowWidth = window.innerWidth;
+    //   const windowHeight = window.innerHeight;
+    //   const maxWidth = windowWidth / this.width;
+    //   const maxHeight = windowHeight / this.height;
+    //   this.cellSize = Math.floor(Math.min(maxWidth, maxHeight));
+    //   this.cssProps = {
+    //     cellHeight: `${this.cellSize}px`,
+    //     lineWidth: `${(this.cellSize + 2) * this.width}px`,
+    //     boardHeight: `${(this.cellSize + 2) * this.height + 35}px`,  // Board height + bottom info label height
+    //   };
+    // },
+    removeVisibility() {
       if (!this.enableFogOfWar) return;
-
-      // Remove all visibility
       for (let curX = 0; curX < this.width; curX++) {
         for (let curY = 0; curY < this.height; curY++) {
           this.fieldOutput[curX][curY].isHidden = true;
         }
       }
-      // TODO: Refactor. Use engine function
-      const playerObjectCoords = this.getPlayerObjectCoords(this.currentPlayer);
-      for (const coords of playerObjectCoords) {
-        const [x, y] = coords;
-        for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
-          for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
-            if (this.areExistingCoords(curX, curY)) {
-              this.fieldOutput[curX][curY].isHidden = false;
-              // console.log(curX, curY);
-            }
-          }
-        }
+    },
+    setVisibility() {
+      if (!this.enableFogOfWar) return;
+
+      this.removeVisibility();
+      const visibilitySet = this.waveEngine.getCurrentVisibilitySet(this.currentPlayer);
+      for (const coords of visibilitySet) {
+        const curX = coords[0];
+        const curY = coords[1];
+        this.fieldOutput[curX][curY].isHidden = false;
       }
     },
     setVisibilityForArea(x, y, r) {
@@ -141,29 +133,105 @@ export default {
       for (let curX = x - r - this.fogOfWarRadius; curX <= x + r + this.fogOfWarRadius; curX++) {
           for (let curY = y - r - this.fogOfWarRadius; curY <= y + r + this.fogOfWarRadius; curY++) {
             if (this.areExistingCoords(curX, curY) && this.isVisibleObj(curX, curY)) {
-              this.makeVisibleAreaAroundCoords(curX, curY);
+              this.addVisibilityForArea(curX, curY);
             }
           }
         }
     },
-    makeVisibleAreaAroundCoords(x, y) {
+    addVisibilityForArea(x, y) {
+      if (!this.enableFogOfWar) return;
       for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
         for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
           if (this.areExistingCoords(curX, curY))
-          // curX >= x - r && curX < x + r && curY >= y - r && curY < y + r
             this.fieldOutput[curX][curY].isHidden = false;
         }
       }
     },
+
+    removeHighlights() {
+      for (let curX = 0; curX < this.width; curX++) {
+        for (let curY = 0; curY < this.height; curY++) {
+          this.fieldOutput[curX][curY].isHighlighted = false;
+        }
+      }
+    },
+    removeHighlightsForArea(x, y, radius) {
+      for (let curX = x - radius; curX <= x + radius; curX++) {
+        for (let curY = y - radius; curY <= y + radius; curY++) {
+          if (this.areExistingCoords(curX, curY))
+            this.fieldOutput[curX][curY].isHighlighted = false;
+        }
+      }
+    },
+    setHighlights(x, y, radius) {
+      console.log('setHighlights start');
+      const highlightedCoordsArr = this.waveEngine.getReachableCoordsArr(x, y, radius);
+
+      for (const coords of highlightedCoordsArr) {
+        const curX = coords[0];
+        const curY = coords[1];
+        this.fieldOutput[curX][curY].isHighlighted = true;
+      }
+      console.log('setHighlights finish');
+    },
+
+    processClick(event, x, y) {
+      console.log('processClick start');
+      // console.log(x, y);
+      const unit = this.field[x][y].unit;
+      if (unit) {
+        if (unit.player === this.currentPlayer && !unit.hasMoved) {
+          this.selectedCoords = [x, y];
+          this.removeHighlights();
+          this.setHighlights(x, y, unit.movePoints);
+        }
+      }
+      else if (this.selectedCoords && this.canMove(this.selectedCoords, [x, y])) {
+        this.moveUnit(this.selectedCoords, [x, y]);
+      }
+      console.log('processClick finish');
+    },
+
+    moveUnit(fromCoords, toCoords) {
+      let [x, y] = fromCoords;
+      // Save movePoints value for the futher remove highlights
+      const movePoints = this.field[x][y].unit.movePoints;
+      // Call game moveUnit function to change field
+      this.$emit('moveUnit', fromCoords, toCoords);
+      this.selectedCoords = null;
+      this.removeHighlightsForArea(x, y, movePoints);
+      // Recalculate visibility in area unit moved from
+      this.setVisibilityForArea(x, y, this.fogOfWarRadius);
+      // Add visibility to area unit moved to
+      [x, y] = toCoords;
+      this.addVisibilityForArea(x, y);
+    },
+
+    
+    // TODO: move to engine
+    canMove(fromCoords, toCoords) {
+      console.log('canMove start');
+      const [x0, y0] = fromCoords;
+      const [x1, y1] = toCoords;
+      const unit = this.field[x0][y0].unit;
+      if (this.field[x1][y1].terrain !== Models.TerrainTypes.EMPTY) return false;
+
+      const res = this.waveEngine.canReach(x0, y0, x1, y1, unit.movePoints);
+      console.log('canMove finish');
+      return res;
+    },
+    // TODO: Move to engine
     isVisibleObj(x, y) {
       return (
         this.field[x][y].unit && this.field[x][y].unit.player === this.currentPlayer ||
         this.field[x][y].building && this.field[x][y].building.player === this.currentPlayer
       )
     },
+    // TODO: Move to utils
     areExistingCoords(curX, curY) {
       return curX >= 0 && curX < this.width && curY >= 0 && curY < this.height;
     },
+    // TODO: move to engine
     getPlayerObjectCoords(player) {
       const coords = [];
       for (let curX = 0; curX < this.width; curX++) {
@@ -176,109 +244,6 @@ export default {
         }
       }
       return coords;
-    },
-    removeHighlights() {
-      for (let curX = 0; curX < this.width; curX++) {
-        for (let curY = 0; curY < this.height; curY++) {
-          this.fieldOutput[curX][curY].isHighlighted = false;
-        }
-      }
-    },
-    processClick(event, x, y) {
-      console.log('processClick start');
-      // console.log(x, y);
-      const unit = this.field[x][y].unit;
-      if (unit) {
-        if (unit.player === this.currentPlayer && !unit.hasMoved) {
-          this.selectedCoords = [x, y];
-          this.highlightedCoords = [];
-          this.removeHighlights();
-          // TODO: refactor it
-          this.setHiglightedCoords(x, y);
-          for (let curX = x - unit.movePoints; curX <= x + unit.movePoints; curX++) {
-            for (let curY = y - unit.movePoints; curY <= y + unit.movePoints; curY++) {
-              if (this.areExistingCoords(curX, curY) && this.isCellHighlighted(curX, curY))
-                this.fieldOutput[curX][curY].isHighlighted = true;
-            }
-          }
-        }
-      }
-      else if (this.selectedCoords && this.canMove(this.selectedCoords, [x, y])) {
-        this.moveUnit(this.selectedCoords, [x, y]);
-      }
-      console.log('processClick finish');
-    },
-    setHiglightedCoords(x, y) {
-      console.log('setHiglightedCoords start');
-      const unit = this.field[x][y].unit;
-      this.highlightedCoords = this.waveEngine.getReachableCoordsArr(x, y, unit.movePoints);
-      console.log('setHiglightedCoords finish');
-    },
-    moveUnit(fromCoords, toCoords) {
-      let [x, y] = fromCoords;
-      const movePoints = this.field[x][y].unit.movePoints;
-      this.$emit('moveUnit', fromCoords, toCoords);
-      this.selectedCoords = null;
-      this.highlightedCoords = null;
-      // Remove highlights
-      for (let curX = x - movePoints; curX <= x + movePoints; curX++) {
-        for (let curY = y - movePoints; curY <= y + movePoints; curY++) {
-          if (this.areExistingCoords(curX, curY))
-            this.fieldOutput[curX][curY].isHighlighted = false;
-        }
-      }
-      // Remove visibility after move
-      this.setVisibilityForArea(x, y, this.fogOfWarRadius);
-      // Add visibility
-      if (!this.enableFogOfWar) return;
-      [x, y] = toCoords;
-      for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
-        for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
-          if (this.areExistingCoords(curX, curY))
-            this.fieldOutput[curX][curY].isHidden = false;
-        }
-      }
-    },
-    canMove(fromCoords, toCoords) {
-      console.log('canMove start');
-      const [x0, y0] = fromCoords;
-      const [x1, y1] = toCoords;
-      const unit = this.field[x0][y0].unit;
-      if (this.field[x1][y1].terrain !== Models.TerrainTypes.EMPTY) return false;
-
-      const res = this.waveEngine.canReach(x0, y0, x1, y1, unit.movePoints);
-      console.log('canMove finish');
-      return res;
-    },
-    isCellHidden(x, y) {
-      console.log('isCellHidden start');
-      if (this.isHidden) return true;
-      for (let curX = Math.max(x - this.fogOfWarRadius, 0); curX <= Math.min(x + this.fogOfWarRadius, this.width - 1); curX++)
-        for (let curY = Math.max(y - this.fogOfWarRadius, 0); curY <= Math.min(y + this.fogOfWarRadius, this.height - 1); curY++)
-          if (
-              this.field[curX][curY].unit && this.field[curX][curY].unit.player === this.currentPlayer ||
-              this.field[curX][curY].building && this.field[curX][curY].building.player === this.currentPlayer
-          ) {
-            console.log('isCellHidden finish');
-            return false;
-          }
-      console.log('isCellHidden finish');
-      return true
-    },
-    isCellHighlighted(x, y) {
-      console.log('isCellHighlighted start');
-      if (!this.highlightedCoords) {
-        console.log('isCellHighlighted finish');
-        return false;
-      }
-      for (let coord of this.highlightedCoords) {
-        if (coord[0] === x && coord[1] === y) {
-          console.log('isCellHighlighted finish');
-          return true;
-        }
-      }
-      console.log('isCellHighlighted finish');
-      return false;
     },
   }
 }
