@@ -49,33 +49,23 @@ export default {
     loadGame: Boolean,
   },
   data() {
+    // Game states
     const STATES = {
       ready: 'ready',
       play: 'play',
     }
-    // Initial state
     const playersNum = this.humanPlayersNum + this.botPlayersNum;
-    let players = Array.from({ length: this.humanPlayersNum }, () => new Models.Player(Models.PlayerTypes.HUMAN));
-    players = players.concat(Array.from({ length: this.botPlayersNum }, () => new Models.Player(Models.PlayerTypes.BOT)));
-    console.log(players);
-    // Array.from({ length: this.playersNum }, () => new Models.Player(Models.PlayerTypes.HUMAN));
-    let currentPlayer = 0;
-    let field = null;
-    let state = STATES.ready;
-    // TODO: Make prevState object
-    let prevField = null;
-    let prevPlayer = 0;
-    let engine = null;
     return {
       STATES,
       playersNum,
-      players,
-      currentPlayer,
-      field,
-      state,
-      prevField,
-      prevPlayer,
-      engine,
+      players: [],
+      currentPlayer: 0,
+      field: null,
+      state: STATES.ready,
+      // TODO: Make prevState object
+      prevField: null,
+      prevPlayer: 0,
+      engine: null,
       unitCoordsArr: [],
     }
   },
@@ -93,7 +83,8 @@ export default {
       this.height,
       this.fogOfWarRadius,
     )
-    // this.players = this.createPlayers();
+    this.createPlayers();
+    console.log(this.players);
     window.addEventListener('keyup', (e) => {
       if (e.key === 'Enter') this.state = this.STATES.play;
       // TODO: Add test mode
