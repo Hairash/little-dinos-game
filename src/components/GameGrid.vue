@@ -24,6 +24,7 @@
 import GameCell from './GameCell.vue'
 import Models from '@/game/models'
 import { WaveEngine } from '@/game/waveEngine'
+import { FieldEngine } from '@/game/fieldEngine'
 
 export default {
   name: "GameGrid",
@@ -56,6 +57,7 @@ export default {
       cellSize,
       selectedCoords,
       waveEngine,
+      fieldEngine: null,
       fieldOutput,
       cssProps: {
         cellHeight: `${cellSize}px`,
@@ -71,12 +73,17 @@ export default {
       this.height,
       this.fogOfWarRadius,
     );
+    this.fieldEngine = new FieldEngine(
+      this.field,
+      this.width,
+      this.height,
+      this.fogOfWarRadius,
+    );
     // this.calculateCellSize();
     this.setVisibility();
   },
   watch: {
     currentPlayer() {
-      // TODO: Refactor it
       this.initTurn();
     }
   },
@@ -86,19 +93,47 @@ export default {
       this.removeHighlights();
       this.setVisibility();
     },
-    // Needed for scale in future
-    // calculateCellSize() {
-    //   const windowWidth = window.innerWidth;
-    //   const windowHeight = window.innerHeight;
-    //   const maxWidth = windowWidth / this.width;
-    //   const maxHeight = windowHeight / this.height;
-    //   this.cellSize = Math.floor(Math.min(maxWidth, maxHeight));
-    //   this.cssProps = {
-    //     cellHeight: `${this.cellSize}px`,
-    //     lineWidth: `${(this.cellSize + 2) * this.width}px`,
-    //     boardHeight: `${(this.cellSize + 2) * this.height + 35}px`,  // Board height + bottom info label height
-    //   };
-    // },
+    processClick(event, x, y) {
+      console.log('processClick start');
+      // console.log(x, y);
+      const unit = this.field[x][y].unit;
+      if (unit) {
+        if (unit.player === this.currentPlayer && !unit.hasMoved) {
+          this.selectedCoords = [x, y];
+          this.removeHighlights();
+          this.setHighlights(x, y, unit.movePoints);
+        }
+      }
+      else if (this.selectedCoords && this.waveEngine.canMove(this.selectedCoords, [x, y])) {
+        this.moveUnit(this.selectedCoords, [x, y]);
+      }
+      console.log('processClick finish');
+    },
+    moveUnit(fromCoords, toCoords) {
+      let [x, y] = fromCoords;
+      // Save movePoints value for the futher remove highlights
+      const movePoints = this.field[x][y].unit.movePoints;
+      // Call game moveUnit function to change field
+      this.$emit('moveUnit', fromCoords, toCoords);
+      this.selectedCoords = null;
+      this.removeHighlightsForArea(x, y, movePoints);
+      // Recalculate visibility in area unit moved from
+      this.setVisibilityForArea(x, y, this.fogOfWarRadius);
+      // Add visibility to area unit moved to
+      [x, y] = toCoords;
+      this.addVisibilityForCoords(x, y);
+    },
+
+    // Visibility helpers
+    addVisibilityForCoords(x, y) {
+      if (!this.enableFogOfWar) return;
+      for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
+        for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
+          if (this.fieldEngine.areExistingCoords(curX, curY))
+            this.fieldOutput[curX][curY].isHidden = false;
+        }
+      }
+    },
     removeVisibility() {
       if (!this.enableFogOfWar) return;
       for (let curX = 0; curX < this.width; curX++) {
@@ -111,7 +146,7 @@ export default {
       if (!this.enableFogOfWar) return;
 
       this.removeVisibility();
-      const visibilitySet = this.waveEngine.getCurrentVisibilitySet(this.currentPlayer);
+      const visibilitySet = this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer);
       for (const coords of visibilitySet) {
         const curX = coords[0];
         const curY = coords[1];
@@ -124,7 +159,7 @@ export default {
       // Make all area ivisible
       for (let curX = x - r; curX <= x + r; curX++) {
         for (let curY = y - r; curY <= y + r; curY++) {
-          if (this.areExistingCoords(curX, curY)) {
+          if (this.fieldEngine.areExistingCoords(curX, curY)) {
             this.fieldOutput[curX][curY].isHidden = true;
           }
         }
@@ -132,22 +167,17 @@ export default {
       // Set visibility
       for (let curX = x - r - this.fogOfWarRadius; curX <= x + r + this.fogOfWarRadius; curX++) {
           for (let curY = y - r - this.fogOfWarRadius; curY <= y + r + this.fogOfWarRadius; curY++) {
-            if (this.areExistingCoords(curX, curY) && this.isVisibleObj(curX, curY)) {
-              this.addVisibilityForArea(curX, curY);
+            if (
+              this.fieldEngine.areExistingCoords(curX, curY) &&
+              this.fieldEngine.isVisibleObj(curX, curY, this.currentPlayer)
+            ) {
+              this.addVisibilityForCoords(curX, curY);
             }
           }
         }
     },
-    addVisibilityForArea(x, y) {
-      if (!this.enableFogOfWar) return;
-      for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
-        for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
-          if (this.areExistingCoords(curX, curY))
-            this.fieldOutput[curX][curY].isHidden = false;
-        }
-      }
-    },
 
+    // Highlights helpers
     removeHighlights() {
       for (let curX = 0; curX < this.width; curX++) {
         for (let curY = 0; curY < this.height; curY++) {
@@ -158,7 +188,7 @@ export default {
     removeHighlightsForArea(x, y, radius) {
       for (let curX = x - radius; curX <= x + radius; curX++) {
         for (let curY = y - radius; curY <= y + radius; curY++) {
-          if (this.areExistingCoords(curX, curY))
+          if (this.fieldEngine.areExistingCoords(curX, curY))
             this.fieldOutput[curX][curY].isHighlighted = false;
         }
       }
@@ -173,77 +203,6 @@ export default {
         this.fieldOutput[curX][curY].isHighlighted = true;
       }
       console.log('setHighlights finish');
-    },
-
-    processClick(event, x, y) {
-      console.log('processClick start');
-      // console.log(x, y);
-      const unit = this.field[x][y].unit;
-      if (unit) {
-        if (unit.player === this.currentPlayer && !unit.hasMoved) {
-          this.selectedCoords = [x, y];
-          this.removeHighlights();
-          this.setHighlights(x, y, unit.movePoints);
-        }
-      }
-      else if (this.selectedCoords && this.canMove(this.selectedCoords, [x, y])) {
-        this.moveUnit(this.selectedCoords, [x, y]);
-      }
-      console.log('processClick finish');
-    },
-
-    moveUnit(fromCoords, toCoords) {
-      let [x, y] = fromCoords;
-      // Save movePoints value for the futher remove highlights
-      const movePoints = this.field[x][y].unit.movePoints;
-      // Call game moveUnit function to change field
-      this.$emit('moveUnit', fromCoords, toCoords);
-      this.selectedCoords = null;
-      this.removeHighlightsForArea(x, y, movePoints);
-      // Recalculate visibility in area unit moved from
-      this.setVisibilityForArea(x, y, this.fogOfWarRadius);
-      // Add visibility to area unit moved to
-      [x, y] = toCoords;
-      this.addVisibilityForArea(x, y);
-    },
-
-    
-    // TODO: move to engine
-    canMove(fromCoords, toCoords) {
-      console.log('canMove start');
-      const [x0, y0] = fromCoords;
-      const [x1, y1] = toCoords;
-      const unit = this.field[x0][y0].unit;
-      if (this.field[x1][y1].terrain !== Models.TerrainTypes.EMPTY) return false;
-
-      const res = this.waveEngine.canReach(x0, y0, x1, y1, unit.movePoints);
-      console.log('canMove finish');
-      return res;
-    },
-    // TODO: Move to engine
-    isVisibleObj(x, y) {
-      return (
-        this.field[x][y].unit && this.field[x][y].unit.player === this.currentPlayer ||
-        this.field[x][y].building && this.field[x][y].building.player === this.currentPlayer
-      )
-    },
-    // TODO: Move to utils
-    areExistingCoords(curX, curY) {
-      return curX >= 0 && curX < this.width && curY >= 0 && curY < this.height;
-    },
-    // TODO: move to engine
-    getPlayerObjectCoords(player) {
-      const coords = [];
-      for (let curX = 0; curX < this.width; curX++) {
-        for (let curY = 0; curY < this.height; curY++) {
-          if (
-            (this.field[curX][curY].unit && this.field[curX][curY].unit.player === player) ||
-            (this.field[curX][curY].building && this.field[curX][curY].building.player === player)
-          )
-            coords.push([curX, curY]);
-        }
-      }
-      return coords;
     },
   }
 }

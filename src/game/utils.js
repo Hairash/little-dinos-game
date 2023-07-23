@@ -1,3 +1,5 @@
+// Here we have functions useful for developer
+
 function showWave(wave) {
   let waveS = '';
   for (const el of wave) {

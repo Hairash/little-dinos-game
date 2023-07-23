@@ -3,7 +3,7 @@
 </template>
 
 <script>
-import { TRANSITION_DELAY } from '../game/const'
+import { TRANSITION_DELAY } from '@/game/const'
 
 export default {
   name: "GameBuilding",
