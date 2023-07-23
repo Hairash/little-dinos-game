@@ -23,10 +23,10 @@
 </template>
 
 <script>
-import Models from '../game/models'
 import GameUnit from './GameUnit'
 import GameBuilding from './GameBuilding'
-import { TRANSITION_DELAY } from '../game/const'
+import Models from '@/game/models'
+import { TRANSITION_DELAY } from '@/game/const'
 
 export default {
   name: "GameCell",

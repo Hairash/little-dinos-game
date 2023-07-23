@@ -1,6 +1,6 @@
 import Models from './models';
-// import utils from './utils'
 
+// Contains functions related to path finding
 class WaveEngine {
   constructor(field, width, height, fogOfWarRadius) {
     this.field = field;
@@ -9,7 +9,7 @@ class WaveEngine {
     this.fogOfWarRadius = fogOfWarRadius;
   }
 
-  getReachableCoordsArr(x0, y0, movePoints) {
+  getWaveField() {
     const waveField = [];
     for (let x = 0; x < this.width; x++) {
       let col = [];
@@ -21,7 +21,11 @@ class WaveEngine {
       }
       waveField.push(col);
     }
+    return waveField;
+  }
 
+  getReachableCoordsArr(x0, y0, movePoints) {
+    const waveField = this.getWaveField();
     const reachableCoordsArr = [];
     waveField[x0][y0] = 0;
     const wave = [[x0, y0]];
@@ -45,19 +49,21 @@ class WaveEngine {
     return reachableCoordsArr;
   }
 
-  canReach(x0, y0, x1, y1, movePoints) {
-    const waveField = [];
-    for (let x = 0; x < this.width; x++) {
-      let col = [];
-      for (let y = 0; y < this.height; y++) {
-        if (this.field[x][y].terrain === Models.TerrainTypes.EMPTY && !this.field[x][y].unit)
-          col.push(null);
-        else
-          col.push(-1);
-      }
-      waveField.push(col);
-    }
+  // Check if unit can move from fromCoords to toCoords
+  canMove(fromCoords, toCoords) {
+    console.log('canMove start');
+    const [x0, y0] = fromCoords;
+    const [x1, y1] = toCoords;
+    const unit = this.field[x0][y0].unit;
+    if (this.field[x1][y1].terrain !== Models.TerrainTypes.EMPTY) return false;
 
+    const res = this.canReach(x0, y0, x1, y1, unit.movePoints);
+    console.log('canMove finish');
+    return res;
+  }
+
+  canReach(x0, y0, x1, y1, movePoints) {
+    const waveField = this.getWaveField();
     waveField[x0][y0] = 0;
     const wave = [[x0, y0]];
     while (wave.length > 0) {
@@ -93,43 +99,6 @@ class WaveEngine {
       neighbours.push([x, y + 1]);
     // console.log('getNeighbours finish');
     return neighbours;
-  }
-
-  getPlayerObjectCoords(player) {
-    const coords = [];
-    for (let curX = 0; curX < this.width; curX++) {
-      for (let curY = 0; curY < this.height; curY++) {
-        if (
-          (this.field[curX][curY].unit && this.field[curX][curY].unit.player === player) ||
-          (this.field[curX][curY].building && this.field[curX][curY].building.player === player)
-        )
-          coords.push([curX, curY]);
-      }
-    }
-    return coords;
-  }
-
-  areExistingCoords(curX, curY) {
-    return curX >= 0 && curX < this.width && curY >= 0 && curY < this.height;
-  }
-
-  getCurrentVisibilitySet(player) {
-    console.log('getCurrentVisibilitySet start');
-    const visibleCoordsSet = new Set();
-    const playerObjectCoords = this.getPlayerObjectCoords(player);
-    for (const coords of playerObjectCoords) {
-      const [x, y] = coords;
-      for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
-        for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
-          if (this.areExistingCoords(curX, curY)) {
-            visibleCoordsSet.add([curX, curY]);
-            // console.log(curX, curY);
-          }
-        }
-      }
-    }
-    console.log('getCurrentVisibilitySet finish');
-    return visibleCoordsSet;
   }
 }
 

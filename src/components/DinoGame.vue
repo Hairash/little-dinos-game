@@ -27,8 +27,9 @@ import ReadyLabel from './ReadyLabel.vue'
 import GameGrid from './GameGrid.vue'
 import InfoLabel from './InfoLabel.vue'
 import Models from "@/game/models";
-import { FieldEngine } from "@/game/fieldEngine";
+import { CreateFieldEngine } from "@/game/createFieldEngine";
 import { WaveEngine } from "@/game/waveEngine";
+import { FieldEngine } from "@/game/fieldEngine";
 
 export default {
   name: 'DinoGame',
@@ -70,7 +71,7 @@ export default {
     }
   },
   created() {
-    this.engine = new FieldEngine(
+    this.engine = new CreateFieldEngine(
       this.playersNum,
       this.width,
       this.height,
@@ -83,6 +84,13 @@ export default {
       this.height,
       this.fogOfWarRadius,
     )
+    // TODO: fieldEngine is not in data - better to investigate how it works
+    this.fieldEngine = new FieldEngine(
+      this.field,
+      this.width,
+      this.height,
+      this.fogOfWarRadius,
+    );
     this.createPlayers();
     console.log(this.players);
     window.addEventListener('keyup', (e) => {
@@ -190,7 +198,8 @@ export default {
         this.makeBotMove();
       }
       else {
-        this.$refs.gameGridRef.initMove();
+        // TODO: Refactor it
+        this.$refs.gameGridRef.initTurn();
       }
     },
     makeBotMove() {
@@ -204,6 +213,7 @@ export default {
       this.processEndTurn();
     },
     makeBotUnitMove() {
+      console.log('makeBotUnitMove');
       if (this.players[this.currentPlayer]._type !== Models.PlayerTypes.BOT) return;
       if (this.state !== this.STATES.play) return;
       if (this.unitCoordsArr.length === 0) {
@@ -212,7 +222,7 @@ export default {
       }
       const coords = this.unitCoordsArr.shift();
       let visibilitySet = this.enableFogOfWar ?
-        this.waveEngine.getCurrentVisibilitySet(this.currentPlayer) :
+        this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer) :
         new Set();
       visibilitySet = new Set(Array.from(visibilitySet).map(coords => JSON.stringify(coords)));
       console.log(visibilitySet);
