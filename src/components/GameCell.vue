@@ -68,13 +68,13 @@ export default {
 div.cell {
   position: relative;
   display: inline-block;
-  border: solid 0.1px;
+  border: solid 1px;
   width: v-bind('cssProps.width');
   height: v-bind('cssProps.height');
   transition: v-bind('cssProps.transitionBorder');
 }
 div.cell.hidden {
-  border: solid 0.1px black;
+  border: solid 1px black;
 }
 img.terrainImg {
   width: v-bind('cssProps.width');

@@ -333,34 +333,4 @@ export default {
 </script>
 
 <style>
-span.curPlayerLabel {
-  margin-right: 30px;
-}
-
-img.curPlayerImage {
-  width: 30px;
-  height: 30px;
-  vertical-align: bottom;
-}
-
-span.curActiveUnitsLabel {
-  margin-right: 30px;
-}
-
-div.readyLabel {
-  position: fixed;
-  z-index: 100;
-  left: 0;
-  right: 0;
-  top: 50%;
-}
-
-div.infoLabel {
-  position: fixed;
-  padding-bottom: 28px;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: black;
-}
 </style>
