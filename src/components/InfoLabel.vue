@@ -21,4 +21,26 @@ export default {
 </script>
 
 <style>
+div.infoLabel {
+  position: fixed;
+  padding-bottom: 6px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: black;
+}
+
+span.curPlayerLabel {
+  margin-right: 30px;
+}
+
+img.curPlayerImage {
+  width: 30px;
+  height: 30px;
+  vertical-align: bottom;
+}
+
+span.curActiveUnitsLabel {
+  margin-right: 30px;
+}
 </style>

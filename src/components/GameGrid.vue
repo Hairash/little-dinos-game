@@ -1,20 +1,22 @@
 <template>
   <div class="game-grid-wrapper">
-    <div class="board">
-      <div class="cell_line" v-for="(line, y) in fieldT" :key=y>
-        <template v-for="(cellData, x) in line" :key=x>
-          <GameCell
-            :hidden="fieldOutput[x][y].isHidden"
-            :width=cellSize
-            :height=cellSize
-            :terrain=cellData.terrain
-            :unit=cellData.unit
-            :building=cellData.building
-            :selected="(selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y)"
-            :highlighted="fieldOutput[x][y].isHighlighted"
-            @click="processClick($event, x, y)"
-          />
-        </template>
+    <div class="board-wrapper">
+      <div class="board">
+        <div class="cell_line" v-for="(line, y) in fieldT" :key=y>
+          <template v-for="(cellData, x) in line" :key=x>
+            <GameCell
+              :hidden="fieldOutput[x][y].isHidden"
+              :width=cellSize
+              :height=cellSize
+              :terrain=cellData.terrain
+              :unit=cellData.unit
+              :building=cellData.building
+              :selected="(selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y)"
+              :highlighted="fieldOutput[x][y].isHighlighted"
+              @click="processClick($event, x, y)"
+            />
+          </template>
+        </div>
       </div>
     </div>
   </div>
@@ -25,6 +27,7 @@ import GameCell from './GameCell.vue'
 import Models from '@/game/models'
 import { WaveEngine } from '@/game/waveEngine'
 import { FieldEngine } from '@/game/fieldEngine'
+import { CELL_SIZE } from '@/game/const'
 
 export default {
   name: "GameGrid",
@@ -42,7 +45,6 @@ export default {
     const width = this.field.length;
     const height = this.field[0].length;
     const fieldT = (m => m[0].map((x, i) => m.map(x => x[i])))(this.field);
-    const cellSize = 30;
     let selectedCoords = null;
     const waveEngine = null;
     const fieldOutput = Array.from({ length: width }, () =>
@@ -54,15 +56,18 @@ export default {
       width,
       height,
       fieldT,
-      cellSize,
+      cellSize: CELL_SIZE,
       selectedCoords,
       waveEngine,
       fieldEngine: null,
       fieldOutput,
       cssProps: {
-        cellHeight: `${cellSize}px`,
-        lineWidth: `${(cellSize + 2) * width}px`,
-        boardHeight: `${(cellSize + 2) * height + 35}px`,  // Board height + bottom info label height
+        lineHeight: `${CELL_SIZE + 2}px`,
+        lineWidth: `${(CELL_SIZE + 2) * width}px`,
+        boardHeight: `${(CELL_SIZE + 2) * height}px`,
+        boardWidth: `${(CELL_SIZE + 2) * width}px`,
+        boardWrapperHeight: `${(CELL_SIZE + 2) * height + 35}px`,
+        boardWrapperWidth: `${(CELL_SIZE + 2) * width}px`,
       },
     }
   },
@@ -209,13 +214,6 @@ export default {
 </script>
 
 <style scoped>
-div.board {
-  position: relative;
-  width: v-bind('cssProps.lineWidth');
-  height: v-bind('cssProps.boardHeight');
-  color: #2c3e50;
-}
-
 div.game-grid-wrapper {
   overflow: auto;
   position: relative;
@@ -223,9 +221,23 @@ div.game-grid-wrapper {
   height: 100%;
 }
 
+div.board {
+  position: relative;
+  width: v-bind('cssProps.boardWidth');
+  height: v-bind('cssProps.boardHeight');
+  border: solid 2px;
+  color: #2c3e50;
+}
+
+div.board-wrapper {
+  position: relative;
+  width: v-bind('cssProps.boardWrapperWidth');
+  height: v-bind('cssProps.boardWrapperHeight');
+}
+
 div.cell_line {
   width: v-bind('cssProps.lineWidth');
-  height: v-bind('cssProps.cellHeight');
+  height: v-bind('cssProps.lineHeight');
 }
 
 </style>
