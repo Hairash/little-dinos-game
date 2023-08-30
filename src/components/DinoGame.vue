@@ -30,6 +30,9 @@ import Models from "@/game/models";
 import { CreateFieldEngine } from "@/game/createFieldEngine";
 import { WaveEngine } from "@/game/waveEngine";
 import { FieldEngine } from "@/game/fieldEngine";
+import { BotEngine } from "@/game/botEngine";
+import { createPlayers } from "@/game/helpers";
+import { FIELDS_TO_SAVE } from "@/game/const";
 
 export default {
   name: 'DinoGame',
@@ -66,7 +69,6 @@ export default {
       // TODO: Make prevState object
       prevField: null,
       prevPlayer: 0,
-      engine: null,
       unitCoordsArr: [],
     }
   },
@@ -77,7 +79,7 @@ export default {
       this.height,
       this.sectorsNum,
     );
-    this.loadField();
+    this.loadFieldOrGenerateNewField();
     this.waveEngine = new WaveEngine(
       this.field,
       this.width,
@@ -91,7 +93,15 @@ export default {
       this.height,
       this.fogOfWarRadius,
     );
-    this.createPlayers();
+    this.botEngine = new BotEngine(
+      this.field,
+      this.width,
+      this.height,
+      this.enableFogOfWar,
+      this.fieldEngine,
+      this.waveEngine,
+    );
+    this.players = createPlayers(this.humanPlayersNum, this.botPlayersNum);
     console.log(this.players);
     window.addEventListener('keyup', (e) => {
       if (e.key === 'Enter') this.state = this.STATES.play;
@@ -110,14 +120,7 @@ export default {
     });
   },
   methods: {
-    createPlayers() {
-      console.log(this.humanPlayersNum);
-      let players = Array.from({ length: this.humanPlayersNum }, () => new Models.Player(Models.PlayerTypes.HUMAN));
-      players = players.concat(Array.from({ length: this.botPlayersNum }, () => new Models.Player(Models.PlayerTypes.BOT)));
-      console.log(players);
-      // TODO: Shuffle it
-      this.players = players;
-    },
+    // Change field after unit's move
     moveUnit(fromCoords, toCoords) {
       console.log('moveUnit start');
       // Store state before move
@@ -169,21 +172,16 @@ export default {
         this.saveState();
       this.startTurn();
     },
+
+    // Save-load operations
     saveState() {
       console.log('Save state');
-      localStorage.setItem('field', JSON.stringify(this.field));
-      localStorage.setItem('humanPlayersNum', JSON.stringify(this.humanPlayersNum));
-      localStorage.setItem('botPlayersNum', JSON.stringify(this.botPlayersNum));
-      localStorage.setItem('width', JSON.stringify(this.width));
-      localStorage.setItem('height', JSON.stringify(this.height));
-      localStorage.setItem('sectorsNum', JSON.stringify(this.sectorsNum));
-      localStorage.setItem('enableFogOfWar', JSON.stringify(this.enableFogOfWar));
-      localStorage.setItem('fogOfWarRadius', JSON.stringify(this.fogOfWarRadius));
-      localStorage.setItem('enableUndo', JSON.stringify(this.enableUndo));
+      for (const field of FIELDS_TO_SAVE) {
+        localStorage.setItem(field, JSON.stringify(this[field]));
+      }
     },
-    loadField() {
+    loadFieldOrGenerateNewField() {
       if (this.loadGame) {
-        console.log('getItem');
         const fieldFromStorage = localStorage.getItem('field');
         // TODO: Fix JSON.parse to avoid warning - convert units and buildings to the correct type
         this.field = JSON.parse(fieldFromStorage);
@@ -193,6 +191,8 @@ export default {
         this.field = this.engine.generateField();
       }
     },
+
+    // Process bot moves
     startTurn() {
       if (this.players[this.currentPlayer]._type === Models.PlayerTypes.BOT) {
         this.makeBotMove();
@@ -202,91 +202,17 @@ export default {
         this.$refs.gameGridRef.initTurn();
       }
     },
+    // Bot move high level logic
     makeBotMove() {
       this.state = this.STATES.play;
       console.log(`Player ${this.currentPlayer + 1} turn start`);
       this.unitCoordsArr = this.getCurrentUnitCoords();
-      // TODO: Choose order of moves (calculate, which move is more profitable)
-      // Ideal algorhytm
+      // TODO: Choose order of moves (calculate, which move is more profitable) - ideal algorhytm
       while (this.unitCoordsArr.length > 0)
-        this.makeBotUnitMove();
+        this.botEngine.makeBotUnitMove(this.unitCoordsArr, this.currentPlayer, this.moveUnit);
       this.processEndTurn();
     },
-    makeBotUnitMove() {
-      console.log('makeBotUnitMove');
-      if (this.players[this.currentPlayer]._type !== Models.PlayerTypes.BOT) return;
-      if (this.state !== this.STATES.play) return;
-      if (this.unitCoordsArr.length === 0) {
-        this.processEndTurn();
-        return;
-      }
-      const coords = this.unitCoordsArr.shift();
-      let visibilitySet = this.enableFogOfWar ?
-        this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer) :
-        new Set();
-      visibilitySet = new Set(Array.from(visibilitySet).map(coords => JSON.stringify(coords)));
-      console.log(visibilitySet);
 
-      const [x, y] = coords;
-      const unit = this.field[x][y].unit;
-      const reachableCoordsArr = this.waveEngine.getReachableCoordsArr(x, y, unit.movePoints);
-      if (reachableCoordsArr.length === 0) return;
-      // Capture the building
-      const reachableVisibleCoordsArr = this.enableFogOfWar ?
-        this.getReachableVisibleCoordsArr(reachableCoordsArr, visibilitySet) :
-        reachableCoordsArr;
-
-      const buildingCoords = this.findFreeBuilding(reachableVisibleCoordsArr);
-      console.log(`reachableVisibleCoordsArr: ${reachableVisibleCoordsArr}`);
-      console.log(buildingCoords);
-      if (buildingCoords) {
-        this.moveUnit(coords, buildingCoords);
-        return;
-      }
-      // Atack enemy
-      // TODO: Add max kill
-      const enemyCoords = this.findEnemy(reachableVisibleCoordsArr, visibilitySet);
-      console.log(enemyCoords);
-      if (enemyCoords) {
-        this.moveUnit(coords, enemyCoords);
-        return;
-      }
-      // TODO: Move to the building
-      // Random move
-      // TODO: Random long move, avoid own buildings
-      const idx = Math.floor(Math.random() * reachableCoordsArr.length);
-      const toCoords = reachableCoordsArr[idx];
-      console.log(coords);
-      console.log(unit.movePoints);
-      console.log(toCoords);
-      this.moveUnit(coords, toCoords);
-      // this.$refs.gameGridRef.setVisibility();
-    },
-    getReachableVisibleCoordsArr(reachableCoordsArr, visibilitySet) {
-      return reachableCoordsArr.filter(coords => visibilitySet.has(JSON.stringify(coords)));
-    },
-    findEnemy(coordsArr, visibilitySet) {
-      return coordsArr.find(([x, y]) =>
-        this.isEnemyNeighbour(visibilitySet, x, y)
-      );
-    },
-    isEnemyNeighbour(visibilitySet, x, y) {
-      const neighbours = this.engine.getNeighbours(this.field, x, y);
-      console.log(`neighbours: ${neighbours}`);
-      const res = neighbours.find(([curX, curY]) =>
-        (!this.enableFogOfWar || visibilitySet.has(JSON.stringify([curX, curY]))) &&
-        this.field[curX][curY].unit &&
-        this.field[curX][curY].unit.player !== this.currentPlayer
-      )
-      console.log(res);
-      return res;
-    },
-    findFreeBuilding(coordsArr) {
-      return coordsArr.find(([x, y]) =>
-        this.field[x][y].building &&
-        this.field[x][y].building.player !== this.currentPlayer
-      );
-    },
     getCurrentUnitCoords() {
       const coordsArr = [];
       for (let x = 0; x < this.width; x++) {
