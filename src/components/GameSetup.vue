@@ -59,6 +59,7 @@
 
 <script>
 // import Models from '@/game/models';
+import { FIELDS_TO_SAVE } from '@/game/const';
 
 export default {
   name: 'GameSetup',
@@ -142,14 +143,11 @@ export default {
     },
     processLoadBtnClick() {
       if (this.loadGamePossible) {
-        this.humanPlayersNum = JSON.parse(localStorage.getItem('humanPlayersNum'));
-        this.botPlayersNum = JSON.parse(localStorage.getItem('botPlayersNum'));
-        this.width = JSON.parse(localStorage.getItem('width'));
-        this.height = JSON.parse(localStorage.getItem('height'));
-        this.sectorsNum = JSON.parse(localStorage.getItem('sectorsNum'));
-        this.enableFogOfWar = JSON.parse(localStorage.getItem('enableFogOfWar'));
-        this.fogOfWarRadius = JSON.parse(localStorage.getItem('fogOfWarRadius'));
-        this.enableUndo = JSON.parse(localStorage.getItem('enableUndo'));
+        const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field');
+        for (const field of fieldsToLoad) {
+          localStorage.getItem(field, JSON.stringify(this[field]));
+          this[field] = JSON.parse(localStorage.getItem(field));
+        }
         this.loadGame = true;
       }
       this.processStartBtnClick();

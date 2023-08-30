@@ -45,8 +45,6 @@ export default {
     const width = this.field.length;
     const height = this.field[0].length;
     const fieldT = (m => m[0].map((x, i) => m.map(x => x[i])))(this.field);
-    let selectedCoords = null;
-    const waveEngine = null;
     const fieldOutput = Array.from({ length: width }, () =>
       Array.from({ length: height }, () => ({ isHidden: false, isHighlighted: false }))
     );
@@ -57,8 +55,8 @@ export default {
       height,
       fieldT,
       cellSize: CELL_SIZE,
-      selectedCoords,
-      waveEngine,
+      selectedCoords: null,
+      waveEngine: null,
       fieldEngine: null,
       fieldOutput,
       cssProps: {
