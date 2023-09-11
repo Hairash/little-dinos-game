@@ -1,5 +1,4 @@
 import Models from '@/game/models';
-import { getNeighbours } from '@/game/helpers';
 
 // Responsible for generating new field
 // Cannot use other engines, because other engines require field, but it doesn't exist when this 
@@ -107,17 +106,6 @@ class CreateFieldEngine {
       }
     }
     return true;
-  }
-
-  killNeighbours(field, x, y, player) {
-    // console.log('Kill')
-    const neighbours = getNeighbours(field, this.width, this.height, x, y);
-    for (const neighbour of neighbours) {
-      const [curX, curY] = neighbour;
-      if (field[curX][curY].unit && field[curX][curY].unit.player !== player) {
-        delete(field[curX][curY].unit);
-      }
-    }
   }
 }
 

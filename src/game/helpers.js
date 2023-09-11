@@ -7,10 +7,8 @@ export function copy2dArray(arr) {
 
 // Create array with players
 export function createPlayers(humanPlayersNum, botPlayersNum) {
-  console.log(humanPlayersNum);
   let players = Array.from({ length: humanPlayersNum }, () => new Models.Player(Models.PlayerTypes.HUMAN));
   players = players.concat(Array.from({ length: botPlayersNum }, () => new Models.Player(Models.PlayerTypes.BOT)));
-  console.log(players);
   // TODO: Shuffle it
   return players;
 }

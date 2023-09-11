@@ -17,6 +17,7 @@
   <InfoLabel
     v-if="state === STATES.play"
     :currentPlayer="currentPlayer"
+    :player="this.players[currentPlayer]"
     :getCurrentActiveUnits="getCurrentActiveUnits"
     :handleEndTurnBtnClick="processEndTurn"
   />
@@ -86,12 +87,13 @@ export default {
       this.height,
       this.fogOfWarRadius,
     )
-    // TODO: fieldEngine is not in data - better to investigate how it works
+    this.loadOrCreatePlayers();
     this.fieldEngine = new FieldEngine(
       this.field,
       this.width,
       this.height,
       this.fogOfWarRadius,
+      this.players,
     );
     this.botEngine = new BotEngine(
       this.field,
@@ -101,7 +103,6 @@ export default {
       this.fieldEngine,
       this.waveEngine,
     );
-    this.players = createPlayers(this.humanPlayersNum, this.botPlayersNum);
     console.log(this.players);
     window.addEventListener('keyup', (e) => {
       if (e.key === 'Enter') this.state = this.STATES.play;
@@ -139,7 +140,7 @@ export default {
       if (this.field[x1][y1].building) this.field[x1][y1].building.player = unit.player;
       // console.log(this.field[x1][y1]);
       // kill neighbours
-      this.engine.killNeighbours(this.field, x1, y1, unit.player);
+      this.fieldEngine.killNeighbours(this.field, x1, y1, unit.player);
       console.log('moveUnit finish');
     },
     processEndTurn() {
@@ -191,6 +192,16 @@ export default {
         this.field = this.engine.generateField();
       }
     },
+    loadOrCreatePlayers() {
+      if (this.loadGame) {
+        const players = localStorage.getItem('players');
+        // TODO: Fix JSON.parse to avoid warning - convert units and buildings to the correct type
+        this.players = JSON.parse(players);
+      }
+      else {
+        this.players = createPlayers(this.humanPlayersNum, this.botPlayersNum);
+      }
+    },
 
     // Process bot moves
     startTurn() {
@@ -200,6 +211,9 @@ export default {
       else {
         // TODO: Refactor it
         this.$refs.gameGridRef.initTurn();
+        if (this.humanPlayersNum === 1) {
+          this.state = this.STATES.play;
+        }
       }
     },
     // Bot move high level logic
@@ -227,17 +241,21 @@ export default {
     },
     getCurrentActiveUnits() {
       console.log('getCurrentActiveUnits start');
-      let ctr = 0;
+      let totalCtr = 0;
+      let activeCtr = 0;
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
           const unit = this.field[x][y].unit;
-          if (unit && unit.player === this.currentPlayer && !unit.hasMoved) {
-            ctr++;
+          if (unit && unit.player === this.currentPlayer) {
+            totalCtr++;
+            if (!unit.hasMoved) {
+              activeCtr++;
+            }
           }
         }
       }
       console.log('getCurrentActiveUnits finish');
-      return ctr;
+      return [activeCtr, totalCtr];
     },
     restoreField() {
       this.currentPlayer = this.prevPlayer;

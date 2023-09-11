@@ -4,6 +4,7 @@ export const FIELDS_TO_SAVE = [
   'field',
   'humanPlayersNum',
   'botPlayersNum',
+  'players',
   'width',
   'height',
   'sectorsNum',

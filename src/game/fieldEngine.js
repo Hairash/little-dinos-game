@@ -1,10 +1,13 @@
 // Helpers related to field
+import {getNeighbours} from "@/game/helpers";
+
 export class FieldEngine {
-  constructor(field, width, height, fogOfWarRadius) {
+  constructor(field, width, height, fogOfWarRadius, players) {
     this.field = field;
     this.width = width;
     this.height = height;
     this.fogOfWarRadius = fogOfWarRadius;
+    this.players = players;
   }
 
   getCurrentVisibilitySet(player) {
@@ -49,5 +52,18 @@ export class FieldEngine {
       this.field[x][y].unit && this.field[x][y].unit.player === currentPlayer ||
       this.field[x][y].building && this.field[x][y].building.player === currentPlayer
     );
+  }
+
+  killNeighbours(field, x, y, curPlayer) {
+    // console.log('Kill')
+    const neighbours = getNeighbours(field, this.width, this.height, x, y);
+    for (const neighbour of neighbours) {
+      const [curX, curY] = neighbour;
+      if (field[curX][curY].unit && field[curX][curY].unit.player !== curPlayer) {
+        this.players[curPlayer].killed++;
+        this.players[field[curX][curY].unit.player].lost++;
+        delete(field[curX][curY].unit);
+      }
+    }
   }
 }

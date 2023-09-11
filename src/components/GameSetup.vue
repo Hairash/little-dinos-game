@@ -9,11 +9,11 @@
     <h1>Game setup</h1>
     <div>
       <label for="width">Width:</label>
-      <input type="number" id="width" v-model.number="width" min="5" max="50" />
+      <input type="number" id="width" class="inputNumber" v-model.number="width" min="5" max="50" />
     </div>
     <div>
       <label for="height">Height:</label>
-      <input type="number" id="height" v-model.number="height" min="5" max="50" />
+      <input type="number" id="height" class="inputNumber" v-model.number="height" min="5" max="50" />
     </div>
     <!-- <h2>Players</h2> -->
     <div>
@@ -21,6 +21,7 @@
       <input
         type="number"
         id="humanPlayersNum"
+        class="inputNumber"
         v-model.number="humanPlayersNum"
         min="1"
         max="8"
@@ -32,7 +33,7 @@
     </div> -->
     <div class="botBlock">
       <label for="botPlayersNum">Number of bot players:</label>
-      <input type="number" id="botPlayersNum" v-model.number="botPlayersNum" min="0" max="7" />
+      <input type="number" id="botPlayersNum" class="inputNumber" v-model.number="botPlayersNum" min="0" max="7" />
     </div>
     <div>
       <label for="fogOfWar">Enable fog of war:</label>
@@ -40,7 +41,7 @@
     </div>
     <div v-if="enableFogOfWar">
       <label for="fogOfWarRadius">Fog of war radius:</label>
-      <input type="number" id="fogOfWarRadius" v-model.number="fogOfWarRadius" min="1" max="20"/>
+      <input type="number" id="fogOfWarRadius" class="inputNumber" v-model.number="fogOfWarRadius" min="1" max="20"/>
     </div>
     <!-- <div>
       <label for="Undo">Enable undo:</label>
@@ -272,6 +273,10 @@ div.contentBlock {
 
 div.textBlock {
   text-align: left;
+}
+
+input.inputNumber {
+  max-width: 40px;
 }
 
 /* div.botBlock {
