@@ -39,6 +39,8 @@ class Building {
 class Player {
     constructor(_type) {
         this._type = _type;
+        this.killed = 0;
+        this.lost = 0;
     }
 }
 

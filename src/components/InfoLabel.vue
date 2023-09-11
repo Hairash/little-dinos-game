@@ -1,21 +1,36 @@
 <template>
   <div class="infoLabel">
-    <span class="curPlayerLabel">Current player:
+    <span class="infoTextLabel">
       <!-- TODO: Fix it. Make images for players (not units) -->
       <img class="curPlayerImage" :src="`/images/dino${currentPlayer + 1}.png`">
     </span>
-    <span class="curActiveUnitsLabel">Active units: {{ getCurrentActiveUnits() }}</span>
+    <span class="infoTextLabel">Active: {{ activeUnits }}/{{ totalUnits }}</span>
+    <span class="infoTextLabel">Killed: {{ player.killed }} Lost: {{ player.lost }}</span>
     <button type="button" @click="handleEndTurnBtnClick">End turn</button>
   </div>
 </template>
 
 <script>
+import Models from "@/game/models";
+
 export default {
   name: 'InfoLabel',
   props: {
     currentPlayer: Number,
+    player: Models.Player,
     getCurrentActiveUnits: Function,
     handleEndTurnBtnClick: Function,
+  },
+  computed: {
+    currentUnitsArr() {
+      return this.getCurrentActiveUnits();
+    },
+    activeUnits() {
+      return this.currentUnitsArr[0];
+    },
+    totalUnits() {
+      return this.currentUnitsArr[1];
+    },
   },
 }
 </script>
@@ -28,10 +43,11 @@ div.infoLabel {
   left: 0;
   right: 0;
   background: black;
-}
-
-span.curPlayerLabel {
-  margin-right: 30px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 img.curPlayerImage {
@@ -40,7 +56,7 @@ img.curPlayerImage {
   vertical-align: bottom;
 }
 
-span.curActiveUnitsLabel {
-  margin-right: 30px;
+span.infoTextLabel {
+  margin-right: 15px;
 }
 </style>
