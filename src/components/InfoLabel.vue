@@ -35,7 +35,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 div.infoLabel {
   position: fixed;
   padding-bottom: 6px;

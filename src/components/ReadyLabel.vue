@@ -1,7 +1,11 @@
 <template>
   <div class="fixed-label">
     <div>
-      <div>Player {{currentPlayer + 1}} {{ player._type }}, get ready!</div>
+      <div>
+        Player {{currentPlayer + 1}}, get ready!<br>
+        Your color:
+        <img class="curPlayerImage" :src="`/images/dino${currentPlayer + 1}.png`">
+      </div>
       <div>
         <button type="button" @click="onClickAction">Ready</button>
       </div>
@@ -36,5 +40,12 @@ div.fixed-label {
   color: white;
   font-size: 2rem;
   z-index: 1000;
+}
+
+img.curPlayerImage {
+  width: 35px;
+  height: 35px;
+  position: relative;
+  top: 5px;
 }
 </style>
