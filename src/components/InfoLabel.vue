@@ -2,7 +2,12 @@
   <div class="infoLabel">
     <span class="infoTextLabel">
       <!-- TODO: Fix it. Make images for players (not units) -->
-      <img class="curPlayerImage" :src="`/images/dino${currentPlayer + 1}.png`">
+      <img
+        class="curPlayerImage"
+        :src="`/images/dino${currentPlayer + 1}.png`"
+        title="Next unit"
+        @click="handleImgClick"
+      >
     </span>
     <span class="infoTextLabel">Active: {{ activeUnits }}/{{ totalUnits }}</span>
     <span class="infoTextLabel">Killed: {{ player.killed }} Lost: {{ player.lost }}</span>
@@ -20,16 +25,17 @@ export default {
     player: Models.Player,
     getCurrentActiveUnits: Function,
     handleEndTurnBtnClick: Function,
+    handleImgClick: Function,
   },
   computed: {
     currentUnitsArr() {
       return this.getCurrentActiveUnits();
     },
     activeUnits() {
-      return this.currentUnitsArr[0];
+      return this.currentUnitsArr.active;
     },
     totalUnits() {
-      return this.currentUnitsArr[1];
+      return this.currentUnitsArr.total;
     },
   },
 }

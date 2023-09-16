@@ -20,6 +20,7 @@
     :player="this.players[currentPlayer]"
     :getCurrentActiveUnits="getCurrentActiveUnits"
     :handleEndTurnBtnClick="processEndTurn"
+    :handleImgClick="findNextUnit"
   />
 </template>
 
@@ -173,6 +174,11 @@ export default {
         this.saveState();
       this.startTurn();
     },
+    findNextUnit() {
+      const coordsArr = this.getCurrentActiveUnits().coordsArr;
+      if (coordsArr.length === 0) return;
+      this.$refs.gameGridRef.selectNextUnit(coordsArr);
+    },
 
     // Save-load operations
     saveState() {
@@ -243,19 +249,21 @@ export default {
       console.log('getCurrentActiveUnits start');
       let totalCtr = 0;
       let activeCtr = 0;
+      const coordsArr = [];
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
           const unit = this.field[x][y].unit;
           if (unit && unit.player === this.currentPlayer) {
             totalCtr++;
             if (!unit.hasMoved) {
+              coordsArr.push([x, y]);
               activeCtr++;
             }
           }
         }
       }
       console.log('getCurrentActiveUnits finish');
-      return [activeCtr, totalCtr];
+      return {active: activeCtr, total: totalCtr, coordsArr: coordsArr};
     },
     restoreField() {
       this.currentPlayer = this.prevPlayer;
