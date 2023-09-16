@@ -96,15 +96,31 @@ export default {
       this.removeHighlights();
       this.setVisibility();
     },
+    selectNextUnit(unitCoordsArr) {
+      let coords = unitCoordsArr[0];
+
+      if (this.selectedCoords) {
+        const curIdx = unitCoordsArr.findIndex(el => el[0] === this.selectedCoords[0] && el[1] === this.selectedCoords[1]);
+        if (curIdx + 1 < unitCoordsArr.length) {
+          coords = unitCoordsArr[curIdx + 1];
+        }
+      }
+      const [x, y] = coords;
+      const unit = this.field[x][y].unit;
+      this.selectUnit(x, y, unit.movePoints);
+    },
+    selectUnit(x, y, movePoints) {
+      this.selectedCoords = [x, y];
+      this.removeHighlights();
+      this.setHighlights(x, y, movePoints);
+    },
     processClick(event, x, y) {
       console.log('processClick start');
       // console.log(x, y);
       const unit = this.field[x][y].unit;
       if (unit) {
         if (unit.player === this.currentPlayer && !unit.hasMoved) {
-          this.selectedCoords = [x, y];
-          this.removeHighlights();
-          this.setHighlights(x, y, unit.movePoints);
+          this.selectUnit(x, y, unit.movePoints);
         }
       }
       else if (this.selectedCoords && this.waveEngine.canMove(this.selectedCoords, [x, y])) {
