@@ -43,6 +43,10 @@
       <label for="fogOfWarRadius">Fog of war radius:</label>
       <input type="number" id="fogOfWarRadius" class="inputNumber" v-model.number="fogOfWarRadius" min="1" max="20"/>
     </div>
+    <div v-if="enableFogOfWar">
+      <label for="scoutMode">Enable scout mode:</label>
+      <input type="checkbox" id="scoutMode" v-model="enableScoutMode" />
+    </div>
     <!-- <div>
       <label for="Undo">Enable undo:</label>
       <input type="checkbox" id="Undo" v-model="enableUndo" />
@@ -167,6 +171,7 @@ export default {
       sectorsNum: 4,
       enableFogOfWar: true,
       fogOfWarRadius: 3,
+      enableScoutMode: false,
       enableUndo: false,
       loadGame: false,
       loadGamePossible: false,
@@ -203,6 +208,7 @@ export default {
         sectorsNum: this.sectorsNum,
         enableFogOfWar: this.enableFogOfWar,
         fogOfWarRadius: this.fogOfWarRadius,
+        enableScoutMode: this.enableScoutMode,
         enableUndo: this.enableUndo,
         loadGame: this.loadGame,
       }

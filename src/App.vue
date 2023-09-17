@@ -12,6 +12,7 @@
     :sectorsNum = "settings.sectorsNum"
     :enableFogOfWar = "settings.enableFogOfWar"
     :fogOfWarRadius = "settings.fogOfWarRadius"
+    :enableScoutMode = "settings.enableScoutMode"
     :enableUndo = "settings.enableUndo"
     :loadGame = "settings.loadGame"
   />

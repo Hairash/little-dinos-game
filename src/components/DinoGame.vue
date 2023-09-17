@@ -10,6 +10,7 @@
     :is-hidden="state === STATES.ready"
     :fog-of-war-radius="fogOfWarRadius"
     :enable-fog-of-war="enableFogOfWar"
+    :enable-scout-mode="enableScoutMode"
     :field="field"
     :currentPlayer="currentPlayer"
     @moveUnit="moveUnit"
@@ -51,6 +52,7 @@ export default {
     sectorsNum: Number,
     enableFogOfWar: Boolean,
     fogOfWarRadius: Number,
+    enableScoutMode: Boolean,
     enableUndo: Boolean,
     loadGame: Boolean,
   },
@@ -87,7 +89,8 @@ export default {
       this.width,
       this.height,
       this.fogOfWarRadius,
-    )
+      this.enableScoutMode,
+    );
     this.loadOrCreatePlayers();
     this.fieldEngine = new FieldEngine(
       this.field,
@@ -96,6 +99,7 @@ export default {
       this.fogOfWarRadius,
       this.players,
     );
+    this.setVisibility();
     this.botEngine = new BotEngine(
       this.field,
       this.width,
@@ -142,6 +146,10 @@ export default {
       // console.log(this.field[x1][y1]);
       // kill neighbours
       this.fieldEngine.killNeighbours(this.field, x1, y1, unit.player);
+      // Recalculate visibility in area unit moved from
+      this.setVisibilityForArea(x0, y0, this.fogOfWarRadius);
+      // Add visibility to area unit moved to
+      this.addVisibilityForCoords(x1, y1);
       console.log('moveUnit finish');
     },
     processEndTurn() {
@@ -180,6 +188,60 @@ export default {
       this.$refs.gameGridRef.selectNextUnit(coordsArr);
     },
 
+    // Visibility helpers
+    addVisibilityForCoords(x, y) {
+      if (!this.enableFogOfWar) return;
+      for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
+        for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
+          if (this.fieldEngine.areExistingCoords(curX, curY))
+            this.field[curX][curY].isHidden = false;
+        }
+      }
+    },
+    removeVisibility() {
+      if (!this.enableFogOfWar) return;
+      for (let curX = 0; curX < this.width; curX++) {
+        for (let curY = 0; curY < this.height; curY++) {
+          this.field[curX][curY].isHidden = true;
+        }
+      }
+    },
+    setVisibility() {
+      if (!this.enableFogOfWar) return;
+
+      this.removeVisibility();
+      const visibilitySet = this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer);
+      for (const coords of visibilitySet) {
+        // TODO: Refactor it
+        const curX = coords[0];
+        const curY = coords[1];
+        this.field[curX][curY].isHidden = false;
+      }
+    },
+    setVisibilityForArea(x, y, r) {
+      if (!this.enableFogOfWar) return;
+
+      // Make all area ivisible
+      for (let curX = x - r; curX <= x + r; curX++) {
+        for (let curY = y - r; curY <= y + r; curY++) {
+          if (this.fieldEngine.areExistingCoords(curX, curY)) {
+            this.field[curX][curY].isHidden = true;
+          }
+        }
+      }
+      // Set visibility
+      for (let curX = x - r - this.fogOfWarRadius; curX <= x + r + this.fogOfWarRadius; curX++) {
+          for (let curY = y - r - this.fogOfWarRadius; curY <= y + r + this.fogOfWarRadius; curY++) {
+            if (
+              this.fieldEngine.areExistingCoords(curX, curY) &&
+              this.fieldEngine.isVisibleObj(curX, curY, this.currentPlayer)
+            ) {
+              this.addVisibilityForCoords(curX, curY);
+            }
+          }
+        }
+    },
+
     // Save-load operations
     saveState() {
       console.log('Save state');
@@ -211,6 +273,7 @@ export default {
 
     // Process bot moves
     startTurn() {
+      this.setVisibility();
       if (this.players[this.currentPlayer]._type === Models.PlayerTypes.BOT) {
         this.makeBotMove();
       }
