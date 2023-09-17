@@ -5,7 +5,7 @@
         <div class="cell_line" v-for="(line, y) in fieldT" :key=y>
           <template v-for="(cellData, x) in line" :key=x>
             <GameCell
-              :hidden="fieldOutput[x][y].isHidden"
+              :hidden="field[x][y].isHidden"
               :width=cellSize
               :height=cellSize
               :terrain=cellData.terrain
@@ -36,8 +36,9 @@ export default {
   },
   props: {
     isHidden: Boolean,
-    fogOfWarRadius: Number,
     enableFogOfWar: Boolean,
+    fogOfWarRadius: Number,
+    enableScoutMode: Boolean,
     field: Array[Array[Models.Cell]],
     currentPlayer: Number,
   },
@@ -75,6 +76,7 @@ export default {
       this.width,
       this.height,
       this.fogOfWarRadius,
+      this.enableScoutMode,
     );
     this.fieldEngine = new FieldEngine(
       this.field,
@@ -83,7 +85,6 @@ export default {
       this.fogOfWarRadius,
     );
     // this.calculateCellSize();
-    this.setVisibility();
   },
   watch: {
     currentPlayer() {
@@ -94,7 +95,6 @@ export default {
     initTurn() {
       this.selectedCoords = null;
       this.removeHighlights();
-      this.setVisibility();
     },
     selectNextUnit(unitCoordsArr) {
       let coords = unitCoordsArr[0];
@@ -136,64 +136,6 @@ export default {
       this.$emit('moveUnit', fromCoords, toCoords);
       this.selectedCoords = null;
       this.removeHighlightsForArea(x, y, movePoints);
-      // Recalculate visibility in area unit moved from
-      this.setVisibilityForArea(x, y, this.fogOfWarRadius);
-      // Add visibility to area unit moved to
-      [x, y] = toCoords;
-      this.addVisibilityForCoords(x, y);
-    },
-
-    // Visibility helpers
-    addVisibilityForCoords(x, y) {
-      if (!this.enableFogOfWar) return;
-      for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
-        for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
-          if (this.fieldEngine.areExistingCoords(curX, curY))
-            this.fieldOutput[curX][curY].isHidden = false;
-        }
-      }
-    },
-    removeVisibility() {
-      if (!this.enableFogOfWar) return;
-      for (let curX = 0; curX < this.width; curX++) {
-        for (let curY = 0; curY < this.height; curY++) {
-          this.fieldOutput[curX][curY].isHidden = true;
-        }
-      }
-    },
-    setVisibility() {
-      if (!this.enableFogOfWar) return;
-
-      this.removeVisibility();
-      const visibilitySet = this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer);
-      for (const coords of visibilitySet) {
-        const curX = coords[0];
-        const curY = coords[1];
-        this.fieldOutput[curX][curY].isHidden = false;
-      }
-    },
-    setVisibilityForArea(x, y, r) {
-      if (!this.enableFogOfWar) return;
-
-      // Make all area ivisible
-      for (let curX = x - r; curX <= x + r; curX++) {
-        for (let curY = y - r; curY <= y + r; curY++) {
-          if (this.fieldEngine.areExistingCoords(curX, curY)) {
-            this.fieldOutput[curX][curY].isHidden = true;
-          }
-        }
-      }
-      // Set visibility
-      for (let curX = x - r - this.fogOfWarRadius; curX <= x + r + this.fogOfWarRadius; curX++) {
-          for (let curY = y - r - this.fogOfWarRadius; curY <= y + r + this.fogOfWarRadius; curY++) {
-            if (
-              this.fieldEngine.areExistingCoords(curX, curY) &&
-              this.fieldEngine.isVisibleObj(curX, curY, this.currentPlayer)
-            ) {
-              this.addVisibilityForCoords(curX, curY);
-            }
-          }
-        }
     },
 
     // Highlights helpers

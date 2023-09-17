@@ -35,7 +35,7 @@ export class BotEngine {
     if (reachableCoordsArr.length === 0) return;
     // Capture the building
     const reachableVisibleCoordsArr = this.enableFogOfWar ?
-      this.getReachableVisibleCoordsArr(reachableCoordsArr, visibilitySet) :
+      this.getReachableVisibleCoordsArr(reachableCoordsArr) :
       reachableCoordsArr;
 
     const buildingCoords = this.findFreeBuilding(reachableVisibleCoordsArr, currentPlayer);
@@ -66,8 +66,8 @@ export class BotEngine {
     // this.$refs.gameGridRef.setVisibility();
   }
 
-  getReachableVisibleCoordsArr(reachableCoordsArr, visibilitySet) {
-    return reachableCoordsArr.filter(coords => visibilitySet.has(JSON.stringify(coords)));
+  getReachableVisibleCoordsArr(reachableCoordsArr) {
+    return reachableCoordsArr.filter(([x, y]) => !this.field[x][y].isHidden);
   }
 
   findFreeBuilding(coordsArr, currentPlayer) {

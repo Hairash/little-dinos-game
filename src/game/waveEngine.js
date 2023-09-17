@@ -1,12 +1,14 @@
 import Models from './models';
+// import utils from './utils';
 
 // Contains functions related to path finding
 class WaveEngine {
-  constructor(field, width, height, fogOfWarRadius) {
+  constructor(field, width, height, fogOfWarRadius, enableScoutMode) {
     this.field = field;
     this.width = width;
     this.height = height;
     this.fogOfWarRadius = fogOfWarRadius;
+    this.enableScoutMode = enableScoutMode;
   }
 
   getWaveField() {
@@ -14,7 +16,14 @@ class WaveEngine {
     for (let x = 0; x < this.width; x++) {
       let col = [];
       for (let y = 0; y < this.height; y++) {
-        if (this.field[x][y].terrain === Models.TerrainTypes.EMPTY && !this.field[x][y].unit)
+        if (
+          this.field[x][y].terrain === Models.TerrainTypes.EMPTY
+          && !this.field[x][y].unit
+          && !(
+            this.enableScoutMode
+            && this.field[x][y].isHidden
+          )
+          )
           col.push(null);
         else
           col.push(-1);
