@@ -13,6 +13,8 @@
               :building=cellData.building
               :selected="(selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y)"
               :highlighted="fieldOutput[x][y].isHighlighted"
+              :currentPlayer="currentPlayer"
+              :hideEnemySpeed="hideEnemySpeed"
               @click="processClick($event, x, y)"
             />
           </template>
@@ -39,6 +41,7 @@ export default {
     enableFogOfWar: Boolean,
     fogOfWarRadius: Number,
     enableScoutMode: Boolean,
+    hideEnemySpeed: Boolean,
     field: Array[Array[Models.Cell]],
     currentPlayer: Number,
   },

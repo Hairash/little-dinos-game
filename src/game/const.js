@@ -13,6 +13,7 @@ export const FIELDS_TO_SAVE = [
   'enableScoutMode',
   'minSpeed',
   'maxSpeed',
+  'hideEnemySpeed',
   'enableUndo',
 ];
 

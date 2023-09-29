@@ -53,6 +53,10 @@
       -
       <input type="number" id="maxSpeed" class="inputNumber" v-model.number="maxSpeed" min="1" max="20" />
     </div>
+    <div>
+      <label for="hideEnemySpeed">Hide enemy speed:</label>
+      <input type="checkbox" id="hideEnemySpeed" v-model="hideEnemySpeed" />
+    </div>
     <!-- <div>
       <label for="Undo">Enable undo:</label>
       <input type="checkbox" id="Undo" v-model="enableUndo" />
@@ -188,6 +192,7 @@ export default {
       enableScoutMode: false,
       minSpeed: 1,
       maxSpeed: 10,
+      hideEnemySpeed: false,
       enableUndo: false,
       loadGame: false,
       loadGamePossible: false,
@@ -236,6 +241,7 @@ export default {
         enableFogOfWar: this.enableFogOfWar,
         fogOfWarRadius: this.fogOfWarRadius,
         enableScoutMode: this.enableScoutMode,
+        hideEnemySpeed: this.hideEnemySpeed,
         enableUndo: this.enableUndo,
         loadGame: this.loadGame,
       }

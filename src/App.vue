@@ -16,6 +16,7 @@
     :minSpeed = "settings.minSpeed"
     :maxSpeed = "settings.maxSpeed"
     :enableUndo = "settings.enableUndo"
+    :hideEnemySpeed = "settings.hideEnemySpeed"
     :loadGame = "settings.loadGame"
   />
 </template>
