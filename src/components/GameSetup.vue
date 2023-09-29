@@ -57,6 +57,10 @@
       <label for="hideEnemySpeed">Hide enemy speed:</label>
       <input type="checkbox" id="hideEnemySpeed" v-model="hideEnemySpeed" />
     </div>
+    <div>
+      <label for="killAtBirth">Kill at birth:</label>
+      <input type="checkbox" id="killAtBirth" v-model="killAtBirth" />
+    </div>
     <!-- <div>
       <label for="Undo">Enable undo:</label>
       <input type="checkbox" id="Undo" v-model="enableUndo" />
@@ -193,6 +197,7 @@ export default {
       minSpeed: 1,
       maxSpeed: 10,
       hideEnemySpeed: false,
+      killAtBirth: false,
       enableUndo: false,
       loadGame: false,
       loadGamePossible: false,
@@ -242,6 +247,7 @@ export default {
         fogOfWarRadius: this.fogOfWarRadius,
         enableScoutMode: this.enableScoutMode,
         hideEnemySpeed: this.hideEnemySpeed,
+        killAtBirth: this.killAtBirth,
         enableUndo: this.enableUndo,
         loadGame: this.loadGame,
       }
