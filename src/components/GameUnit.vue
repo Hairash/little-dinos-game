@@ -1,7 +1,12 @@
 <template>
   <div class="unitContainer" :class="{'hidden': hidden}">
     <img class="unitImg" :src="`/images/${image}.png`">
-    <span class="movePointsLabel" :class="{'hasMoved': hasMoved}">{{movePoints}}</span>
+    <span
+      class="movePointsLabel"
+      :class="{'hasMoved': hasMoved}"
+    >
+      {{showMovePoints ? movePoints : '*'}}
+    </span>
   </div>
 </template>
 
@@ -17,6 +22,7 @@ export default {
     image: String,
     movePoints: Number,
     hasMoved: Boolean,
+    showMovePoints: Boolean,
   },
   data() {
     const fontSize = Math.max(this.width * 0.3, 12);

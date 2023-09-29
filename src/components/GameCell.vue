@@ -18,13 +18,14 @@
       :height="height"
       :movePoints="unit.movePoints"
       :has-moved="unit.hasMoved"
+      :showMovePoints="showMovePoints()"
     />
   </div>
 </template>
 
 <script>
-import GameUnit from './GameUnit'
-import GameBuilding from './GameBuilding'
+import GameUnit from '@/components/GameUnit'
+import GameBuilding from '@/components/GameBuilding'
 import Models from '@/game/models'
 import { TRANSITION_DELAY } from '@/game/const'
 
@@ -43,6 +44,8 @@ export default {
     selected: Boolean,
     highlighted: Boolean,
     hidden: Boolean,
+    currentPlayer: Number,
+    hideEnemySpeed: Boolean,
   },
   data() {
     return {
@@ -59,7 +62,12 @@ export default {
       let buildingImg = this.building._type;
       if (this.building.player !== null) buildingImg += `${this.building.player + 1}`;
       return buildingImg;
-    }
+    },
+    showMovePoints() {
+      if (!this.hideEnemySpeed) return true;
+      if (this.unit && this.unit.player === this.currentPlayer) return true;
+      return false;
+    },
   }
 }
 </script>

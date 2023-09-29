@@ -11,6 +11,7 @@
     :fog-of-war-radius="fogOfWarRadius"
     :enable-fog-of-war="enableFogOfWar"
     :enable-scout-mode="enableScoutMode"
+    :hide-enemy-speed="hideEnemySpeed"
     :field="field"
     :currentPlayer="currentPlayer"
     @moveUnit="moveUnit"
@@ -55,6 +56,7 @@ export default {
     enableScoutMode: Boolean,
     minSpeed: Number,
     maxSpeed: Number,
+    hideEnemySpeed: Boolean,
     enableUndo: Boolean,
     loadGame: Boolean,
   },
