@@ -1,13 +1,16 @@
 import Models from '@/game/models';
+import { createNewUnit } from '@/game/helpers';
 
 // Responsible for generating new field
-// Cannot use other engines, because other engines require field, but it doesn't exist when this 
+// Cannot use other engines, because other engines require field, but it doesn't exist when this
 class CreateFieldEngine {
-  constructor(playersNum, width, height, sectorsNum) {
+  constructor(playersNum, width, height, sectorsNum, minSpeed, maxSpeed) {
     this.playersNum = playersNum;
     this.width = width;
     this.height = height;
     this.sectorsNum = sectorsNum;
+    this.minSpeed = minSpeed;
+    this.maxSpeed = maxSpeed;
   }
 
   generateField() {
@@ -46,11 +49,7 @@ class CreateFieldEngine {
         player,
         Models.BuildingTypes.BASE,
       );
-      field[x][y].unit = new Models.Unit(
-        player,
-        `dino${player + 1}`,
-        Math.ceil(Math.random() * 10),
-      );
+      field[x][y].unit = createNewUnit(player, this.minSpeed, this.maxSpeed);
     }
     // Set buildings
     let failCtr = 0;

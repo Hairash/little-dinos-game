@@ -13,6 +13,8 @@
     :enableFogOfWar = "settings.enableFogOfWar"
     :fogOfWarRadius = "settings.fogOfWarRadius"
     :enableScoutMode = "settings.enableScoutMode"
+    :minSpeed = "settings.minSpeed"
+    :maxSpeed = "settings.maxSpeed"
     :enableUndo = "settings.enableUndo"
     :loadGame = "settings.loadGame"
   />

@@ -47,6 +47,12 @@
       <label for="scoutMode">Enable scout mode:</label>
       <input type="checkbox" id="scoutMode" v-model="enableScoutMode" />
     </div>
+    <div>
+      <label for="unitSpeedRange">Dinos speed range:</label>
+      <input type="number" id="minSpeed" class="inputNumber" v-model.number="minSpeed" min="1" max="20" />
+      -
+      <input type="number" id="maxSpeed" class="inputNumber" v-model.number="maxSpeed" min="1" max="20" />
+    </div>
     <!-- <div>
       <label for="Undo">Enable undo:</label>
       <input type="checkbox" id="Undo" v-model="enableUndo" />
@@ -154,6 +160,14 @@ export default {
         min: 5,
         max: 50,
       },
+      minSpeed: {
+        min: 1,
+        max: 20,
+      },
+      maxSpeed: {
+        min: 1,
+        max: 20,
+      },
     };
     // const PLAYER_TYPES = Models.PlayerTypes;
     return {
@@ -172,6 +186,8 @@ export default {
       enableFogOfWar: true,
       fogOfWarRadius: 3,
       enableScoutMode: false,
+      minSpeed: 1,
+      maxSpeed: 10,
       enableUndo: false,
       loadGame: false,
       loadGamePossible: false,
@@ -197,11 +213,14 @@ export default {
       this.humanPlayerNames.length = this.humanPlayersNum;
     },
     processStartBtnClick() {
+      // Settings to validate (limit check)
       let settings = {
         width: this.width,
         height: this.height,
         humanPlayersNum: this.humanPlayersNum,
         botPlayersNum: this.botPlayersNum,
+        minSpeed: this.minSpeed,
+        maxSpeed: this.maxSpeed,
       };
       if (!this.isInputValid(settings)) {
         alert('Invalid input');
@@ -242,6 +261,7 @@ export default {
       }
       // TODO: Add alert with error - no more than 8 players
       if (this.humanPlayersNum + this.botPlayersNum > 8) return false;
+      if (this.maxSpeed < this.minSpeed) return false;
       return true;
     },
   },

@@ -34,7 +34,7 @@ import { CreateFieldEngine } from "@/game/createFieldEngine";
 import { WaveEngine } from "@/game/waveEngine";
 import { FieldEngine } from "@/game/fieldEngine";
 import { BotEngine } from "@/game/botEngine";
-import { createPlayers } from "@/game/helpers";
+import { createPlayers, createNewUnit } from "@/game/helpers";
 import { FIELDS_TO_SAVE } from "@/game/const";
 
 export default {
@@ -53,6 +53,8 @@ export default {
     enableFogOfWar: Boolean,
     fogOfWarRadius: Number,
     enableScoutMode: Boolean,
+    minSpeed: Number,
+    maxSpeed: Number,
     enableUndo: Boolean,
     loadGame: Boolean,
   },
@@ -82,6 +84,8 @@ export default {
       this.width,
       this.height,
       this.sectorsNum,
+      this.minSpeed,
+      this.maxSpeed,
     );
     this.loadFieldOrGenerateNewField();
     this.waveEngine = new WaveEngine(
@@ -169,12 +173,7 @@ export default {
             this.field[x][y].unit.hasMoved = false;
           }
           else if (this.field[x][y].building && this.field[x][y].building.player === this.currentPlayer) {
-            this.field[x][y].unit = new Models.Unit(
-              this.currentPlayer,
-              // TODO: make fair dict with images
-              `dino${this.currentPlayer + 1}`,
-              Math.ceil(Math.random() * 10),
-            )
+            this.field[x][y].unit = createNewUnit(this.currentPlayer, this.minSpeed, this.maxSpeed);
           }
         }
       }

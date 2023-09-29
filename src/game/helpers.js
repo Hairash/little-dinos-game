@@ -27,6 +27,16 @@ export function getNeighbours(field, width, height, x, y) {
   return neighbours;
 }
 
+// Generate new unit
+export function createNewUnit(player, minSpeed, maxSpeed) {
+  return new Models.Unit(
+    player,
+    // TODO: make fair dict with images
+    `dino${player + 1}`,
+    minSpeed + Math.floor(Math.random() * (maxSpeed - minSpeed + 1)),
+  );
+}
+
 // Needed for scale in future
 // calculateCellSize() {
 //   const windowWidth = window.innerWidth;
