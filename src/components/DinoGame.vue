@@ -57,6 +57,7 @@ export default {
     minSpeed: Number,
     maxSpeed: Number,
     hideEnemySpeed: Boolean,
+    killAtBirth: Boolean,
     enableUndo: Boolean,
     loadGame: Boolean,
   },
@@ -176,6 +177,8 @@ export default {
           }
           else if (this.field[x][y].building && this.field[x][y].building.player === this.currentPlayer) {
             this.field[x][y].unit = createNewUnit(this.currentPlayer, this.minSpeed, this.maxSpeed);
+            if (this.killAtBirth)
+              this.fieldEngine.killNeighbours(this.field, x, y, this.currentPlayer);
           }
         }
       }

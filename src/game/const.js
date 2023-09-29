@@ -14,6 +14,7 @@ export const FIELDS_TO_SAVE = [
   'minSpeed',
   'maxSpeed',
   'hideEnemySpeed',
+  'killAtBirth',
   'enableUndo',
 ];
 
