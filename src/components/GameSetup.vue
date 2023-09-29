@@ -182,9 +182,17 @@ export default {
   },
   mounted() {
     console.log('getItem');
+    this.loadSettings();
     this.loadGamePossible = !!localStorage.getItem('field');
   },
   methods: {
+    loadSettings() {
+      const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field');
+      for (const field of fieldsToLoad) {
+        localStorage.getItem(field, JSON.stringify(this[field]));
+        this[field] = JSON.parse(localStorage.getItem(field));
+      }
+    },
     updateHumanPlayers() {
       this.humanPlayerNames.length = this.humanPlayersNum;
     },
@@ -216,11 +224,7 @@ export default {
     },
     processLoadBtnClick() {
       if (this.loadGamePossible) {
-        const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field');
-        for (const field of fieldsToLoad) {
-          localStorage.getItem(field, JSON.stringify(this[field]));
-          this[field] = JSON.parse(localStorage.getItem(field));
-        }
+        this.loadSettings();
         this.loadGame = true;
       }
       this.processStartBtnClick();
