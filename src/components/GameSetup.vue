@@ -36,6 +36,10 @@
       <input type="number" id="botPlayersNum" class="inputNumber" v-model.number="botPlayersNum" min="0" max="7" />
     </div>
     <div>
+      <label for="scoresToWin">Scores to win:</label>
+      <input type="number" id="scoresToWin" class="inputNumber" v-model.number="scoresToWin" min="0" max="10000"/>
+    </div>
+    <div>
       <label for="fogOfWar">Enable fog of war:</label>
       <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar" />
     </div>
@@ -176,6 +180,10 @@ export default {
         min: 1,
         max: 20,
       },
+      scoresToWin: {
+        min: 0,
+        max: 10000,
+      },
     };
     // const PLAYER_TYPES = Models.PlayerTypes;
     return {
@@ -189,6 +197,7 @@ export default {
       height: 20,
       humanPlayersNum: 1,
       botPlayersNum: 3,
+      scoresToWin: 1000,
       // TODO: make them changeable
       sectorsNum: 4,
       enableFogOfWar: true,
@@ -231,6 +240,7 @@ export default {
         botPlayersNum: this.botPlayersNum,
         minSpeed: this.minSpeed,
         maxSpeed: this.maxSpeed,
+        scoresToWin: this.scoresToWin,
       };
       if (!this.isInputValid(settings)) {
         alert('Invalid input');

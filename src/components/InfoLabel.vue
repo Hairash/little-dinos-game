@@ -11,6 +11,17 @@
     </span>
     <span class="infoTextLabel">Active: {{ activeUnits }}/{{ totalUnits }}</span>
     <span class="infoTextLabel">Killed: {{ player.killed }} Lost: {{ player.lost }}</span>
+    <span class="infoTextLabel" @click="showScore = !showScore">
+      Score: {{ player.score }}
+      <div v-if="showScore"
+        class="tooltip"
+      >
+        <div v-for="(p, idx) in players" :key=idx>
+          {{ p.score }}
+        </div>
+      </div>
+    </span>
+
     <button type="button" @click="handleEndTurnBtnClick">End turn</button>
   </div>
 </template>
@@ -22,12 +33,20 @@ export default {
   name: 'InfoLabel',
   props: {
     currentPlayer: Number,
-    player: Models.Player,
+    players: Array[Models.Player],
     getCurrentActiveUnits: Function,
     handleEndTurnBtnClick: Function,
     handleImgClick: Function,
   },
+  data() {
+    return {
+      showScore: false,
+    }
+  },
   computed: {
+    player() {
+      return this.players[this.currentPlayer];
+    },
     currentUnitsArr() {
       return this.getCurrentActiveUnits();
     },
@@ -64,5 +83,14 @@ img.curPlayerImage {
 
 span.infoTextLabel {
   margin-right: 15px;
+  user-select: none;
+}
+
+div.tooltip {
+  position: absolute;
+  bottom: 34px;
+  background: black;
+  border: solid 2px;
+  width: 60px;
 }
 </style>

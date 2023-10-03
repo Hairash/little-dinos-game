@@ -1,5 +1,6 @@
 // Helpers related to field
 import {getNeighbours} from "@/game/helpers";
+import { SCORE_MOD } from "@/game/const";
 
 export class FieldEngine {
   constructor(field, width, height, fogOfWarRadius, players) {
@@ -54,16 +55,22 @@ export class FieldEngine {
     );
   }
 
-  killNeighbours(field, x, y, curPlayer) {
+  killNeighbours(field, x, y, curPlayer, countScore=true) {
     // console.log('Kill')
     const neighbours = getNeighbours(field, this.width, this.height, x, y);
     for (const neighbour of neighbours) {
       const [curX, curY] = neighbour;
       if (field[curX][curY].unit && field[curX][curY].unit.player !== curPlayer) {
         this.players[curPlayer].killed++;
+        if (countScore) this.changeScore(curPlayer, SCORE_MOD.kill);
         this.players[field[curX][curY].unit.player].lost++;
         delete(field[curX][curY].unit);
       }
     }
+  }
+
+  changeScore(player, value) {
+    this.players[player].score += value;
+    if (this.players[player].score < 0) this.players[player].score = 0;
   }
 }
