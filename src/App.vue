@@ -9,6 +9,7 @@
     :botPlayersNum = "settings.botPlayersNum"
     :width = "settings.width"
     :height = "settings.height"
+    :scoresToWin = "settings.scoresToWin"
     :sectorsNum = "settings.sectorsNum"
     :enableFogOfWar = "settings.enableFogOfWar"
     :fogOfWarRadius = "settings.fogOfWarRadius"

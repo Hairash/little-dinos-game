@@ -68,6 +68,7 @@ span.movePointsLabel {
   padding-left: 1px;
   padding-right: 1px;
   line-height: v-bind('cssProps.labelHeight');
+  user-select: none;
 }
 span.movePointsLabel.hasMoved {
   background-color: darkred;
