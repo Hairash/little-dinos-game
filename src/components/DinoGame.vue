@@ -19,7 +19,7 @@
   <InfoLabel
     v-if="state === STATES.play"
     :currentPlayer="currentPlayer"
-    :player="this.players[currentPlayer]"
+    :players="this.players"
     :getCurrentActiveUnits="getCurrentActiveUnits"
     :handleEndTurnBtnClick="processEndTurn"
     :handleImgClick="findNextUnit"
@@ -36,7 +36,7 @@ import { WaveEngine } from "@/game/waveEngine";
 import { FieldEngine } from "@/game/fieldEngine";
 import { BotEngine } from "@/game/botEngine";
 import { createPlayers, createNewUnit } from "@/game/helpers";
-import { FIELDS_TO_SAVE } from "@/game/const";
+import { FIELDS_TO_SAVE, SCORE_MOD } from "@/game/const";
 
 export default {
   name: 'DinoGame',
@@ -50,6 +50,7 @@ export default {
     botPlayersNum: Number,
     width: Number,
     height: Number,
+    scoresToWin: Number,
     sectorsNum: Number,
     enableFogOfWar: Boolean,
     fogOfWarRadius: Number,
@@ -75,6 +76,7 @@ export default {
       currentPlayer: 0,
       field: null,
       state: STATES.ready,
+      hasWinner: false,
       // TODO: Make prevState object
       prevField: null,
       prevPlayer: 0,
@@ -106,7 +108,6 @@ export default {
       this.fogOfWarRadius,
       this.players,
     );
-    this.setVisibility();
     this.botEngine = new BotEngine(
       this.field,
       this.width,
@@ -132,6 +133,9 @@ export default {
       }
     });
   },
+  mounted() {
+    this.startTurn();
+  },
   methods: {
     // Change field after unit's move
     moveUnit(fromCoords, toCoords) {
@@ -153,6 +157,7 @@ export default {
       // console.log(this.field[x1][y1]);
       // kill neighbours
       this.fieldEngine.killNeighbours(this.field, x1, y1, unit.player);
+      this.checkEndOfGame();
       // Recalculate visibility in area unit moved from
       this.setVisibilityForArea(x0, y0, this.fogOfWarRadius);
       // Add visibility to area unit moved to
@@ -169,22 +174,83 @@ export default {
       }
       this.currentPlayer += 1;
       this.currentPlayer %= this.playersNum;
+      if (this.currentPlayer === 0) {
+        this.saveState();
+      }
+      this.startTurn();
+    },
+    startTurn() {
       // Restore all unit's move points and produce new units
+      let buildingsNum = 0;
+      let unitsNum = 0;
+      let producedNum = 0;
+      const killedBefore = this.players[this.currentPlayer].killed;
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
           if (this.field[x][y].unit) {
             this.field[x][y].unit.hasMoved = false;
+            if (this.field[x][y].unit.player === this.currentPlayer) {
+              unitsNum++;
+              // this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.unit);
+              // console.log('~unit');
+            }
           }
-          else if (this.field[x][y].building && this.field[x][y].building.player === this.currentPlayer) {
-            this.field[x][y].unit = createNewUnit(this.currentPlayer, this.minSpeed, this.maxSpeed);
-            if (this.killAtBirth)
-              this.fieldEngine.killNeighbours(this.field, x, y, this.currentPlayer);
+          if (this.field[x][y].building && this.field[x][y].building.player === this.currentPlayer) {
+            buildingsNum++;
+            // this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.building);
+            // console.log('~building');
+            if (!this.field[x][y].unit) {
+              this.field[x][y].unit = createNewUnit(this.currentPlayer, this.minSpeed, this.maxSpeed);
+              producedNum++;
+              // this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.produce);
+              console.log('~produce');
+              if (this.killAtBirth) {
+                this.fieldEngine.killNeighbours(this.field, x, y, this.currentPlayer, false);
+              }
+            }
           }
         }
       }
-      if (this.currentPlayer === 0)
-        this.saveState();
-      this.startTurn();
+      // Count score
+      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.building * buildingsNum);
+      console.log('~ buildings:', SCORE_MOD.building * buildingsNum);
+      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.unit * unitsNum);
+      console.log('~ units:', SCORE_MOD.unit * unitsNum);
+      this.checkEndOfGame();
+      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.produce * producedNum);
+      console.log('~ produced:', SCORE_MOD.produce * producedNum);
+      this.checkEndOfGame();
+      const killed = this.players[this.currentPlayer].killed - killedBefore;
+      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.kill * killed);
+      console.log('~ killed:', SCORE_MOD.kill * killed);
+      this.checkEndOfGame();
+      console.log('Score:')
+      for (const player of this.players) {
+        console.log(player.score);
+      }
+
+      this.setVisibility();
+      if (this.players[this.currentPlayer]._type === Models.PlayerTypes.BOT) {
+        this.makeBotMove();
+      }
+      else {
+        // TODO: Refactor it
+        this.$refs.gameGridRef.initTurn();
+        if (this.humanPlayersNum === 1) {
+          this.state = this.STATES.play;
+        }
+      }
+    },
+    checkEndOfGame() {
+      if (this.scoresToWin === 0 || this.hasWinner) return;
+      if (this.players[this.currentPlayer].score >= this.scoresToWin) {
+        alert(
+          `Player ${this.currentPlayer} wins!\n
+To start new game refresh the page.
+Or you may continue playing here.`
+        );
+        this.hasWinner = true;
+      }
     },
     findNextUnit() {
       const coordsArr = this.getCurrentActiveUnits().coordsArr;
@@ -217,8 +283,8 @@ export default {
       const visibilitySet = this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer);
       for (const coords of visibilitySet) {
         // TODO: Refactor it
-        const curX = coords[0];
-        const curY = coords[1];
+        const [curX, curY] = coords;
+        // const curY = coords[1];
         this.field[curX][curY].isHidden = false;
       }
     },
@@ -275,20 +341,6 @@ export default {
       }
     },
 
-    // Process bot moves
-    startTurn() {
-      this.setVisibility();
-      if (this.players[this.currentPlayer]._type === Models.PlayerTypes.BOT) {
-        this.makeBotMove();
-      }
-      else {
-        // TODO: Refactor it
-        this.$refs.gameGridRef.initTurn();
-        if (this.humanPlayersNum === 1) {
-          this.state = this.STATES.play;
-        }
-      }
-    },
     // Bot move high level logic
     makeBotMove() {
       this.state = this.STATES.play;
@@ -300,6 +352,7 @@ export default {
       this.processEndTurn();
     },
 
+    // Helpers
     getCurrentUnitCoords() {
       const coordsArr = [];
       for (let x = 0; x < this.width; x++) {

@@ -7,6 +7,7 @@ export const FIELDS_TO_SAVE = [
   'players',
   'width',
   'height',
+  'scoresToWin',
   'sectorsNum',
   'enableFogOfWar',
   'fogOfWarRadius',
@@ -17,4 +18,12 @@ export const FIELDS_TO_SAVE = [
   'killAtBirth',
   'enableUndo',
 ];
-
+export const SCORE_MOD = {
+  kill: 10,
+  building: -3,
+  produce: 0,
+  move: 0,
+  capture: 0,
+  lose: 0,
+  unit: 0,
+};
