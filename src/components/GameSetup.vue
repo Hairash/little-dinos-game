@@ -191,7 +191,7 @@ export default {
       botPlayersNum: 3,
       // TODO: make them changeable
       sectorsNum: 4,
-      enableFogOfWar: true,
+      enableFogOfWar: false,
       fogOfWarRadius: 3,
       enableScoutMode: false,
       minSpeed: 1,
@@ -216,7 +216,9 @@ export default {
       const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field');
       for (const field of fieldsToLoad) {
         localStorage.getItem(field, JSON.stringify(this[field]));
-        this[field] = JSON.parse(localStorage.getItem(field));
+        const fieldValue = localStorage.getItem(field);
+        if (fieldValue && JSON.parse(fieldValue))
+          this[field] = JSON.parse(fieldValue);
       }
     },
     updateHumanPlayers() {
