@@ -6,6 +6,7 @@
         Your color:
         <img class="curPlayerImage" :src="`/images/dino${currentPlayer + 1}.png`">
       </div>
+      <div v-if="!player.active">Sorry, you lost</div>
       <div>
         <button type="button" @click="onClickAction">Ready</button>
       </div>

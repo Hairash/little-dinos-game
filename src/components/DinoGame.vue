@@ -1,7 +1,7 @@
 <template>
   <ReadyLabel
     v-if="state === STATES.ready"
-    :onClickAction="() => this.state = this.STATES.play"
+    :onClickAction="readyBtnClick"
     :currentPlayer="currentPlayer"
     :player="players[currentPlayer]"
   />
@@ -172,11 +172,19 @@ export default {
         this.prevField = structuredClone(this.field);
         this.prevPlayer = this.currentPlayer;
       }
-      this.currentPlayer += 1;
-      this.currentPlayer %= this.playersNum;
-      if (this.currentPlayer === 0) {
-        this.saveState();
+
+      do {
+        this.currentPlayer += 1;
+        this.currentPlayer %= this.playersNum;
+        if (this.currentPlayer === 0) {
+          this.saveState();
+          if (!this.players.filter(p => p._type === Models.PlayerTypes.HUMAN).filter(p => p.active).length) {
+            // alert('All human players were illuminated');
+            break;
+          }
+        }
       }
+      while (!this.players[this.currentPlayer].active);
       this.startTurn();
     },
     startTurn() {
@@ -228,6 +236,9 @@ export default {
       for (const player of this.players) {
         console.log(player.score);
       }
+      if (buildingsNum === 0 && unitsNum === 0) {
+        this.players[this.currentPlayer].active = false;
+      }
 
       this.setVisibility();
       if (this.players[this.currentPlayer]._type === Models.PlayerTypes.BOT) {
@@ -236,16 +247,31 @@ export default {
       else {
         // TODO: Refactor it
         this.$refs.gameGridRef.initTurn();
-        if (this.humanPlayersNum === 1) {
+        if (this.humanPlayersNum === 1 && this.players[this.currentPlayer].active) {
           this.state = this.STATES.play;
         }
       }
     },
+    readyBtnClick() {
+      this.state = this.STATES.play;
+      // if (!this.players[this.currentPlayer].active)
+        // this.processEndTurn();
+    },
     checkEndOfGame() {
-      if (this.scoresToWin === 0 || this.hasWinner) return;
-      if (this.players[this.currentPlayer].score >= this.scoresToWin) {
+      if (this.hasWinner) return;
+      let endOfGame = true;
+      for (const playerIdx in this.players) {
+        if (Number(playerIdx) === this.currentPlayer) continue;
+        const player = this.players[playerIdx];
+        endOfGame &= !player.active;
+      }
+      console.log(endOfGame);
+      if (
+        endOfGame ||
+        this.scoresToWin > 0 && this.players[this.currentPlayer].score >= this.scoresToWin
+      ) {
         alert(
-          `Player ${this.currentPlayer} wins!\n
+          `Player ${this.currentPlayer + 1} wins!\n
 To start new game refresh the page.
 Or you may continue playing here.`
         );
