@@ -1,9 +1,13 @@
 <template>
   <ReadyLabel
     v-if="state === STATES.ready"
-    :onClickAction="() => this.state = this.STATES.play"
+    :onClickAction="readyBtnClick"
     :currentPlayer="currentPlayer"
-    :player="players[currentPlayer]"
+    :isActivePlayer="players[currentPlayer].active"
+    :isPlayerInformedLose="players[currentPlayer].informed_lose"
+    :areAllHumanPlayersEliminated="humanPhase === HUMAN_PHASES.all_eliminated"
+    :winner="prepareWinner()"
+    :lastPlayer="prepareLastPlayer()"
   />
   <GameGrid
     ref="gameGridRef"
@@ -36,7 +40,9 @@ import { WaveEngine } from "@/game/waveEngine";
 import { FieldEngine } from "@/game/fieldEngine";
 import { BotEngine } from "@/game/botEngine";
 import { createPlayers, createNewUnit } from "@/game/helpers";
-import { FIELDS_TO_SAVE, SCORE_MOD } from "@/game/const";
+import {FIELDS_TO_SAVE, GAME_STATUS_FIELDS, SCORE_MOD} from "@/game/const";
+
+import emitter from '@/game/eventBus';
 
 export default {
   name: 'DinoGame',
@@ -65,18 +71,40 @@ export default {
   data() {
     // Game states
     const STATES = {
-      ready: 'ready',
-      play: 'play',
+      ready: 'ready',  // Show label before start of turn
+      play: 'play',  // Turn
+    }
+    const WIN_PHASES = {
+      progress: 'progress',  // Play
+      has_winner: 'has_winner',  // Somebody won
+      informed: 'informed',  // Message was output
+    }
+    const HUMAN_PHASES = {
+      progress: 'progress',  // Play
+      all_eliminated: 'all_eliminated',  // All human players eliminated
+      informed: 'informed',  // Message was output
+    }
+    const LAST_PLAYER_PHASES = {
+      progress: 'progress',  // Play
+      last_player: 'last_player',  // The only player left in the game
+      informed: 'informed',  // Message was output
     }
     const playersNum = this.humanPlayersNum + this.botPlayersNum;
     return {
       STATES,
+      WIN_PHASES,
+      HUMAN_PHASES,
+      LAST_PLAYER_PHASES,
       playersNum,
       players: [],
       currentPlayer: 0,
       field: null,
       state: STATES.ready,
-      hasWinner: false,
+      winPhase: WIN_PHASES.progress,
+      winner: null,
+      humanPhase: HUMAN_PHASES.progress,
+      lastPlayerPhase: LAST_PLAYER_PHASES.progress,
+      lastPlayer: null,
       // TODO: Make prevState object
       prevField: null,
       prevPlayer: 0,
@@ -101,6 +129,9 @@ export default {
       this.enableScoutMode,
     );
     this.loadOrCreatePlayers();
+    if (this.loadGame) {
+      this.loadGameStatus()
+    }
     this.fieldEngine = new FieldEngine(
       this.field,
       this.width,
@@ -134,6 +165,10 @@ export default {
     });
   },
   mounted() {
+    emitter.on('makeBotMove', this.makeBotMove);
+    emitter.on('processEndTurn', this.processEndTurn);
+    emitter.on('startTurn', this.startTurn);
+
     this.startTurn();
   },
   methods: {
@@ -158,10 +193,12 @@ export default {
       // kill neighbours
       this.fieldEngine.killNeighbours(this.field, x1, y1, unit.player);
       this.checkEndOfGame();
-      // Recalculate visibility in area unit moved from
-      this.setVisibilityForArea(x0, y0, this.fogOfWarRadius);
-      // Add visibility to area unit moved to
-      this.addVisibilityForCoords(x1, y1);
+      if (this.doesVisibilityMakeSense()) {
+        // Recalculate visibility in area unit moved from
+        this.setVisibilityForArea(x0, y0, this.fogOfWarRadius);
+        // Add visibility to area unit moved to
+        this.addVisibilityForCoords(x1, y1);
+      }
       console.log('moveUnit finish');
     },
     processEndTurn() {
@@ -172,12 +209,31 @@ export default {
         this.prevField = structuredClone(this.field);
         this.prevPlayer = this.currentPlayer;
       }
-      this.currentPlayer += 1;
-      this.currentPlayer %= this.playersNum;
-      if (this.currentPlayer === 0) {
-        this.saveState();
+
+      do {
+        this.currentPlayer += 1;
+        this.currentPlayer %= this.playersNum;
+        if (this.currentPlayer === 0) {
+          this.saveState();
+          if (this.humanPhase === this.HUMAN_PHASES.progress && this.areAllHumanPlayersEliminated()) {
+            this.humanPhase = this.HUMAN_PHASES.all_eliminated;
+          }
+          if (this.lastPlayerPhase === this.LAST_PLAYER_PHASES.progress) {
+            const lastPlayerIdx = this.getLastPlayerIdx();
+            // TODO: Check it in the end of turn (not only for the first player
+            if (lastPlayerIdx !== null) {
+              this.lastPlayerPhase = this.LAST_PLAYER_PHASES.last_player;
+              this.lastPlayer = lastPlayerIdx;
+            }
+          }
+          if (this.humanPhase !== this.HUMAN_PHASES.progress) {
+            break;
+          }
+        }
       }
-      this.startTurn();
+      while (!this.players[this.currentPlayer].active);
+
+      emitter.emit('startTurn');
     },
     startTurn() {
       // Restore all unit's move points and produce new units
@@ -228,28 +284,77 @@ export default {
       for (const player of this.players) {
         console.log(player.score);
       }
+      if (buildingsNum === 0 && unitsNum === 0) {
+        this.players[this.currentPlayer].active = false;
+      }
 
-      this.setVisibility();
+      if (this.doesVisibilityMakeSense()) {
+        this.setVisibility();
+      }
+      else {
+        this.showField();
+      }
+
       if (this.players[this.currentPlayer]._type === Models.PlayerTypes.BOT) {
-        this.makeBotMove();
+        emitter.emit('makeBotMove');
       }
       else {
         // TODO: Refactor it
         this.$refs.gameGridRef.initTurn();
-        if (this.humanPlayersNum === 1) {
+        if (
+            (
+                this.humanPlayersNum === 1 &&
+                this.players[this.currentPlayer].active &&
+                this.winPhase !== this.WIN_PHASES.has_winner &&
+                this.lastPlayerPhase !== this.LAST_PLAYER_PHASES.last_player
+            ) ||
+            (
+                this.humanPhase === this.HUMAN_PHASES.informed &&
+                this.lastPlayerPhase !== this.LAST_PLAYER_PHASES.last_player
+            )
+        ) {
           this.state = this.STATES.play;
         }
       }
     },
+    readyBtnClick() {
+      this.state = this.STATES.play;
+      if (this.humanPhase === this.HUMAN_PHASES.all_eliminated) {
+        this.humanPhase = this.HUMAN_PHASES.informed;
+      }
+      if (this.winPhase === this.WIN_PHASES.has_winner) {
+        this.winPhase = this.WIN_PHASES.informed;
+      }
+      if (this.lastPlayerPhase === this.LAST_PLAYER_PHASES.last_player) {
+        this.lastPlayerPhase = this.LAST_PLAYER_PHASES.informed;
+      }
+      if (!this.players[this.currentPlayer].active && !this.players[this.currentPlayer].informed_lose) {
+        this.players[this.currentPlayer].informed_lose = true;
+      }
+
+    },
     checkEndOfGame() {
-      if (this.scoresToWin === 0 || this.hasWinner) return;
-      if (this.players[this.currentPlayer].score >= this.scoresToWin) {
-        alert(
-          `Player ${this.currentPlayer} wins!\n
-To start new game refresh the page.
-Or you may continue playing here.`
-        );
-        this.hasWinner = true;
+      if (this.winPhase !== this.WIN_PHASES.progress) return;
+      let endOfGame = true;
+      // TODO: Replace with last player check
+      for (const playerIdx in this.players) {
+        if (Number(playerIdx) === this.currentPlayer) continue;
+        const player = this.players[playerIdx];
+        endOfGame &= !player.active;
+      }
+      console.log(endOfGame);
+      if (
+        endOfGame ||
+        this.scoresToWin > 0 && this.players[this.currentPlayer].score >= this.scoresToWin
+      ) {
+//         alert(
+//           `Player ${this.currentPlayer + 1} wins!\n
+// To start new game refresh the page.
+// Or you may continue playing here.`
+//         );
+        console.log(`Player ${this.currentPlayer + 1} wins!`);
+        this.winPhase = this.WIN_PHASES.has_winner;
+        this.winner = this.currentPlayer;
       }
     },
     findNextUnit() {
@@ -259,8 +364,11 @@ Or you may continue playing here.`
     },
 
     // Visibility helpers
+    doesVisibilityMakeSense() {
+      return this.enableFogOfWar && this.players[this.currentPlayer].active
+    },
     addVisibilityForCoords(x, y) {
-      if (!this.enableFogOfWar) return;
+      // if (!this.enableFogOfWar) return;
       for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
         for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
           if (this.fieldEngine.areExistingCoords(curX, curY))
@@ -269,29 +377,34 @@ Or you may continue playing here.`
       }
     },
     removeVisibility() {
-      if (!this.enableFogOfWar) return;
+      // if (!this.enableFogOfWar) return;
       for (let curX = 0; curX < this.width; curX++) {
         for (let curY = 0; curY < this.height; curY++) {
           this.field[curX][curY].isHidden = true;
         }
       }
     },
+    showField() {
+      // if (!this.enableFogOfWar) return;
+      for (let curX = 0; curX < this.width; curX++) {
+        for (let curY = 0; curY < this.height; curY++) {
+          this.field[curX][curY].isHidden = false;
+        }
+      }
+    },
     setVisibility() {
-      if (!this.enableFogOfWar) return;
+      // if (!this.enableFogOfWar) return;
 
       this.removeVisibility();
       const visibilitySet = this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer);
-      for (const coords of visibilitySet) {
-        // TODO: Refactor it
-        const [curX, curY] = coords;
-        // const curY = coords[1];
+      for (const [curX, curY] of visibilitySet) {
         this.field[curX][curY].isHidden = false;
       }
     },
     setVisibilityForArea(x, y, r) {
-      if (!this.enableFogOfWar) return;
+      // if (!this.enableFogOfWar) return;
 
-      // Make all area ivisible
+      // Make all area invisible
       for (let curX = x - r; curX <= x + r; curX++) {
         for (let curY = y - r; curY <= y + r; curY++) {
           if (this.fieldEngine.areExistingCoords(curX, curY)) {
@@ -315,6 +428,7 @@ Or you may continue playing here.`
     // Save-load operations
     saveState() {
       console.log('Save state');
+      // TODO: Save only game situation, not game settings
       for (const field of FIELDS_TO_SAVE) {
         localStorage.setItem(field, JSON.stringify(this[field]));
       }
@@ -333,11 +447,35 @@ Or you may continue playing here.`
     loadOrCreatePlayers() {
       if (this.loadGame) {
         const players = localStorage.getItem('players');
-        // TODO: Fix JSON.parse to avoid warning - convert units and buildings to the correct type
+        // TODO: Fix JSON.parse to avoid warning - convert players to the correct type
         this.players = JSON.parse(players);
+        // Choose current player
+        for (let idx = 0; idx < this.players.length; idx++) {
+          if (this.players[idx].active) {
+            this.currentPlayer = idx;
+            break;
+          }
+        }
+        for (let player of this.players) {
+          player.informed_lose = false;
+        }
       }
       else {
         this.players = createPlayers(this.humanPlayersNum, this.botPlayersNum);
+      }
+    },
+    loadGameStatus() {
+      for (const field of GAME_STATUS_FIELDS) {
+        this[field] = JSON.parse(localStorage.getItem(field));
+      }
+      if (this.humanPhase === this.HUMAN_PHASES.informed) {
+        this.humanPhase = this.HUMAN_PHASES.all_eliminated;
+      }
+      if (this.winPhase === this.WIN_PHASES.informed) {
+        this.winPhase = this.WIN_PHASES.has_winner;
+      }
+      if (this.lastPlayerPhase === this.LAST_PLAYER_PHASES.informed) {
+        this.lastPlayerPhase = this.LAST_PLAYER_PHASES.last_player;
       }
     },
 
@@ -349,7 +487,7 @@ Or you may continue playing here.`
       // TODO: Choose order of moves (calculate, which move is more profitable) - ideal algorhytm
       while (this.unitCoordsArr.length > 0)
         this.botEngine.makeBotUnitMove(this.unitCoordsArr, this.currentPlayer, this.moveUnit);
-      this.processEndTurn();
+      emitter.emit('processEndTurn');
     },
 
     // Helpers
@@ -384,6 +522,28 @@ Or you may continue playing here.`
       }
       console.log('getCurrentActiveUnits finish');
       return {active: activeCtr, total: totalCtr, coordsArr: coordsArr};
+    },
+    areAllHumanPlayersEliminated() {
+      return !this.players.filter(p => p._type === Models.PlayerTypes.HUMAN).filter(p => p.active).length
+    },
+    getLastPlayerIdx() {
+      const activePlayers = this.players.filter(p => p.active)
+      if (activePlayers.length === 1) {
+        for (let idx = 0; idx < this.players.length; idx++) {
+          if (this.players[idx].active) {
+            return idx;
+          }
+        }
+      }
+      return null;
+    },
+    prepareWinner() {
+      if (this.winPhase !== this.WIN_PHASES.has_winner) return null;
+      return this.winner;
+    },
+    prepareLastPlayer() {
+      if (this.lastPlayerPhase !== this.LAST_PLAYER_PHASES.last_player) return null;
+      return this.lastPlayer;
     },
     restoreField() {
       this.currentPlayer = this.prevPlayer;
