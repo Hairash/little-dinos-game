@@ -197,16 +197,16 @@ export default {
       height: 20,
       humanPlayersNum: 1,
       botPlayersNum: 3,
-      scoresToWin: 1000,
+      scoresToWin: 200,
       // TODO: make them changeable
       sectorsNum: 4,
       enableFogOfWar: false,
       fogOfWarRadius: 3,
-      enableScoutMode: false,
+      enableScoutMode: true,
       minSpeed: 1,
       maxSpeed: 10,
       hideEnemySpeed: false,
-      killAtBirth: false,
+      killAtBirth: true,
       enableUndo: false,
       loadGame: false,
       loadGamePossible: false,
@@ -225,9 +225,7 @@ export default {
       const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field');
       for (const field of fieldsToLoad) {
         localStorage.getItem(field, JSON.stringify(this[field]));
-        const fieldValue = localStorage.getItem(field);
-        if (fieldValue && JSON.parse(fieldValue))
-          this[field] = JSON.parse(fieldValue);
+        this[field] = JSON.parse(localStorage.getItem(field));
       }
     },
     updateHumanPlayers() {
