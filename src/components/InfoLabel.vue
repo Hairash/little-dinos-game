@@ -17,12 +17,18 @@
         class="tooltip"
       >
         <div v-for="(p, idx) in players" :key=idx>
-          {{ p.score }}
+          P{{ idx + 1 }}: {{ p.score }}
         </div>
       </div>
     </span>
 
-    <button type="button" @click="handleEndTurnBtnClick">End turn</button>
+    <button
+      type="button"
+      @click="handleEndTurnBtnClick"
+      :disabled="player.type === botType"
+    >
+      End turn
+    </button>
   </div>
 </template>
 
@@ -56,6 +62,9 @@ export default {
     totalUnits() {
       return this.currentUnitsArr.total;
     },
+    botType() {
+      return Models.PlayerTypes.BOT;
+    }
   },
 }
 </script>
@@ -91,6 +100,7 @@ div.tooltip {
   bottom: 34px;
   background: black;
   border: solid 2px;
-  width: 60px;
+  min-width: 52px;
+  padding: 4px;
 }
 </style>
