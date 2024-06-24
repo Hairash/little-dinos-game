@@ -1,5 +1,12 @@
 export const TRANSITION_DELAY = 1;
 export const CELL_SIZE = 30;
+export const GAME_STATUS_FIELDS = [
+  'winPhase',
+  'winner',
+  'humanPhase',
+  'lastPlayerPhase',
+  'lastPlayer',
+];
 export const FIELDS_TO_SAVE = [
   'field',
   'humanPlayersNum',
@@ -17,7 +24,7 @@ export const FIELDS_TO_SAVE = [
   'hideEnemySpeed',
   'killAtBirth',
   'enableUndo',
-];
+].concat(GAME_STATUS_FIELDS);
 export const SCORE_MOD = {
   kill: 10,
   building: -3,

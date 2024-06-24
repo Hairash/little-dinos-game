@@ -42,6 +42,8 @@ class Player {
         this.killed = 0;
         this.lost = 0;
         this.score = 0;
+        this.active = true;
+        this.informed_lose = false;
     }
 }
 
