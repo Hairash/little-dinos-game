@@ -1,13 +1,13 @@
 <template>
   <ReadyLabel
     v-if="state === STATES.ready"
-    :onClickAction="readyBtnClick"
-    :currentPlayer="currentPlayer"
-    :isActivePlayer="players[currentPlayer].active"
-    :isPlayerInformedLose="players[currentPlayer].informed_lose"
-    :areAllHumanPlayersEliminated="humanPhase === HUMAN_PHASES.all_eliminated"
+    :on-click-action="readyBtnClick"
+    :current-player="currentPlayer"
+    :is-active-player="players[currentPlayer].active"
+    :is-player-informed-lose="players[currentPlayer].informed_lose"
+    :are-all-human-players-eliminated="humanPhase === HUMAN_PHASES.all_eliminated"
     :winner="prepareWinner()"
-    :lastPlayer="prepareLastPlayer()"
+    :last-player="prepareLastPlayer()"
   />
   <GameGrid
     ref="gameGridRef"
@@ -17,16 +17,16 @@
     :enable-scout-mode="enableScoutMode"
     :hide-enemy-speed="hideEnemySpeed"
     :field="field"
-    :currentPlayer="currentPlayer"
+    :current-player="currentPlayer"
     @moveUnit="moveUnit"
   />
   <InfoLabel
     v-if="state === STATES.play"
-    :currentPlayer="currentPlayer"
-    :players="this.players"
-    :getCurrentActiveUnits="getCurrentActiveUnits"
-    :handleEndTurnBtnClick="processEndTurn"
-    :handleImgClick="findNextUnit"
+    :current-player="currentPlayer"
+    :players="players"
+    :get-current-active-units="getCurrentActiveUnits"
+    :handle-end-turn-btn-click="processEndTurn"
+    :handle-img-click="findNextUnit"
   />
 </template>
 
@@ -40,7 +40,7 @@ import { WaveEngine } from "@/game/waveEngine";
 import { FieldEngine } from "@/game/fieldEngine";
 import { BotEngine } from "@/game/botEngine";
 import { createPlayers, createNewUnit } from "@/game/helpers";
-import {FIELDS_TO_SAVE, GAME_STATUS_FIELDS, SCORE_MOD} from "@/game/const";
+import { FIELDS_TO_SAVE, GAME_STATUS_FIELDS, SCORE_MOD } from "@/game/const";
 
 import emitter from '@/game/eventBus';
 
@@ -220,7 +220,7 @@ export default {
           }
           if (this.lastPlayerPhase === this.LAST_PLAYER_PHASES.progress) {
             const lastPlayerIdx = this.getLastPlayerIdx();
-            // TODO: Check it in the end of turn (not only for the first player
+            // TODO: Check it in the end of turn (not only for the first player)
             if (lastPlayerIdx !== null) {
               this.lastPlayerPhase = this.LAST_PLAYER_PHASES.last_player;
               this.lastPlayer = lastPlayerIdx;
@@ -347,11 +347,6 @@ export default {
         endOfGame ||
         this.scoresToWin > 0 && this.players[this.currentPlayer].score >= this.scoresToWin
       ) {
-//         alert(
-//           `Player ${this.currentPlayer + 1} wins!\n
-// To start new game refresh the page.
-// Or you may continue playing here.`
-//         );
         console.log(`Player ${this.currentPlayer + 1} wins!`);
         this.winPhase = this.WIN_PHASES.has_winner;
         this.winner = this.currentPlayer;
