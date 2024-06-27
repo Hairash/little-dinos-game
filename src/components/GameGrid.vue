@@ -93,9 +93,11 @@ export default {
   },
   mounted() {
     emitter.on('initTurn', this.initTurn);
+    emitter.on('selectNextUnit', this.selectNextUnit);
   },
   beforeUnmount() {
     emitter.off('initTurn', this.initTurn);
+    emitter.off('selectNextUnit', this.selectNextUnit);
   },
   watch: {
     currentPlayer() {

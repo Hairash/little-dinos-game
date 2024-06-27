@@ -3,7 +3,7 @@ import { createNewUnit, getNeighbours } from "@/game/helpers";
 import { SCORE_MOD } from "@/game/const";
 
 export class FieldEngine {
-  constructor(field, width, height, fogOfWarRadius, players, minSpeed, maxSpeed) {
+  constructor(field, width, height, fogOfWarRadius, players, minSpeed, maxSpeed, killAtBirth) {
     this.field = field;
     this.width = width;
     this.height = height;
@@ -11,6 +11,7 @@ export class FieldEngine {
     this.players = players;
     this.minSpeed = minSpeed;
     this.maxSpeed = maxSpeed;
+    this.killAtBirth = killAtBirth;
   }
 
   getCurrentVisibilitySet(player) {
@@ -64,7 +65,6 @@ export class FieldEngine {
   }
 
   killNeighbours(x, y, curPlayer, countScore=true) {
-    // console.log('Kill')
     const neighbours = getNeighbours(this.field, this.width, this.height, x, y);
     for (const neighbour of neighbours) {
       const [curX, curY] = neighbour;
@@ -99,7 +99,8 @@ export class FieldEngine {
             this.field[x][y].unit = createNewUnit(curPlayer, this.minSpeed, this.maxSpeed);
             producedNum++;
             if (this.killAtBirth) {
-              this.fieldEngine.killNeighbours(x, y, curPlayer, false);
+              // countScore=false to avoid double score calculation (here only kill)
+              this.killNeighbours(x, y, curPlayer, false);
             }
           }
         }

@@ -31,9 +31,9 @@
 </template>
 
 <script>
-import ReadyLabel from './ReadyLabel.vue'
-import GameGrid from './GameGrid.vue'
-import InfoLabel from './InfoLabel.vue'
+import ReadyLabel from '@/components/ReadyLabel.vue';
+import GameGrid from '@/components/GameGrid.vue';
+import InfoLabel from '@/components/InfoLabel.vue';
 import Models from "@/game/models";
 import { CreateFieldEngine } from "@/game/createFieldEngine";
 import { WaveEngine } from "@/game/waveEngine";
@@ -140,6 +140,7 @@ export default {
       this.players,
       this.minSpeed,
       this.maxSpeed,
+      this.killAtBirth,
     );
     this.botEngine = new BotEngine(
       this.field,
@@ -173,29 +174,13 @@ export default {
 
     this.startTurn();
   },
+  beforeUnmount() {
+    emitter.off('makeBotMove', this.makeBotMove);
+    emitter.off('processEndTurn', this.processEndTurn);
+    emitter.off('startTurn', this.startTurn);
+  },
   methods: {
-    // Change field after unit's move
-    moveUnit(fromCoords, toCoords) {
-      this.storeStateIfNeeded();
-
-      const [x0, y0] = fromCoords;
-      const [x1, y1] = toCoords;
-      const unit = this.field[x0][y0].unit;
-
-      this.fieldEngine.moveUnit(x0, y0, x1, y1, unit);
-      this.fieldEngine.captureBuildingIfNeeded(x1, y1, unit.player);
-      this.fieldEngine.killNeighbours(x1, y1, unit.player);
-
-      this.checkEndOfGame();
-      this.setVisibilityAfterMove(x0, y0, x1, y1);
-    },
-    processEndTurn() {
-      if (this.state === this.STATES.ready) return;
-      this.state = this.STATES.ready;
-      this.storeStateIfNeeded();
-      this.selectNextPlayerAndCheckPhases();
-      emitter.emit('startTurn');
-    },
+    // Main events
     startTurn() {
       const killedBefore = this.players[this.currentPlayer].killed;
       const counters = this.fieldEngine.restoreAndProduceUnits(this.currentPlayer);
@@ -222,6 +207,28 @@ export default {
         }
       }
     },
+    // Change field after unit's move
+    moveUnit(fromCoords, toCoords) {
+      this.storeStateIfNeeded();
+
+      const [x0, y0] = fromCoords;
+      const [x1, y1] = toCoords;
+      const unit = this.field[x0][y0].unit;
+
+      this.fieldEngine.moveUnit(x0, y0, x1, y1, unit);
+      this.fieldEngine.captureBuildingIfNeeded(x1, y1, unit.player);
+      this.fieldEngine.killNeighbours(x1, y1, unit.player);
+
+      this.checkEndOfGame();
+      this.setVisibilityAfterMove(x0, y0, x1, y1);
+    },
+    processEndTurn() {
+      if (this.state === this.STATES.ready) return;
+      this.state = this.STATES.ready;
+      this.storeStateIfNeeded();
+      this.selectNextPlayerAndCheckPhases();
+      emitter.emit('startTurn');
+    },
     readyBtnClick() {
       this.state = this.STATES.play;
       if (this.humanPhase === this.HUMAN_PHASES.all_eliminated) {
@@ -237,6 +244,8 @@ export default {
         this.players[this.currentPlayer].informed_lose = true;
       }
     },
+
+    // Global helpers
     updatePlayerScore(killedBefore, buildingsNum, unitsNum, producedNum) {
       this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.building * buildingsNum);
       this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.unit * unitsNum);
@@ -249,27 +258,16 @@ export default {
     },
     checkEndOfGame() {
       if (this.winPhase !== this.WIN_PHASES.progress) return;
-      let endOfGame = true;
-      // TODO: Replace with last player check
-      for (const playerIdx in this.players) {
-        if (Number(playerIdx) === this.currentPlayer) continue;
-        const player = this.players[playerIdx];
-        endOfGame &= !player.active;
-      }
-      console.log(endOfGame);
       if (
-        endOfGame ||
+        this.getLastPlayerIdx() === this.currentPlayer ||
         this.scoresToWin > 0 && this.players[this.currentPlayer].score >= this.scoresToWin
       ) {
-        console.log(`Player ${this.currentPlayer + 1} wins!`);
         this.winPhase = this.WIN_PHASES.has_winner;
         this.winner = this.currentPlayer;
+        if (this.players[this.currentPlayer]._type === Models.PlayerTypes.HUMAN) {
+          this.state = this.STATES.ready;
+        }
       }
-    },
-    findNextUnit() {
-      const coordsArr = this.getCurrentActiveUnits().coordsArr;
-      if (coordsArr.length === 0) return;
-      this.$refs.gameGridRef.selectNextUnit(coordsArr);
     },
     selectNextPlayerAndCheckPhases() {
       do {
@@ -302,7 +300,6 @@ export default {
       return this.enableFogOfWar && this.players[this.currentPlayer].active
     },
     addVisibilityForCoords(x, y) {
-      // if (!this.enableFogOfWar) return;
       for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
         for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
           if (this.fieldEngine.areExistingCoords(curX, curY))
@@ -311,7 +308,6 @@ export default {
       }
     },
     removeVisibility() {
-      // if (!this.enableFogOfWar) return;
       for (let curX = 0; curX < this.width; curX++) {
         for (let curY = 0; curY < this.height; curY++) {
           this.field[curX][curY].isHidden = true;
@@ -319,7 +315,6 @@ export default {
       }
     },
     showField() {
-      // if (!this.enableFogOfWar) return;
       for (let curX = 0; curX < this.width; curX++) {
         for (let curY = 0; curY < this.height; curY++) {
           this.field[curX][curY].isHidden = false;
@@ -327,19 +322,13 @@ export default {
       }
     },
     setVisibility() {
-      // if (!this.enableFogOfWar) return;
-      console.log('setVisibility start')
-
       this.removeVisibility();
       const visibilitySet = this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer);
       for (const [curX, curY] of visibilitySet) {
         this.field[curX][curY].isHidden = false;
       }
-      console.log('setVisibility finish')
     },
     setVisibilityForArea(x, y, r) {
-      // if (!this.enableFogOfWar) return;
-
       // Make all area invisible
       for (let curX = x - r; curX <= x + r; curX++) {
         for (let curY = y - r; curY <= y + r; curY++) {
@@ -430,6 +419,27 @@ export default {
         this.lastPlayerPhase = this.LAST_PLAYER_PHASES.last_player;
       }
     },
+    restoreField() {
+      this.currentPlayer = this.prevPlayer;
+      // TODO: What a hell?!
+      for (let x = 0; x < this.width; x++) {
+        for (let y = 0; y < this.height; y++) {
+          const prevCell = this.prevField[x][y];
+          const cell = this.field[x][y];
+          // TODO: Some problem here with units and buildings - they are undefined
+          cell.unit = prevCell.unit;
+          cell.building = prevCell.building;
+        }
+      }
+      // this.field = structuredClone(this.prevField);
+      // console.log(this.field);
+    },
+    storeStateIfNeeded() {
+      if (this.enableUndo) {
+        this.prevField = structuredClone(this.field);
+        this.prevPlayer = this.currentPlayer;
+      }
+    },
 
     // Bot move high level logic
     makeBotMove() {
@@ -442,7 +452,12 @@ export default {
       emitter.emit('processEndTurn');
     },
 
-    // Helpers
+    // Unit helpers
+    findNextUnit() {
+      const coordsArr = this.getCurrentActiveUnits().coordsArr;
+      if (coordsArr.length === 0) return;
+      emitter.emit('selectNextUnit', coordsArr);
+    },
     getCurrentUnitCoords() {
       const coordsArr = [];
       for (let x = 0; x < this.width; x++) {
@@ -456,7 +471,6 @@ export default {
       return coordsArr;
     },
     getCurrentActiveUnits() {
-      console.log('getCurrentActiveUnits start');
       let totalCtr = 0;
       let activeCtr = 0;
       const coordsArr = [];
@@ -472,9 +486,10 @@ export default {
           }
         }
       }
-      console.log('getCurrentActiveUnits finish');
       return {active: activeCtr, total: totalCtr, coordsArr: coordsArr};
     },
+
+    // State helpers
     areAllHumanPlayersEliminated() {
       return !this.players.filter(p => p._type === Models.PlayerTypes.HUMAN).filter(p => p.active).length
     },
@@ -511,30 +526,6 @@ export default {
         )
       )
     },
-    restoreField() {
-      this.currentPlayer = this.prevPlayer;
-      // TODO: What a hell?!
-      for (let x = 0; x < this.width; x++) {
-        for (let y = 0; y < this.height; y++) {
-          const prevCell = this.prevField[x][y];
-          const cell = this.field[x][y];
-          // TODO: Some problem here with units and buildings - they are undefined
-          cell.unit = prevCell.unit;
-          cell.building = prevCell.building;
-        }
-      }
-      // this.field = structuredClone(this.prevField);
-      // console.log(this.field);
-    },
-    storeStateIfNeeded() {
-      if (this.enableUndo) {
-        this.prevField = structuredClone(this.field);
-        this.prevPlayer = this.currentPlayer;
-      }
-    }
   },
 }
 </script>
-
-<style>
-</style>
