@@ -31,6 +31,8 @@ import { WaveEngine } from '@/game/waveEngine'
 import { FieldEngine } from '@/game/fieldEngine'
 import { CELL_SIZE } from '@/game/const'
 
+import emitter from '@/game/eventBus';
+
 export default {
   name: "GameGrid",
   components: {
@@ -88,6 +90,12 @@ export default {
       this.fogOfWarRadius,
     );
     // this.calculateCellSize();
+  },
+  mounted() {
+    emitter.on('initTurn', this.initTurn);
+  },
+  beforeUnmount() {
+    emitter.off('initTurn', this.initTurn);
   },
   watch: {
     currentPlayer() {
