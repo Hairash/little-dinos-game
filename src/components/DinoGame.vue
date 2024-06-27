@@ -39,7 +39,7 @@ import { CreateFieldEngine } from "@/game/createFieldEngine";
 import { WaveEngine } from "@/game/waveEngine";
 import { FieldEngine } from "@/game/fieldEngine";
 import { BotEngine } from "@/game/botEngine";
-import { createPlayers, createNewUnit } from "@/game/helpers";
+import { createPlayers } from "@/game/helpers";
 import { FIELDS_TO_SAVE, GAME_STATUS_FIELDS, SCORE_MOD } from "@/game/const";
 
 import emitter from '@/game/eventBus';
@@ -138,6 +138,8 @@ export default {
       this.height,
       this.fogOfWarRadius,
       this.players,
+      this.minSpeed,
+      this.maxSpeed,
     );
     this.botEngine = new BotEngine(
       this.field,
@@ -174,145 +176,48 @@ export default {
   methods: {
     // Change field after unit's move
     moveUnit(fromCoords, toCoords) {
-      console.log('moveUnit start');
-      // Store state before move
-      if (this.enableUndo) {
-        this.prevField = structuredClone(this.field);
-        this.prevPlayer = this.currentPlayer;
-      }
-      // console.log(this.prevField);
+      this.storeStateIfNeeded();
+
       const [x0, y0] = fromCoords;
       const [x1, y1] = toCoords;
       const unit = this.field[x0][y0].unit;
-      unit.hasMoved = true;
-      delete(this.field[x0][y0].unit);
-      this.field[x1][y1].unit = unit;
-      // capture the building
-      if (this.field[x1][y1].building) this.field[x1][y1].building.player = unit.player;
-      // console.log(this.field[x1][y1]);
-      // kill neighbours
-      this.fieldEngine.killNeighbours(this.field, x1, y1, unit.player);
+
+      this.fieldEngine.moveUnit(x0, y0, x1, y1, unit);
+      this.fieldEngine.captureBuildingIfNeeded(x1, y1, unit.player);
+      this.fieldEngine.killNeighbours(x1, y1, unit.player);
+
       this.checkEndOfGame();
-      if (this.doesVisibilityMakeSense()) {
-        // Recalculate visibility in area unit moved from
-        this.setVisibilityForArea(x0, y0, this.fogOfWarRadius);
-        // Add visibility to area unit moved to
-        this.addVisibilityForCoords(x1, y1);
-      }
-      console.log('moveUnit finish');
+      this.setVisibilityAfterMove(x0, y0, x1, y1);
     },
     processEndTurn() {
       if (this.state === this.STATES.ready) return;
       this.state = this.STATES.ready;
-      // TODO: Make save state function
-      if (this.enableUndo) {
-        this.prevField = structuredClone(this.field);
-        this.prevPlayer = this.currentPlayer;
-      }
-
-      do {
-        this.currentPlayer += 1;
-        this.currentPlayer %= this.playersNum;
-        if (this.currentPlayer === 0) {
-          this.saveState();
-          if (this.humanPhase === this.HUMAN_PHASES.progress && this.areAllHumanPlayersEliminated()) {
-            this.humanPhase = this.HUMAN_PHASES.all_eliminated;
-          }
-          if (this.lastPlayerPhase === this.LAST_PLAYER_PHASES.progress) {
-            const lastPlayerIdx = this.getLastPlayerIdx();
-            // TODO: Check it in the end of turn (not only for the first player)
-            if (lastPlayerIdx !== null) {
-              this.lastPlayerPhase = this.LAST_PLAYER_PHASES.last_player;
-              this.lastPlayer = lastPlayerIdx;
-            }
-          }
-          if (this.humanPhase !== this.HUMAN_PHASES.progress) {
-            break;
-          }
-        }
-      }
-      while (!this.players[this.currentPlayer].active);
-
+      this.storeStateIfNeeded();
+      this.selectNextPlayerAndCheckPhases();
       emitter.emit('startTurn');
     },
     startTurn() {
-      // Restore all unit's move points and produce new units
-      let buildingsNum = 0;
-      let unitsNum = 0;
-      let producedNum = 0;
       const killedBefore = this.players[this.currentPlayer].killed;
-      for (let x = 0; x < this.width; x++) {
-        for (let y = 0; y < this.height; y++) {
-          if (this.field[x][y].unit) {
-            this.field[x][y].unit.hasMoved = false;
-            if (this.field[x][y].unit.player === this.currentPlayer) {
-              unitsNum++;
-              // this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.unit);
-              // console.log('~unit');
-            }
-          }
-          if (this.field[x][y].building && this.field[x][y].building.player === this.currentPlayer) {
-            buildingsNum++;
-            // this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.building);
-            // console.log('~building');
-            if (!this.field[x][y].unit) {
-              this.field[x][y].unit = createNewUnit(this.currentPlayer, this.minSpeed, this.maxSpeed);
-              producedNum++;
-              // this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.produce);
-              console.log('~produce');
-              if (this.killAtBirth) {
-                this.fieldEngine.killNeighbours(this.field, x, y, this.currentPlayer, false);
-              }
-            }
-          }
-        }
-      }
-      // Count score
-      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.building * buildingsNum);
-      console.log('~ buildings:', SCORE_MOD.building * buildingsNum);
-      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.unit * unitsNum);
-      console.log('~ units:', SCORE_MOD.unit * unitsNum);
-      this.checkEndOfGame();
-      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.produce * producedNum);
-      console.log('~ produced:', SCORE_MOD.produce * producedNum);
-      this.checkEndOfGame();
-      const killed = this.players[this.currentPlayer].killed - killedBefore;
-      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.kill * killed);
-      console.log('~ killed:', SCORE_MOD.kill * killed);
-      this.checkEndOfGame();
-      console.log('Score:')
-      for (const player of this.players) {
-        console.log(player.score);
-      }
-      if (buildingsNum === 0 && unitsNum === 0) {
+      const counters = this.fieldEngine.restoreAndProduceUnits(this.currentPlayer);
+      this.updatePlayerScore(
+        killedBefore,
+        counters.buildingsNum,
+        counters.unitsNum,
+        counters.producedNum,
+      );
+
+      if (counters.buildingsNum === 0 && counters.unitsNum === 0) {
         this.players[this.currentPlayer].active = false;
       }
 
-      if (this.doesVisibilityMakeSense()) {
-        this.setVisibility();
-      }
-      else {
-        this.showField();
-      }
+      this.setVisibilityStartTurn();
 
       if (this.players[this.currentPlayer]._type === Models.PlayerTypes.BOT) {
         emitter.emit('makeBotMove');
       }
       else {
-        // TODO: Refactor it
-        this.$refs.gameGridRef.initTurn();
-        if (
-            (
-                this.humanPlayersNum === 1 &&
-                this.players[this.currentPlayer].active &&
-                this.winPhase !== this.WIN_PHASES.has_winner &&
-                this.lastPlayerPhase !== this.LAST_PLAYER_PHASES.last_player
-            ) ||
-            (
-                this.humanPhase === this.HUMAN_PHASES.informed &&
-                this.lastPlayerPhase !== this.LAST_PLAYER_PHASES.last_player
-            )
-        ) {
+        emitter.emit('initTurn');
+        if (this.checkSkipReadyLabel()) {
           this.state = this.STATES.play;
         }
       }
@@ -331,7 +236,16 @@ export default {
       if (!this.players[this.currentPlayer].active && !this.players[this.currentPlayer].informed_lose) {
         this.players[this.currentPlayer].informed_lose = true;
       }
-
+    },
+    updatePlayerScore(killedBefore, buildingsNum, unitsNum, producedNum) {
+      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.building * buildingsNum);
+      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.unit * unitsNum);
+      this.checkEndOfGame();
+      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.produce * producedNum);
+      this.checkEndOfGame();
+      const killed = this.players[this.currentPlayer].killed - killedBefore;
+      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.kill * killed);
+      this.checkEndOfGame();
     },
     checkEndOfGame() {
       if (this.winPhase !== this.WIN_PHASES.progress) return;
@@ -356,6 +270,31 @@ export default {
       const coordsArr = this.getCurrentActiveUnits().coordsArr;
       if (coordsArr.length === 0) return;
       this.$refs.gameGridRef.selectNextUnit(coordsArr);
+    },
+    selectNextPlayerAndCheckPhases() {
+      do {
+        this.currentPlayer += 1;
+        this.currentPlayer %= this.playersNum;
+        if (this.currentPlayer === 0) {
+          this.saveState();
+          if (this.humanPhase === this.HUMAN_PHASES.progress && this.areAllHumanPlayersEliminated()) {
+            this.humanPhase = this.HUMAN_PHASES.all_eliminated;
+          }
+          if (this.lastPlayerPhase === this.LAST_PLAYER_PHASES.progress) {
+            const lastPlayerIdx = this.getLastPlayerIdx();
+            // TODO: ? Check it in the end of turn (not only for the first player)
+            if (lastPlayerIdx !== null) {
+              this.lastPlayerPhase = this.LAST_PLAYER_PHASES.last_player;
+              this.lastPlayer = lastPlayerIdx;
+            }
+          }
+          // If all human players eliminated, they may observe bot fight
+          if (this.humanPhase !== this.HUMAN_PHASES.progress) {
+            break;
+          }
+        }
+      }
+      while (!this.players[this.currentPlayer].active);
     },
 
     // Visibility helpers
@@ -389,12 +328,14 @@ export default {
     },
     setVisibility() {
       // if (!this.enableFogOfWar) return;
+      console.log('setVisibility start')
 
       this.removeVisibility();
       const visibilitySet = this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer);
       for (const [curX, curY] of visibilitySet) {
         this.field[curX][curY].isHidden = false;
       }
+      console.log('setVisibility finish')
     },
     setVisibilityForArea(x, y, r) {
       // if (!this.enableFogOfWar) return;
@@ -418,6 +359,22 @@ export default {
             }
           }
         }
+    },
+    setVisibilityAfterMove(x0, y0, x1, y1) {
+      if (this.doesVisibilityMakeSense()) {
+        // Recalculate visibility in area unit moved from
+        this.setVisibilityForArea(x0, y0, this.fogOfWarRadius);
+        // Add visibility to area unit moved to
+        this.addVisibilityForCoords(x1, y1);
+      }
+    },
+    setVisibilityStartTurn() {
+      if (this.doesVisibilityMakeSense()) {
+        this.setVisibility();
+      }
+      else {
+        this.showField();
+      }
     },
 
     // Save-load operations
@@ -540,6 +497,20 @@ export default {
       if (this.lastPlayerPhase !== this.LAST_PLAYER_PHASES.last_player) return null;
       return this.lastPlayer;
     },
+    checkSkipReadyLabel() {
+      return (
+        (
+          this.humanPlayersNum === 1 &&
+          this.players[this.currentPlayer].active &&
+          this.winPhase !== this.WIN_PHASES.has_winner &&
+          this.lastPlayerPhase !== this.LAST_PLAYER_PHASES.last_player
+        ) ||
+        (
+          this.humanPhase === this.HUMAN_PHASES.informed &&
+          this.lastPlayerPhase !== this.LAST_PLAYER_PHASES.last_player
+        )
+      )
+    },
     restoreField() {
       this.currentPlayer = this.prevPlayer;
       // TODO: What a hell?!
@@ -554,6 +525,12 @@ export default {
       }
       // this.field = structuredClone(this.prevField);
       // console.log(this.field);
+    },
+    storeStateIfNeeded() {
+      if (this.enableUndo) {
+        this.prevField = structuredClone(this.field);
+        this.prevPlayer = this.currentPlayer;
+      }
     }
   },
 }
