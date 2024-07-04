@@ -63,6 +63,7 @@ export default {
     enableScoutMode: Boolean,
     minSpeed: Number,
     maxSpeed: Number,
+    maxUnitsNum: Number,
     hideEnemySpeed: Boolean,
     killAtBirth: Boolean,
     enableUndo: Boolean,
@@ -241,6 +242,7 @@ export default {
       let unitsNum = 0;
       let producedNum = 0;
       const killedBefore = this.players[this.currentPlayer].killed;
+      const unitsToCreate = [];
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
           if (this.field[x][y].unit) {
@@ -256,7 +258,8 @@ export default {
             // this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.building);
             // console.log('~building');
             if (!this.field[x][y].unit) {
-              this.field[x][y].unit = createNewUnit(this.currentPlayer, this.minSpeed, this.maxSpeed);
+              unitsToCreate.push(this.field[x][y])
+              // this.field[x][y].unit = createNewUnit(this.currentPlayer, this.minSpeed, this.maxSpeed);
               producedNum++;
               // this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.produce);
               console.log('~produce');
@@ -267,6 +270,14 @@ export default {
           }
         }
       }
+      console.log('%', unitsNum);
+      console.log('%', producedNum);
+      console.log('%', this.maxUnitsNum);
+      if (unitsNum + producedNum <= this.maxUnitsNum)
+        for (let cell of unitsToCreate) {
+          cell.unit = createNewUnit(this.currentPlayer, this.minSpeed, this.maxSpeed);
+        }
+
       // Count score
       this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.building * buildingsNum);
       console.log('~ buildings:', SCORE_MOD.building * buildingsNum);
