@@ -205,6 +205,7 @@ export default {
       enableScoutMode: true,
       minSpeed: 1,
       maxSpeed: 10,
+      maxUnitsNum: 15,
       hideEnemySpeed: false,
       killAtBirth: true,
       enableUndo: false,
@@ -262,6 +263,7 @@ export default {
         killAtBirth: this.killAtBirth,
         enableUndo: this.enableUndo,
         loadGame: this.loadGame,
+        maxUnitsNum: this.maxUnitsNum,
       }
       this.handleClick(settings);
     },
