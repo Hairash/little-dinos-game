@@ -195,10 +195,11 @@ export default {
       this.fieldEngine.killNeighbours(this.field, x1, y1, unit.player);
       this.checkEndOfGame();
       if (this.doesVisibilityMakeSense()) {
+        const fogRadius = 11 - unit.movePoints;
         // Recalculate visibility in area unit moved from
-        this.setVisibilityForArea(x0, y0, this.fogOfWarRadius);
+        this.setVisibilityForArea(x0, y0, fogRadius);
         // Add visibility to area unit moved to
-        this.addVisibilityForCoords(x1, y1);
+        this.addVisibilityForCoords(x1, y1, fogRadius);
       }
       console.log('moveUnit finish');
     },
@@ -378,10 +379,10 @@ export default {
     doesVisibilityMakeSense() {
       return this.enableFogOfWar && this.players[this.currentPlayer].active
     },
-    addVisibilityForCoords(x, y) {
+    addVisibilityForCoords(x, y, fogRadius) {
       // if (!this.enableFogOfWar) return;
-      for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
-        for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
+      for (let curX = x - fogRadius; curX <= x + fogRadius; curX++) {
+        for (let curY = y - fogRadius; curY <= y + fogRadius; curY++) {
           if (this.fieldEngine.areExistingCoords(curX, curY))
             this.field[curX][curY].isHidden = false;
         }
@@ -424,13 +425,13 @@ export default {
         }
       }
       // Set visibility
-      for (let curX = x - r - this.fogOfWarRadius; curX <= x + r + this.fogOfWarRadius; curX++) {
-          for (let curY = y - r - this.fogOfWarRadius; curY <= y + r + this.fogOfWarRadius; curY++) {
+      for (let curX = x - r - 10; curX <= x + r + 10; curX++) {
+          for (let curY = y - r - 10; curY <= y + r + 10; curY++) {
             if (
               this.fieldEngine.areExistingCoords(curX, curY) &&
-              this.fieldEngine.isVisibleObj(curX, curY, this.currentPlayer)
+              this.fieldEngine.isVisibleObj(curX, curY, this.currentPlayer, x, y, r)
             ) {
-              this.addVisibilityForCoords(curX, curY);
+              this.addVisibilityForCoords(curX, curY, r);
             }
           }
         }

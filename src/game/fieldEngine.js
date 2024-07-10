@@ -17,8 +17,17 @@ export class FieldEngine {
     const playerObjectCoords = this.getPlayerObjectCoords(player);
     for (const coords of playerObjectCoords) {
       const [x, y] = coords;
-      for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
-        for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
+      let fogRadius = 0;
+      if (this.field[x][y].unit) {
+        // TODO: Make formula to calculate visibility fair. this.fogOfWarRadius should be median
+        fogRadius = Math.max(fogRadius, 11 - this.field[x][y].unit.movePoints);
+      }
+      if (this.field[x][y].building) {
+        fogRadius = Math.max(fogRadius, this.fogOfWarRadius);
+      }
+      console.log('%', fogRadius);
+      for (let curX = x - fogRadius; curX <= x + fogRadius; curX++) {
+        for (let curY = y - fogRadius; curY <= y + fogRadius; curY++) {
           if (this.areExistingCoords(curX, curY)) {
             visibleCoordsSet.add([curX, curY]);
             // console.log(curX, curY);
@@ -48,10 +57,11 @@ export class FieldEngine {
     return curX >= 0 && curX < this.width && curY >= 0 && curY < this.height;
   }
 
-  isVisibleObj(x, y, currentPlayer) {
+  isVisibleObj(x, y, currentPlayer, x0, y0, r) {
+    const dist = Math.abs(x - x0) + Math.abs(y - y0);
     return (
-      this.field[x][y].unit && this.field[x][y].unit.player === currentPlayer ||
-      this.field[x][y].building && this.field[x][y].building.player === currentPlayer
+      this.field[x][y].building && this.field[x][y].building.player === currentPlayer && dist <= this.fogOfWarRadius ||
+      this.field[x][y].unit && this.field[x][y].unit.player === currentPlayer && dist <= r
     );
   }
 
