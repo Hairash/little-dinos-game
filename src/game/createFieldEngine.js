@@ -1,8 +1,9 @@
+// Responsible for generating new field
+// Cannot use other engines, because other engines require field, but it doesn't exist until this one creates it
+
 import Models from '@/game/models';
 import { createNewUnit } from '@/game/helpers';
 
-// Responsible for generating new field
-// Cannot use other engines, because other engines require field, but it doesn't exist when this
 class CreateFieldEngine {
   constructor(playersNum, width, height, sectorsNum, minSpeed, maxSpeed) {
     this.playersNum = playersNum;

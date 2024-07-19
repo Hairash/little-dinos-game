@@ -1,4 +1,5 @@
 // Functions that might be useful in any part of code
+
 import Models from "@/game/models";
 
 export function copy2dArray(arr) {

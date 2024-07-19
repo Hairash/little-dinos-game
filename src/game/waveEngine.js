@@ -1,7 +1,7 @@
-import Models from './models';
-// import utils from './utils';
-
 // Contains functions related to path finding
+
+import Models from '@/game/models';
+
 class WaveEngine {
   constructor(field, width, height, fogOfWarRadius, enableScoutMode) {
     this.field = field;

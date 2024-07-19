@@ -18,7 +18,6 @@
     :hide-enemy-speed="hideEnemySpeed"
     :field="field"
     :current-player="currentPlayer"
-    @moveUnit="moveUnit"
   />
   <InfoLabel
     v-if="state === STATES.play"
@@ -171,6 +170,7 @@ export default {
     emitter.on('makeBotMove', this.makeBotMove);
     emitter.on('processEndTurn', this.processEndTurn);
     emitter.on('startTurn', this.startTurn);
+    emitter.on('moveUnit', this.emitMoveUnit);
 
     this.startTurn();
   },
@@ -178,6 +178,7 @@ export default {
     emitter.off('makeBotMove', this.makeBotMove);
     emitter.off('processEndTurn', this.processEndTurn);
     emitter.off('startTurn', this.startTurn);
+    emitter.off('moveUnit', this.moveUnit);
   },
   methods: {
     // Main events
@@ -206,6 +207,9 @@ export default {
           this.state = this.STATES.play;
         }
       }
+    },
+    emitMoveUnit(coordsDict) {
+      this.moveUnit(coordsDict.fromCoords, coordsDict.toCoords);
     },
     // Change field after unit's move
     moveUnit(fromCoords, toCoords) {
@@ -280,7 +284,6 @@ export default {
           }
           if (this.lastPlayerPhase === this.LAST_PLAYER_PHASES.progress) {
             const lastPlayerIdx = this.getLastPlayerIdx();
-            // TODO: ? Check it in the end of turn (not only for the first player)
             if (lastPlayerIdx !== null) {
               this.lastPlayerPhase = this.LAST_PLAYER_PHASES.last_player;
               this.lastPlayer = lastPlayerIdx;

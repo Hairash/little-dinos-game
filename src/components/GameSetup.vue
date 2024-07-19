@@ -97,43 +97,28 @@
           🌿 You can move any number of your dinos each turn.<br>
           🌿 A dino can move a number of cells up to its speed during a turn.<br>
           🌿 Rocks and other dinos block movement.<br>
-          🌿 No win conditions, just enjoy!<br>
+          🌿 There are 2 ways to win:<br>
+          &emsp;&emsp;🌱 eliminate all other players or<br>
+          &emsp;&emsp;🌱 reach specific number of score (set up in settings)<br>
         </div>
         <br>
         <b>Description</b><br>
         <div class="textBlock">
-          <!-- It is a simple turn-based strategy game you can play alone versus bots or with your friends, or with friends and
-          bots - whatever.<br>
-          Game is played on the randomly generated field, split by cells, some of them are rocks so they are unpassable.
-          At the beginning of the game you have one tower of your color (blue for the first player) and one dino of the
-          same color, staying on it as well as other players. In the right bottom corner of your dino you can see a number
-          - it is its speed - number of cells it can pass through one turn. Other dinos (yours or enemy's) are unpassable
-          as well as rocks.<br>
-          Every turn you may move any number of your dinos one by one. To do it just press the dino and then press the cell
-          you want it to move to. When the dino ends move, all the dinos around it belongs to other players die. In this
-          case around means 4 directions (⬅️➡️⬇️⬆️).<br>
-          Also if your dino ends turn on the cell with enemy's tower, dino occupies it, and the tower becomes yours. In
-          the beginning of the turn each your free tower generates new dino with random speed.<br>
-          There is no way to win this game. But if you lose all your dinos and towers, you will have no moves.<br>
-          Also there are few options to setup. Kindly recommend you to play your first game with for of war disabled to
-          understand what's
-          <img class="unitImg" style="float: right" :src="`/images/dino3.png`">
-          going on.<br>
-          Enjoy! -->
-
           It is a simple turn-based strategy game, where you can challenge the bots, play with friends, or even mix it up
           with both bots and pals.<br>
+          <br>
           The gameplay unfolds on a randomly generated grid, punctuated by impassable rock cells. As the game begins,
           you'll have a tower and a dino of the same color (e.g., blue for the first player) staying on it. The dino
           displays its speed as a number in its bottom right corner, representing how many cells it can traverse in a
           single turn. Other dinos, whether they're friend or foe, are obstacles you can't move through as well as rocks.
           <br>
+          <br>
           To move a dino, simply click or tap on it, then select the cell you want it to go to. When a dino completes its
           move, it eliminates opposing dinos in its immediate vicinity (those in the 4 main directions: ⬅️➡️⬇️⬆️). If your
           dino lands on an enemy tower, it captures the tower and it becomes yours. With every new turn, each your
           unoccupied towers will produce a new dino with a randomly assigned speed.<br>
-          Although there's no way to "win," if you lose all your towers and dinos, you'll run out of moves and effectively
-          be out of the game.<br>
+          <br>
+          You receive 10 score for every enemy you kill and lose 3 score every turn for every tower you control.<br>
           Before you dive in, note that there are a few game settings available. Kindly recommend you to start with the
           "fog of war" option disabled to
           <img class="unitImg" style="float: right" :src="`/images/dino3.png`">
@@ -216,7 +201,6 @@ export default {
     };
   },
   mounted() {
-    console.log('getItem');
     this.loadSettings();
     this.loadGamePossible = !!localStorage.getItem('field');
   },

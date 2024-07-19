@@ -25,7 +25,7 @@
 </template>
 
 <script>
-import GameCell from './GameCell.vue'
+import GameCell from '@/components/GameCell.vue'
 import Models from '@/game/models'
 import { WaveEngine } from '@/game/waveEngine'
 import { FieldEngine } from '@/game/fieldEngine'
@@ -128,8 +128,6 @@ export default {
       this.setHighlights(x, y, movePoints);
     },
     processClick(event, x, y) {
-      console.log('processClick start');
-      // console.log(x, y);
       const unit = this.field[x][y].unit;
       if (unit) {
         if (unit.player === this.currentPlayer && !unit.hasMoved) {
@@ -139,14 +137,13 @@ export default {
       else if (this.selectedCoords && this.waveEngine.canMove(this.selectedCoords, [x, y])) {
         this.moveUnit(this.selectedCoords, [x, y]);
       }
-      console.log('processClick finish');
     },
     moveUnit(fromCoords, toCoords) {
       let [x, y] = fromCoords;
       // Save movePoints value for the futher remove highlights
       const movePoints = this.field[x][y].unit.movePoints;
       // Call game moveUnit function to change field
-      this.$emit('moveUnit', fromCoords, toCoords);
+      emitter.emit('moveUnit', {fromCoords: fromCoords, toCoords: toCoords});
       this.selectedCoords = null;
       this.removeHighlightsForArea(x, y, movePoints);
     },
@@ -168,7 +165,6 @@ export default {
       }
     },
     setHighlights(x, y, radius) {
-      console.log('setHighlights start');
       const highlightedCoordsArr = this.waveEngine.getReachableCoordsArr(x, y, radius);
 
       for (const coords of highlightedCoordsArr) {
@@ -176,7 +172,6 @@ export default {
         const curY = coords[1];
         this.fieldOutput[curX][curY].isHighlighted = true;
       }
-      console.log('setHighlights finish');
     },
   }
 }
