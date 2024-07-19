@@ -27,7 +27,7 @@ export class BotEngine {
       this.fieldEngine.getCurrentVisibilitySet(currentPlayer) :
       new Set();
     visibilitySet = new Set(Array.from(visibilitySet).map(coords => JSON.stringify(coords)));
-    console.log(visibilitySet);
+    // console.log(visibilitySet);
 
     const [x, y] = coords;
     const unit = this.field[x][y].unit;
@@ -39,8 +39,6 @@ export class BotEngine {
       reachableCoordsArr;
 
     const buildingCoords = this.findFreeBuilding(reachableVisibleCoordsArr, currentPlayer);
-    console.log(`reachableVisibleCoordsArr: ${reachableVisibleCoordsArr}`);
-    console.log(buildingCoords);
     if (buildingCoords) {
       moveUnit(coords, buildingCoords);
       return;
@@ -48,7 +46,6 @@ export class BotEngine {
     // Atack enemy
     // TODO: Add max kill
     const enemyCoords = this.findEnemy(reachableVisibleCoordsArr, visibilitySet, currentPlayer);
-    console.log('enemyCoords:', enemyCoords);
     if (enemyCoords) {
       moveUnit(coords, enemyCoords);
       return;
@@ -58,9 +55,6 @@ export class BotEngine {
     // TODO: Random long move, avoid own buildings
     const idx = Math.floor(Math.random() * reachableCoordsArr.length);
     const toCoords = reachableCoordsArr[idx];
-    console.log(coords);
-    console.log(unit.movePoints);
-    console.log(toCoords);
     moveUnit(coords, toCoords);
     // For debug?
     // this.$refs.gameGridRef.setVisibility();
@@ -85,13 +79,13 @@ export class BotEngine {
 
   isEnemyNeighbour(visibilitySet, x, y, currentPlayer) {
     const neighbours = getNeighbours(this.field, this.width, this.height, x, y);
-    console.log(`neighbours: ${neighbours}`);
+    // console.log(`neighbours: ${neighbours}`);
     const res = neighbours.find(([curX, curY]) =>
       (!this.enableFogOfWar || visibilitySet.has(JSON.stringify([curX, curY]))) &&
       this.field[curX][curY].unit &&
       this.field[curX][curY].unit.player !== currentPlayer
     );
-    console.log(res);
+    // console.log(res);
     return res;
   }
 }
