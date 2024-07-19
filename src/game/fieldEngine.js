@@ -1,4 +1,5 @@
 // Helpers related to field
+
 import { createNewUnit, getNeighbours } from "@/game/helpers";
 import { SCORE_MOD } from "@/game/const";
 
@@ -15,7 +16,6 @@ export class FieldEngine {
   }
 
   getCurrentVisibilitySet(player) {
-    console.log('getCurrentVisibilitySet start');
     const visibleCoordsSet = new Set();
     const playerObjectCoords = this.getPlayerObjectCoords(player);
     for (const coords of playerObjectCoords) {
@@ -24,12 +24,10 @@ export class FieldEngine {
         for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
           if (this.areExistingCoords(curX, curY)) {
             visibleCoordsSet.add([curX, curY]);
-            // console.log(curX, curY);
           }
         }
       }
     }
-    console.log('getCurrentVisibilitySet finish');
     return visibleCoordsSet;
   }
 

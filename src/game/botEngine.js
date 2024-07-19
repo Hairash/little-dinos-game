@@ -1,7 +1,7 @@
-// import Models from '@/game//models';
+// Responsible for bot moves
+
 import { getNeighbours } from '@/game/helpers';
 
-// Responsible for bot moves
 export class BotEngine {
   constructor(field, width, height, enableFogOfWar, fieldEngine, waveEngine) {
     this.field = field;
