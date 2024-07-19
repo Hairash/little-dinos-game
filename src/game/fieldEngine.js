@@ -4,7 +4,7 @@ import { createNewUnit, getNeighbours } from "@/game/helpers";
 import { SCORE_MOD } from "@/game/const";
 
 export class FieldEngine {
-  constructor(field, width, height, fogOfWarRadius, players, minSpeed, maxSpeed, killAtBirth) {
+  constructor(field, width, height, fogOfWarRadius, players, minSpeed, maxSpeed, maxUnitsNum, killAtBirth) {
     this.field = field;
     this.width = width;
     this.height = height;
@@ -12,6 +12,7 @@ export class FieldEngine {
     this.players = players;
     this.minSpeed = minSpeed;
     this.maxSpeed = maxSpeed;
+    this.maxUnitsNum = maxUnitsNum;
     this.killAtBirth = killAtBirth;
   }
 
@@ -83,6 +84,7 @@ export class FieldEngine {
     let buildingsNum = 0;
     let unitsNum = 0;
     let producedNum = 0;
+    const unitsToCreateCoords = [];
     for (let x = 0; x < this.width; x++) {
       for (let y = 0; y < this.height; y++) {
         if (this.field[x][y].unit) {
@@ -94,13 +96,18 @@ export class FieldEngine {
         if (this.field[x][y].building && this.field[x][y].building.player === curPlayer) {
           buildingsNum++;
           if (!this.field[x][y].unit) {
-            this.field[x][y].unit = createNewUnit(curPlayer, this.minSpeed, this.maxSpeed);
+            unitsToCreateCoords.push([x, y]);
             producedNum++;
-            if (this.killAtBirth) {
-              // countScore=false to avoid double score calculation (here only kill)
-              this.killNeighbours(x, y, curPlayer, false);
-            }
           }
+        }
+      }
+    }
+    if (!this.maxUnitsNum || unitsNum + producedNum <= this.maxUnitsNum) {
+      for (let [x, y] of unitsToCreateCoords) {
+        this.field[x][y].unit = createNewUnit(curPlayer, this.minSpeed, this.maxSpeed);
+        if (this.killAtBirth) {
+          // countScore=false to avoid double score calculation (here only kill)
+          this.killNeighbours(x, y, curPlayer, false);
         }
       }
     }

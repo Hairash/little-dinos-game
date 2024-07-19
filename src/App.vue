@@ -16,6 +16,7 @@
     :enableScoutMode = "settings.enableScoutMode"
     :minSpeed = "settings.minSpeed"
     :maxSpeed = "settings.maxSpeed"
+    :max-units-num="settings.maxUnitsNum"
     :enableUndo = "settings.enableUndo"
     :hideEnemySpeed = "settings.hideEnemySpeed"
     :killAtBirth = "settings.killAtBirth"

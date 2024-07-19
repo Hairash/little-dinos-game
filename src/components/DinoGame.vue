@@ -62,6 +62,7 @@ export default {
     enableScoutMode: Boolean,
     minSpeed: Number,
     maxSpeed: Number,
+    maxUnitsNum: Number,
     hideEnemySpeed: Boolean,
     killAtBirth: Boolean,
     enableUndo: Boolean,
@@ -139,6 +140,7 @@ export default {
       this.players,
       this.minSpeed,
       this.maxSpeed,
+      this.maxUnitsNum,
       this.killAtBirth,
     );
     this.botEngine = new BotEngine(
@@ -371,7 +373,6 @@ export default {
 
     // Save-load operations
     saveState() {
-      console.log('Save state');
       // TODO: Save only game situation, not game settings
       for (const field of FIELDS_TO_SAVE) {
         localStorage.setItem(field, JSON.stringify(this[field]));
