@@ -40,6 +40,10 @@
       <input type="number" id="scoresToWin" class="inputNumber" v-model.number="scoresToWin" min="0" max="10000"/>
     </div>
     <div>
+      <label for="maxUnitsNum">Max units number:</label>
+      <input type="number" id="maxUnitsNum" class="inputNumber" v-model.number="maxUnitsNum" min="0" max="50"/>
+    </div>
+    <div>
       <label for="fogOfWar">Enable fog of war:</label>
       <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar" />
     </div>
@@ -169,6 +173,10 @@ export default {
         min: 0,
         max: 10000,
       },
+      maxUnitsNum: {
+        min: 0,
+        max: 50,
+      },
     };
     // const PLAYER_TYPES = Models.PlayerTypes;
     return {
@@ -190,6 +198,7 @@ export default {
       enableScoutMode: true,
       minSpeed: 1,
       maxSpeed: 10,
+      maxUnitsNum: 15,
       hideEnemySpeed: false,
       killAtBirth: true,
       enableUndo: false,
@@ -227,6 +236,7 @@ export default {
         minSpeed: this.minSpeed,
         maxSpeed: this.maxSpeed,
         scoresToWin: this.scoresToWin,
+        maxUnitsNum: this.maxUnitsNum,
       };
       if (!this.isInputValid(settings)) {
         alert('Invalid input');
