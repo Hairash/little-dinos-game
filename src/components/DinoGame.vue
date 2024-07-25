@@ -226,7 +226,8 @@ export default {
       this.fieldEngine.killNeighbours(x1, y1, unit.player);
 
       this.checkEndOfGame();
-      this.setVisibilityAfterMove(x0, y0, x1, y1);
+      const unitVisionRadius = 11 - unit.movePoints;
+      this.setVisibilityAfterMove(x0, y0, x1, y1, unitVisionRadius);
     },
     processEndTurn() {
       if (this.state === this.STATES.ready) return;
@@ -333,7 +334,10 @@ export default {
         this.field[curX][curY].isHidden = false;
       }
     },
-    setVisibilityForArea(x, y, r) {
+    setVisibilityForArea(x, y, buildingVisionRadius, unitVisionRadius) {
+      // const r = Math.max(buildingVisionRadius, unitVisionRadius);
+      const r = unitVisionRadius;
+      const maxR = 10;
       // Make all area invisible
       for (let curX = x - r; curX <= x + r; curX++) {
         for (let curY = y - r; curY <= y + r; curY++) {
@@ -343,21 +347,21 @@ export default {
         }
       }
       // Set visibility
-      for (let curX = x - r - this.fogOfWarRadius; curX <= x + r + this.fogOfWarRadius; curX++) {
-          for (let curY = y - r - this.fogOfWarRadius; curY <= y + r + this.fogOfWarRadius; curY++) {
-            if (
-              this.fieldEngine.areExistingCoords(curX, curY) &&
-              this.fieldEngine.isVisibleObj(curX, curY, this.currentPlayer)
-            ) {
-              this.addVisibilityForCoords(curX, curY);
-            }
+      for (let curX = x - r - maxR; curX <= x + r + maxR; curX++) {
+        for (let curY = y - r - maxR; curY <= y + r + maxR; curY++) {
+          if (
+            this.fieldEngine.areExistingCoords(curX, curY) &&
+            this.fieldEngine.isVisibleObj(curX, curY,  unitVisionRadius, this.currentPlayer, x, y)
+          ) {
+            this.addVisibilityForCoords(curX, curY);
           }
         }
+      }
     },
-    setVisibilityAfterMove(x0, y0, x1, y1) {
+    setVisibilityAfterMove(x0, y0, x1, y1, unitVisionRadius) {
       if (this.doesVisibilityMakeSense()) {
         // Recalculate visibility in area unit moved from
-        this.setVisibilityForArea(x0, y0, this.fogOfWarRadius);
+        this.setVisibilityForArea(x0, y0, this.fogOfWarRadius, unitVisionRadius);
         // Add visibility to area unit moved to
         this.addVisibilityForCoords(x1, y1);
       }
