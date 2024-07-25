@@ -38,6 +38,11 @@ export function createNewUnit(player, minSpeed, maxSpeed) {
   );
 }
 
+// TODO: Find all places where it can be used
+export function distance(x0, y0, x1, y1) {
+    return Math.abs(x0 - x1) + Math.abs(y0 - y1);
+}
+
 // Needed for scale in future
 // calculateCellSize() {
 //   const windowWidth = window.innerWidth;

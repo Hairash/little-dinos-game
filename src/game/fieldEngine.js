@@ -1,6 +1,6 @@
 // Helpers related to field
 
-import { createNewUnit, getNeighbours } from "@/game/helpers";
+import { createNewUnit, getNeighbours, distance } from "@/game/helpers";
 import { SCORE_MOD } from "@/game/const";
 
 export class FieldEngine {
@@ -50,11 +50,16 @@ export class FieldEngine {
     return curX >= 0 && curX < this.width && curY >= 0 && curY < this.height;
   }
 
-  isVisibleObj(x, y, currentPlayer) {
-    return (
-      this.field[x][y].unit && this.field[x][y].unit.player === currentPlayer ||
-      this.field[x][y].building && this.field[x][y].building.player === currentPlayer
-    );
+  isVisibleObj(x, y, origR, currentPlayer, destX, destY) {
+    if (this.field[x][y].unit && this.field[x][y].unit.player === currentPlayer) {
+      const unitVisionRadius = 11 - this.field[x][y].unit.movePoints;
+      if (distance(x, y, destX, destY) <= unitVisionRadius + origR) return true;
+    }
+    if (this.field[x][y].building && this.field[x][y].building.player === currentPlayer) {
+      const buildingVisionRadius = this.fogOfWarRadius;
+      if (distance(x, y, destX, destY) <= buildingVisionRadius + origR) return true;
+    }
+    return false;
   }
 
   moveUnit(x0, y0, x1, y1, unit) {
