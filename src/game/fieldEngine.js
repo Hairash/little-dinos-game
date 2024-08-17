@@ -4,7 +4,18 @@ import { createNewUnit, getNeighbours } from "@/game/helpers";
 import { SCORE_MOD } from "@/game/const";
 
 export class FieldEngine {
-  constructor(field, width, height, fogOfWarRadius, players, minSpeed, maxSpeed, maxUnitsNum, killAtBirth) {
+  constructor(
+      field,
+      width,
+      height,
+      fogOfWarRadius,
+      players,
+      minSpeed,
+      maxSpeed,
+      maxUnitsNum,
+      killAtBirth,
+      visibilitySpeedRelation,
+  ) {
     this.field = field;
     this.width = width;
     this.height = height;
@@ -14,6 +25,7 @@ export class FieldEngine {
     this.maxSpeed = maxSpeed;
     this.maxUnitsNum = maxUnitsNum;
     this.killAtBirth = killAtBirth;
+    this.visibilitySpeedRelation = visibilitySpeedRelation;
   }
 
   getCurrentVisibilitySet(player) {
@@ -21,8 +33,16 @@ export class FieldEngine {
     const playerObjectCoords = this.getPlayerObjectCoords(player);
     for (const coords of playerObjectCoords) {
       const [x, y] = coords;
-      for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
-        for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
+      let fogRadius = 0;
+      if (this.field[x][y].unit) {
+        fogRadius = Math.max(fogRadius, this.field[x][y].unit.visibility);
+      }
+      if (this.field[x][y].building) {
+        fogRadius = Math.max(fogRadius, this.fogOfWarRadius);
+      }
+      // console.log('%', fogRadius);
+      for (let curX = x - fogRadius; curX <= x + fogRadius; curX++) {
+        for (let curY = y - fogRadius; curY <= y + fogRadius; curY++) {
           if (this.areExistingCoords(curX, curY)) {
             visibleCoordsSet.add([curX, curY]);
           }
@@ -50,11 +70,24 @@ export class FieldEngine {
     return curX >= 0 && curX < this.width && curY >= 0 && curY < this.height;
   }
 
-  isVisibleObj(x, y, currentPlayer) {
-    return (
-      this.field[x][y].unit && this.field[x][y].unit.player === currentPlayer ||
-      this.field[x][y].building && this.field[x][y].building.player === currentPlayer
-    );
+  getVisibleObjRadius(x, y, currentPlayer, x0, y0, r) {
+    const vDist = Math.max(Math.abs(x - x0), Math.abs(y - y0));
+    let res = 0;
+    if (
+        this.field[x][y].building &&
+        this.field[x][y].building.player === currentPlayer &&
+        vDist <= r + this.fogOfWarRadius
+    ) {
+      res = this.fogOfWarRadius;
+    }
+    if (
+        this.field[x][y].unit &&
+        this.field[x][y].unit.player === currentPlayer &&
+        vDist <= r + this.field[x][y].unit.visibility
+    ) {
+      res = Math.max(res, this.field[x][y].unit.visibility);
+    }
+    return res;
   }
 
   moveUnit(x0, y0, x1, y1, unit) {
@@ -77,7 +110,11 @@ export class FieldEngine {
   }
 
   captureBuildingIfNeeded(x1, y1, player) {
-    if (this.field[x1][y1].building) this.field[x1][y1].building.player = player;
+    if (this.field[x1][y1].building) {
+      this.field[x1][y1].building.player = player;
+      return true;
+    }
+    return false;
   }
 
   restoreAndProduceUnits(curPlayer) {
@@ -104,7 +141,13 @@ export class FieldEngine {
     }
     if (!this.maxUnitsNum || unitsNum + producedNum <= this.maxUnitsNum) {
       for (let [x, y] of unitsToCreateCoords) {
-        this.field[x][y].unit = createNewUnit(curPlayer, this.minSpeed, this.maxSpeed);
+        this.field[x][y].unit = createNewUnit(
+            curPlayer,
+            this.minSpeed,
+            this.maxSpeed,
+            this.fogOfWarRadius,
+            this.visibilitySpeedRelation,
+        );
         if (this.killAtBirth) {
           // countScore=false to avoid double score calculation (here only kill)
           this.killNeighbours(x, y, curPlayer, false);

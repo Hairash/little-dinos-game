@@ -60,6 +60,7 @@ export default {
     enableFogOfWar: Boolean,
     fogOfWarRadius: Number,
     enableScoutMode: Boolean,
+    visibilitySpeedRelation: Boolean,
     minSpeed: Number,
     maxSpeed: Number,
     maxUnitsNum: Number,
@@ -119,6 +120,8 @@ export default {
       this.sectorsNum,
       this.minSpeed,
       this.maxSpeed,
+      this.fogOfWarRadius,
+      this.visibilitySpeedRelation,
     );
     this.loadFieldOrGenerateNewField();
     this.waveEngine = new WaveEngine(
@@ -142,6 +145,7 @@ export default {
       this.maxSpeed,
       this.maxUnitsNum,
       this.killAtBirth,
+      this.visibilitySpeedRelation,
     );
     this.botEngine = new BotEngine(
       this.field,
@@ -222,11 +226,18 @@ export default {
       const unit = this.field[x0][y0].unit;
 
       this.fieldEngine.moveUnit(x0, y0, x1, y1, unit);
-      this.fieldEngine.captureBuildingIfNeeded(x1, y1, unit.player);
+      const buildingCaptured = this.fieldEngine.captureBuildingIfNeeded(x1, y1, unit.player);
       this.fieldEngine.killNeighbours(x1, y1, unit.player);
 
       this.checkEndOfGame();
-      this.setVisibilityAfterMove(x0, y0, x1, y1);
+      if (this.doesVisibilityMakeSense()) {
+        // Recalculate visibility in area unit moved from
+        this.setVisibilityForArea(x0, y0, unit.visibility);
+        const visibility = buildingCaptured ? Math.max(unit.visibility, this.fogOfWarRadius): unit.visibility;
+        // Add visibility to area unit moved to
+        this.addVisibilityForCoords(x1, y1, visibility);
+      }
+      console.log('moveUnit finish');
     },
     processEndTurn() {
       if (this.state === this.STATES.ready) return;
@@ -304,9 +315,10 @@ export default {
     doesVisibilityMakeSense() {
       return this.enableFogOfWar && this.players[this.currentPlayer].active
     },
-    addVisibilityForCoords(x, y) {
-      for (let curX = x - this.fogOfWarRadius; curX <= x + this.fogOfWarRadius; curX++) {
-        for (let curY = y - this.fogOfWarRadius; curY <= y + this.fogOfWarRadius; curY++) {
+    addVisibilityForCoords(x, y, fogRadius) {
+      // TODO: Think about common naming (visibility instead of fogRadius)
+      for (let curX = x - fogRadius; curX <= x + fogRadius; curX++) {
+        for (let curY = y - fogRadius; curY <= y + fogRadius; curY++) {
           if (this.fieldEngine.areExistingCoords(curX, curY))
             this.field[curX][curY].isHidden = false;
         }
@@ -330,10 +342,12 @@ export default {
       this.removeVisibility();
       const visibilitySet = this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer);
       for (const [curX, curY] of visibilitySet) {
+        // console.log('setVisibility', curX, curY);
         this.field[curX][curY].isHidden = false;
       }
     },
     setVisibilityForArea(x, y, r) {
+      // console.log(`setVisibilityForArea (${x}, ${y})  r: ${r}`)
       // Make all area invisible
       for (let curX = x - r; curX <= x + r; curX++) {
         for (let curY = y - r; curY <= y + r; curY++) {
@@ -343,13 +357,17 @@ export default {
         }
       }
       // Set visibility
-      for (let curX = x - r - this.fogOfWarRadius; curX <= x + r + this.fogOfWarRadius; curX++) {
-          for (let curY = y - r - this.fogOfWarRadius; curY <= y + r + this.fogOfWarRadius; curY++) {
+      // TODO: Change 10 -> maxSpeed
+      for (let curX = x - r - this.maxSpeed; curX <= x + r + this.maxSpeed; curX++) {
+          for (let curY = y - r - this.maxSpeed; curY <= y + r + this.maxSpeed; curY++) {
+            let curR = 0;
+            // console.log(`Current check: (${curX}, ${curY})`)
             if (
               this.fieldEngine.areExistingCoords(curX, curY) &&
-              this.fieldEngine.isVisibleObj(curX, curY, this.currentPlayer)
+              (curR = this.fieldEngine.getVisibleObjRadius(curX, curY, this.currentPlayer, x, y, r))
             ) {
-              this.addVisibilityForCoords(curX, curY);
+              // console.log(`Visible object: (${curX}, ${curY})  r: ${curR}`)
+              this.addVisibilityForCoords(curX, curY, curR);
             }
           }
         }

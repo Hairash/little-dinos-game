@@ -21,10 +21,11 @@ class Cell {
 }
 
 class Unit {
-    constructor(player, _type, movePoints) {
+    constructor(player, _type, movePoints, visibility) {
         this.player = player;
         this._type = _type;
         this.movePoints = movePoints;
+        this.visibility = visibility;
         this.hasMoved = false;
     }
 }

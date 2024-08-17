@@ -55,6 +55,10 @@
       <label for="scoutMode">Enable scout mode:</label>
       <input type="checkbox" id="scoutMode" v-model="enableScoutMode" />
     </div>
+    <div v-if="enableFogOfWar">
+      <label for="visibilitySpeedRelation">Visibility-speed relation:</label>
+      <input type="checkbox" id="scoutMode" v-model="visibilitySpeedRelation" />
+    </div>
     <div>
       <label for="unitSpeedRange">Dinos speed range:</label>
       <input type="number" id="minSpeed" class="inputNumber" v-model.number="minSpeed" min="1" max="20" />
@@ -196,6 +200,7 @@ export default {
       enableFogOfWar: false,
       fogOfWarRadius: 3,
       enableScoutMode: true,
+      visibilitySpeedRelation: true,
       minSpeed: 1,
       maxSpeed: 10,
       maxUnitsNum: 15,
@@ -252,6 +257,7 @@ export default {
         enableFogOfWar: this.enableFogOfWar,
         fogOfWarRadius: this.fogOfWarRadius,
         enableScoutMode: this.enableScoutMode,
+        visibilitySpeedRelation: this.visibilitySpeedRelation,
         hideEnemySpeed: this.hideEnemySpeed,
         killAtBirth: this.killAtBirth,
         enableUndo: this.enableUndo,

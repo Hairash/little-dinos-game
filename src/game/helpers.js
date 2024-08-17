@@ -29,14 +29,50 @@ export function getNeighbours(field, width, height, x, y) {
 }
 
 // Generate new unit
-export function createNewUnit(player, minSpeed, maxSpeed) {
+export function createNewUnit(player, minSpeed, maxSpeed, avgVisibility, visibilitySpeedRelation) {
+  const movePoints = minSpeed + Math.floor(Math.random() * (maxSpeed - minSpeed + 1));
+  let visibility = avgVisibility;
+  if (visibilitySpeedRelation) {
+    visibility = calculateUnitVisibility(movePoints, minSpeed, maxSpeed, avgVisibility);
+  }
   return new Models.Unit(
     player,
     // TODO: make fair dict with images
     `dino${player + 1}`,
-    minSpeed + Math.floor(Math.random() * (maxSpeed - minSpeed + 1)),
+    movePoints,
+      visibility,
   );
 }
+
+function calculateUnitVisibility(movePoints, minSpeed, maxSpeed, avgVisibility) {
+  const minVisibility = 1;
+  const maxVisibility = 2 * avgVisibility - minVisibility;
+
+  const normalizedSpeed = (movePoints - minSpeed) / (maxSpeed - minSpeed);
+  // console.log(`normalizedSpeed: ${normalizedSpeed}`);
+  const adjustedSpeed = adjustSpeed(normalizedSpeed);
+  // console.log(`adjustedSpeed: ${adjustedSpeed}`);
+  const visibility = minVisibility + Math.round((maxVisibility - minVisibility) * adjustedSpeed);
+  // console.log(`Speed: ${movePoints}, visibility: ${visibility}`);
+  return visibility;
+}
+
+// Takes number 0..1 and returns number 0..1
+function adjustSpeed(x) {
+  const factor = 2;
+  const shift = 0.05;
+  // return 1 - x;
+  // cot((normalizedSpeed * factor + (1 - factor) / 2) * Math.PI) / cot((1 - factor) / 2);
+  return (-Math.tan((x - 1 / 2) * factor) / Math.tan(1 / 2 * factor) + 1) / 2 - shift;
+}
+
+// // Test
+// const minSpeed = 1;
+// const maxSpeed = 10;
+// for (let i = minSpeed; i < maxSpeed + 1; i++) {
+//   console.log(calculateUnitVisibility(i, minSpeed, maxSpeed, 3));
+// }
+
 
 // Needed for scale in future
 // calculateCellSize() {

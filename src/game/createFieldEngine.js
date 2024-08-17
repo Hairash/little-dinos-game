@@ -5,13 +5,15 @@ import Models from '@/game/models';
 import { createNewUnit } from '@/game/helpers';
 
 class CreateFieldEngine {
-  constructor(playersNum, width, height, sectorsNum, minSpeed, maxSpeed) {
+  constructor(playersNum, width, height, sectorsNum, minSpeed, maxSpeed, fogOfWarRadius, visibilitySpeedRelation) {
     this.playersNum = playersNum;
     this.width = width;
     this.height = height;
     this.sectorsNum = sectorsNum;
     this.minSpeed = minSpeed;
     this.maxSpeed = maxSpeed;
+    this.fogOfWarRadius = fogOfWarRadius;
+    this.visibilitySpeedRelation = visibilitySpeedRelation;
   }
 
   generateField() {
@@ -50,7 +52,13 @@ class CreateFieldEngine {
         player,
         Models.BuildingTypes.BASE,
       );
-      field[x][y].unit = createNewUnit(player, this.minSpeed, this.maxSpeed);
+      field[x][y].unit = createNewUnit(
+          player,
+          this.minSpeed,
+          this.maxSpeed,
+          this.fogOfWarRadius,
+          this.visibilitySpeedRelation,
+      );
     }
     // Set buildings
     let failCtr = 0;

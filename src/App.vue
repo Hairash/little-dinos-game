@@ -14,6 +14,7 @@
     :enableFogOfWar = "settings.enableFogOfWar"
     :fogOfWarRadius = "settings.fogOfWarRadius"
     :enableScoutMode = "settings.enableScoutMode"
+    :visibilitySpeedRelation = "settings.visibilitySpeedRelation"
     :minSpeed = "settings.minSpeed"
     :maxSpeed = "settings.maxSpeed"
     :max-units-num="settings.maxUnitsNum"
