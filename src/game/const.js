@@ -19,6 +19,7 @@ export const FIELDS_TO_SAVE = [
   'enableFogOfWar',
   'fogOfWarRadius',
   'enableScoutMode',
+  'visibilitySpeedRelation',
   'minSpeed',
   'maxSpeed',
   'maxUnitsNum',

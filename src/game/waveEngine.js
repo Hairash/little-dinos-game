@@ -17,13 +17,10 @@ class WaveEngine {
       let col = [];
       for (let y = 0; y < this.height; y++) {
         if (
-          this.field[x][y].terrain === Models.TerrainTypes.EMPTY
-          && !this.field[x][y].unit
-          && !(
-            this.enableScoutMode
-            && this.field[x][y].isHidden
-          )
-          )
+          this.field[x][y].terrain === Models.TerrainTypes.EMPTY &&
+          !this.field[x][y].unit &&
+          !(this.enableScoutMode && this.field[x][y].isHidden)
+        )
           col.push(null);
         else
           col.push(-1);
