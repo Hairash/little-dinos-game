@@ -51,10 +51,11 @@
       <label for="fogOfWarRadius">Fog of war radius:</label>
       <input type="number" id="fogOfWarRadius" class="inputNumber" v-model.number="fogOfWarRadius" min="1" max="20"/>
     </div>
-    <div v-if="enableFogOfWar">
-      <label for="scoutMode">Enable scout mode:</label>
-      <input type="checkbox" id="scoutMode" v-model="enableScoutMode" />
-    </div>
+<!--  Removed ability to disable scout mode  -->
+<!--    <div v-if="enableFogOfWar">-->
+<!--      <label for="scoutMode">Enable scout mode:</label>-->
+<!--      <input type="checkbox" id="scoutMode" v-model="enableScoutMode" />-->
+<!--    </div>-->
     <div v-if="enableFogOfWar">
       <label for="visibilitySpeedRelation">Visibility-speed relation:</label>
       <input type="checkbox" id="scoutMode" v-model="visibilitySpeedRelation" />
