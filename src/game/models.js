@@ -13,6 +13,7 @@ const PlayerTypes = {
 };
 
 class Cell {
+    // terrain is dict {kind: 'empty', idx: 1}
     constructor(terrain) {
         this.terrain = terrain;
         this.building = null;
