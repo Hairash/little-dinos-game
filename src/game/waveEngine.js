@@ -17,7 +17,7 @@ class WaveEngine {
       let col = [];
       for (let y = 0; y < this.height; y++) {
         if (
-          this.field[x][y].terrain === Models.TerrainTypes.EMPTY &&
+          this.field[x][y].terrain.kind === Models.TerrainTypes.EMPTY &&
           !this.field[x][y].unit &&
           !(this.enableScoutMode && this.field[x][y].isHidden)
         )
@@ -61,7 +61,7 @@ class WaveEngine {
     const [x0, y0] = fromCoords;
     const [x1, y1] = toCoords;
     const unit = this.field[x0][y0].unit;
-    if (this.field[x1][y1].terrain !== Models.TerrainTypes.EMPTY) return false;
+    if (this.field[x1][y1].terrain.kind !== Models.TerrainTypes.EMPTY) return false;
 
     const res = this.canReach(x0, y0, x1, y1, unit.movePoints);
     // console.log('canMove finish');

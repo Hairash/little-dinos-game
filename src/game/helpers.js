@@ -17,13 +17,13 @@ export function createPlayers(humanPlayersNum, botPlayersNum) {
 // Needed here because it is used in CreateFieldEngine and other engines
 export function getNeighbours(field, width, height, x, y) {
   const neighbours = [];
-  if (x > 0 && field[x - 1][y].terrain !== Models.TerrainTypes.MOUNTAIN)
+  if (x > 0 && field[x - 1][y].terrain.kind !== Models.TerrainTypes.MOUNTAIN)
     neighbours.push([x - 1, y]);
-  if (x < width - 1 && field[x + 1][y].terrain !== Models.TerrainTypes.MOUNTAIN)
+  if (x < width - 1 && field[x + 1][y].terrain.kind !== Models.TerrainTypes.MOUNTAIN)
     neighbours.push([x + 1, y]);
-  if (y > 0 && field[x][y - 1].terrain !== Models.TerrainTypes.MOUNTAIN)
+  if (y > 0 && field[x][y - 1].terrain.kind !== Models.TerrainTypes.MOUNTAIN)
     neighbours.push([x, y - 1]);
-  if (y < height - 1 && field[x][y + 1].terrain !== Models.TerrainTypes.MOUNTAIN)
+  if (y < height - 1 && field[x][y + 1].terrain.kind !== Models.TerrainTypes.MOUNTAIN)
     neighbours.push([x, y + 1]);
   return neighbours;
 }
