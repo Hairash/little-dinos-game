@@ -1,10 +1,20 @@
 <template>
-  <div class="cell" :class="{'hidden': hidden, 'selected': selected, 'highlighted': highlighted}">
+  <div class="cell"
+    :class="{'hidden': hidden, 'selected': selected, 'highlighted': highlighted}"
+    :style="{ width: `${width}px`, height: `${height}px` }"
+  >
     <img
       class="terrainImg"
       :class="{'hidden': hidden}"
-      :src="`/images/${terrain}.png`"
+      :src="getTerrainImg()"
+      :style="{ width: `${width}px`, height: `${height}px`, transition: transitionOpacity }"
     >
+    <div
+      class="cellSelection"
+      :class="{'selected': selected, 'highlighted': highlighted}"
+      :style="{ width: `${width}px`, height: `${height}px` }"
+    >
+    </div>
     <GameBuilding v-if="building"
       :hidden="hidden"
       :image="getBuildingImg()"
@@ -38,7 +48,7 @@ export default {
   props: {
     width: Number,
     height: Number,
-    terrain: String,
+    terrain: Object,
     unit: Models.Unit,
     building: Models.Building,
     selected: Boolean,
@@ -47,17 +57,32 @@ export default {
     currentPlayer: Number,
     hideEnemySpeed: Boolean,
   },
-  data() {
-    return {
-      cssProps: {
-        width: `${this.width}px`,
-        height: `${this.height}px`,
-        transitionBorder: `border ${TRANSITION_DELAY}s`,
-        transitionOpacity: `opacity ${TRANSITION_DELAY}s`,
-      },
-    }
+  computed: {
+    transitionOpacity() {
+      return `opacity ${TRANSITION_DELAY}s`;
+    },
   },
+  // data() {
+  //   return {
+  //     cssProps: {
+  //       width: `${this.width}px`,
+  //       height: `${this.height}px`,
+  //       transitionBorder: `border ${TRANSITION_DELAY}s`,
+  //       transitionOpacity: `opacity ${TRANSITION_DELAY}s`,
+  //     },
+  //   }
+  // },
   methods: {
+    getTerrainImg() {
+      if (this.terrain.kind === Models.TerrainTypes.MOUNTAIN) {
+        let idx = this.terrain.idx;
+        if (idx > 5) idx = 10 - idx;
+        return `/images/${this.terrain.kind}${idx}.png`
+      }
+      // const idx = Math.ceil(Math.random() * 4);
+      // console.log('terrain idx', idx);
+      return `/images/${this.terrain.kind}${this.terrain.idx}.png`
+    },
     getBuildingImg() {
       let buildingImg = this.building._type;
       if (this.building.player !== null) buildingImg += `${this.building.player + 1}`;
@@ -76,26 +101,28 @@ export default {
 div.cell {
   position: relative;
   display: inline-block;
-  border: solid 1px;
-  width: v-bind('cssProps.width');
-  height: v-bind('cssProps.height');
-  transition: v-bind('cssProps.transitionBorder');
+  /*border: solid 1px;*/
+  /*transition: v-bind('cssProps.transitionBorder');*/
 }
-div.cell.hidden {
-  border: solid 1px black;
-}
+/*div.cell.hidden {*/
+/*  !*border: solid 1px black;*!*/
+/*}*/
 img.terrainImg {
-  width: v-bind('cssProps.width');
-  height: v-bind('cssProps.height');
-  transition: v-bind('cssProps.transitionOpacity');
+  vertical-align: top;
 }
 img.terrainImg.hidden {
   opacity: 0;
 }
-div.cell.selected {
+div.cell .cellSelection {
+  position: absolute;
+  left: 0;
+  top: 0;
+  /*transition: v-bind('cssProps.transitionBorder');*/
+}
+div.cell .cellSelection.selected {
   background-color: #42b983;
 }
-div.cell.highlighted {
+div.cell .cellSelection.highlighted {
   background-color: rgba(66, 185, 131, 0.5);
 }
 </style>

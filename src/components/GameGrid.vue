@@ -1,13 +1,24 @@
 <template>
+<!--  <div class="game-grid-container">-->
   <div class="game-grid-wrapper">
-    <div class="board-wrapper">
-      <div class="board">
-        <div class="cell_line" v-for="(line, y) in fieldT" :key=y>
+    <div
+      class="board-wrapper"
+      :style="{ width: boardWrapperWidth, height: boardWrapperHeight }"
+    >
+      <div
+        class="board"
+        :style="{ width: boardWidth, height: boardHeight }"
+      >
+        <div
+            class="cell_line" v-for="(line, y) in fieldT"
+            :key=y
+            :style="{ width: lineWidth, height: lineHeight }"
+        >
           <template v-for="(cellData, x) in line" :key=x>
             <GameCell
               :hidden="field[x][y].isHidden"
-              :width=cellSize
-              :height=cellSize
+              :width="cellSize"
+              :height="cellSize"
               :terrain=cellData.terrain
               :unit=cellData.unit
               :building=cellData.building
@@ -22,6 +33,7 @@
       </div>
     </div>
   </div>
+<!--  </div>-->
 </template>
 
 <script>
@@ -29,7 +41,6 @@ import GameCell from '@/components/GameCell.vue'
 import Models from '@/game/models'
 import { WaveEngine } from '@/game/waveEngine'
 import { FieldEngine } from '@/game/fieldEngine'
-import { CELL_SIZE } from '@/game/const'
 
 import emitter from '@/game/eventBus';
 
@@ -46,6 +57,7 @@ export default {
     hideEnemySpeed: Boolean,
     field: Array[Array[Models.Cell]],
     currentPlayer: Number,
+    cellSize: Number,
   },
   data() {
     const width = this.field.length;
@@ -60,20 +72,39 @@ export default {
       width,
       height,
       fieldT,
-      cellSize: CELL_SIZE,
       selectedCoords: null,
       waveEngine: null,
       fieldEngine: null,
       fieldOutput,
-      cssProps: {
-        lineHeight: `${CELL_SIZE + 2}px`,
-        lineWidth: `${(CELL_SIZE + 2) * width}px`,
-        boardHeight: `${(CELL_SIZE + 2) * height}px`,
-        boardWidth: `${(CELL_SIZE + 2) * width}px`,
-        boardWrapperHeight: `${(CELL_SIZE + 2) * height + 35}px`,
-        boardWrapperWidth: `${(CELL_SIZE + 2) * width}px`,
-      },
+      // cssProps: {
+      //   lineHeight: `${this.cellSize}px`,
+      //   lineWidth: `${this.cellSize * width}px`,
+      //   boardHeight: `${this.cellSize * height}px`,
+      //   boardWidth: `${this.cellSize * width}px`,
+      //   boardWrapperHeight: `${this.cellSize * height + 35}px`,
+      //   boardWrapperWidth: `${this.cellSize * width}px`,
+      // },
     }
+  },
+  computed: {
+    lineHeight() {
+      return `${this.cellSize}px`;
+    },
+    lineWidth() {
+      return `${this.cellSize * this.width}px`;
+    },
+    boardHeight() {
+      return `${this.cellSize * this.height}px`;
+    },
+    boardWidth() {
+      return `${this.cellSize * this.width}px`;
+    },
+    boardWrapperHeight() {
+      return `${this.cellSize * this.height + 35}px`
+    },
+    boardWrapperWidth() {
+      return `${this.cellSize * this.width}px`
+    },
   },
   created() {
     this.waveEngine = new WaveEngine(
@@ -178,6 +209,16 @@ export default {
 </script>
 
 <style scoped>
+/*div.game-grid-container {*/
+/*  width: 100vw;     !* Full viewport width *!*/
+/*  height: 100vh;    !* Full viewport height *!*/
+/*  overflow: hidden; !* No overflow, scroll will be controlled by the grid itself *!*/
+/*  display: flex;*/
+/*  justify-content: center;*/
+/*  align-items: center;*/
+/*  position: relative;*/
+/*}*/
+
 div.game-grid-wrapper {
   overflow: auto;
   position: relative;
@@ -187,21 +228,13 @@ div.game-grid-wrapper {
 
 div.board {
   position: relative;
-  width: v-bind('cssProps.boardWidth');
-  height: v-bind('cssProps.boardHeight');
   border: solid 2px;
   color: #2c3e50;
 }
 
 div.board-wrapper {
   position: relative;
-  width: v-bind('cssProps.boardWrapperWidth');
-  height: v-bind('cssProps.boardWrapperHeight');
-}
-
-div.cell_line {
-  width: v-bind('cssProps.lineWidth');
-  height: v-bind('cssProps.lineHeight');
+  display: inline-block;
 }
 
 </style>

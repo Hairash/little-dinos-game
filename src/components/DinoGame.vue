@@ -18,6 +18,7 @@
     :hide-enemy-speed="hideEnemySpeed"
     :field="field"
     :current-player="currentPlayer"
+    :cellSize="cellSize"
   />
   <InfoLabel
     v-if="state === STATES.play"
@@ -26,6 +27,8 @@
     :get-current-active-units="getCurrentActiveUnits"
     :handle-end-turn-btn-click="processEndTurn"
     :handle-img-click="findNextUnit"
+    :cellSize="cellSize"
+    :handle-change-cell-size="changeCellSize"
   />
 </template>
 
@@ -110,6 +113,7 @@ export default {
       prevField: null,
       prevPlayer: 0,
       unitCoordsArr: [],
+      cellSize: 30,
     }
   },
   created() {
@@ -309,6 +313,10 @@ export default {
         }
       }
       while (!this.players[this.currentPlayer].active);
+    },
+    changeCellSize(delta) {
+      this.cellSize = Math.max(10, this.cellSize + delta);
+      console.log(this.cellSize);
     },
 
     // Visibility helpers

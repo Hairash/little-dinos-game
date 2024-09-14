@@ -1,5 +1,7 @@
 <template>
   <div class="infoLabel">
+    <button type="button" @click="handleChangeCellSize(10)">+</button>
+    <button type="button" @click="handleChangeCellSize(-10)">-</button>
     <span class="infoTextLabel">
       <!-- TODO: Fix it. Make images for players (not units) -->
       <img
@@ -43,6 +45,8 @@ export default {
     getCurrentActiveUnits: Function,
     handleEndTurnBtnClick: Function,
     handleImgClick: Function,
+    cellSize: Number,
+    handleChangeCellSize: Function,
   },
   data() {
     return {
