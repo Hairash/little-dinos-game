@@ -4,7 +4,8 @@ const TerrainTypes = {
 };
 
 const BuildingTypes = {
-    BASE: 'base',
+    BASE: 'base',  // military - produce units
+    HABITATION: 'habitation',  // habitation - increase units limit
 };
 
 const PlayerTypes = {
