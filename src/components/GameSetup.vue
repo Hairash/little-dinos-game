@@ -44,6 +44,10 @@
       <input type="number" id="maxUnitsNum" class="inputNumber" v-model.number="maxUnitsNum" min="0" max="50"/>
     </div>
     <div>
+      <label for="basePercentage">Percent of bases:</label>
+      <input type="number" step="0.01" id="basePercentage" class="inputNumber" v-model.number="basePercentage"/>
+    </div>
+    <div>
       <label for="fogOfWar">Enable fog of war:</label>
       <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar" />
     </div>
@@ -205,6 +209,7 @@ export default {
       minSpeed: 1,
       maxSpeed: 10,
       maxUnitsNum: 15,
+      basePercentage: 0.6,
       hideEnemySpeed: false,
       killAtBirth: true,
       enableUndo: false,
@@ -264,6 +269,7 @@ export default {
         enableUndo: this.enableUndo,
         loadGame: this.loadGame,
         maxUnitsNum: this.maxUnitsNum,
+        basePercentage: this.basePercentage,
       }
       this.handleClick(settings);
     },

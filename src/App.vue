@@ -18,6 +18,7 @@
     :minSpeed = "settings.minSpeed"
     :maxSpeed = "settings.maxSpeed"
     :max-units-num="settings.maxUnitsNum"
+    :base-percentage="settings.basePercentage"
     :enableUndo = "settings.enableUndo"
     :hideEnemySpeed = "settings.hideEnemySpeed"
     :killAtBirth = "settings.killAtBirth"

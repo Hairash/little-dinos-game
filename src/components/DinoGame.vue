@@ -67,6 +67,7 @@ export default {
     minSpeed: Number,
     maxSpeed: Number,
     maxUnitsNum: Number,
+    basePercentage: Number,
     hideEnemySpeed: Boolean,
     killAtBirth: Boolean,
     enableUndo: Boolean,
@@ -126,6 +127,7 @@ export default {
       this.maxSpeed,
       this.fogOfWarRadius,
       this.visibilitySpeedRelation,
+      this.basePercentage,
     );
     this.loadFieldOrGenerateNewField();
     this.waveEngine = new WaveEngine(
