@@ -1,5 +1,5 @@
 export const TRANSITION_DELAY = 1;
-export const CELL_SIZE = 30;
+// export const CELL_SIZE = 30;
 export const GAME_STATUS_FIELDS = [
   'winPhase',
   'winner',
@@ -23,6 +23,7 @@ export const FIELDS_TO_SAVE = [
   'minSpeed',
   'maxSpeed',
   'maxUnitsNum',
+  'basePercentage',
   'hideEnemySpeed',
   'killAtBirth',
   'enableUndo',
