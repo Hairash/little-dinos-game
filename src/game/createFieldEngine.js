@@ -5,7 +5,17 @@ import Models from '@/game/models';
 import { createNewUnit } from '@/game/helpers';
 
 class CreateFieldEngine {
-  constructor(playersNum, width, height, sectorsNum, minSpeed, maxSpeed, fogOfWarRadius, visibilitySpeedRelation) {
+  constructor(
+      playersNum,
+      width,
+      height,
+      sectorsNum,
+      minSpeed,
+      maxSpeed,
+      fogOfWarRadius,
+      visibilitySpeedRelation,
+      basePercentage,
+    ) {
     this.playersNum = playersNum;
     this.width = width;
     this.height = height;
@@ -14,6 +24,7 @@ class CreateFieldEngine {
     this.maxSpeed = maxSpeed;
     this.fogOfWarRadius = fogOfWarRadius;
     this.visibilitySpeedRelation = visibilitySpeedRelation;
+    this.basePercentage = basePercentage;
   }
 
   generateField() {
@@ -76,8 +87,14 @@ class CreateFieldEngine {
           break;
         }
       }
-      if (x !== null && y !== null)
-        field[x][y].building = new Models.Building(null, Models.BuildingTypes.BASE);
+      if (x !== null && y !== null) {
+        let buildingType = Models.BuildingTypes.BASE;
+        const r = Math.random();
+        if (r > this.basePercentage) {
+          buildingType = Models.BuildingTypes.HABITATION;
+        }
+        field[x][y].building = new Models.Building(null, buildingType);
+      }
     }
     // console.log(field);
     return field;
