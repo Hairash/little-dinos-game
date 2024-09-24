@@ -29,8 +29,14 @@ export function getNeighbours(field, width, height, x, y) {
 }
 
 // Generate new unit
-export function createNewUnit(player, minSpeed, maxSpeed, avgVisibility, visibilitySpeedRelation) {
-  const movePoints = minSpeed + Math.floor(Math.random() * (maxSpeed - minSpeed + 1));
+export function createNewUnit(player, minSpeed, maxSpeed, avgVisibility, visibilitySpeedRelation, curSpeed=null) {
+  let movePoints;
+  if (curSpeed) {
+    movePoints = curSpeed;
+  }
+  else {
+    movePoints = minSpeed + Math.floor(Math.random() * (maxSpeed - minSpeed + 1));
+  }
   let visibility = avgVisibility;
   if (visibilitySpeedRelation) {
     visibility = calculateUnitVisibility(movePoints, minSpeed, maxSpeed, avgVisibility);

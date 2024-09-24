@@ -127,6 +127,7 @@ export class FieldEngine {
     let unitsNum = 0;
     let producedNum = 0;
     let habitationsOccupied = 0;
+    let templesOccupied = 0;
     const unitsToCreateCoords = [];
     for (let x = 0; x < this.width; x++) {
       for (let y = 0; y < this.height; y++) {
@@ -148,11 +149,15 @@ export class FieldEngine {
             }
           }
           else if (
-              this.field[x][y].building._type === Models.BuildingTypes.HABITATION &&
               this.field[x][y].unit &&
               this.field[x][y].unit.player === curPlayer
           ) {
-            habitationsOccupied++;
+            if (this.field[x][y].building._type === Models.BuildingTypes.HABITATION) {
+              habitationsOccupied++;
+            }
+            else if (this.field[x][y].building._type === Models.BuildingTypes.TEMPLE) {
+              templesOccupied++;
+            }
           }
         }
       }
@@ -165,6 +170,7 @@ export class FieldEngine {
             this.maxSpeed,
             this.fogOfWarRadius,
             this.visibilitySpeedRelation,
+            this.minSpeed + templesOccupied,
         );
         if (this.killAtBirth) {
           // countScore=false to avoid double score calculation (here only kill)

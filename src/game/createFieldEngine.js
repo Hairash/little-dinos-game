@@ -25,6 +25,7 @@ class CreateFieldEngine {
     this.fogOfWarRadius = fogOfWarRadius;
     this.visibilitySpeedRelation = visibilitySpeedRelation;
     this.basePercentage = basePercentage;
+    this.habitationPercentage = 0.25;
   }
 
   generateField() {
@@ -70,6 +71,7 @@ class CreateFieldEngine {
           this.maxSpeed,
           this.fogOfWarRadius,
           this.visibilitySpeedRelation,
+          this.minSpeed,
       );
     }
     // Set buildings
@@ -88,16 +90,25 @@ class CreateFieldEngine {
         }
       }
       if (x !== null && y !== null) {
-        let buildingType = Models.BuildingTypes.BASE;
-        const r = Math.random();
-        if (r > this.basePercentage) {
-          buildingType = Models.BuildingTypes.HABITATION;
-        }
+        let buildingType = this.getBuildingType();
         field[x][y].building = new Models.Building(null, buildingType);
       }
     }
     // console.log(field);
     return field;
+  }
+
+  getBuildingType() {
+    const r = Math.random();
+    if (r <= this.basePercentage) {
+      return Models.BuildingTypes.BASE;
+    }
+    if (r > this.basePercentage && r <= this.basePercentage + this.habitationPercentage) {
+      return Models.BuildingTypes.HABITATION;
+    }
+    if (r > this.basePercentage + this.habitationPercentage) {
+      return Models.BuildingTypes.TEMPLE;
+    }
   }
 
   getSector(x, y) {
