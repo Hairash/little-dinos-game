@@ -14,7 +14,7 @@ class CreateFieldEngine {
       maxSpeed,
       fogOfWarRadius,
       visibilitySpeedRelation,
-      basePercentage,
+      // basePercentage,
     ) {
     this.playersNum = playersNum;
     this.width = width;
@@ -24,8 +24,10 @@ class CreateFieldEngine {
     this.maxSpeed = maxSpeed;
     this.fogOfWarRadius = fogOfWarRadius;
     this.visibilitySpeedRelation = visibilitySpeedRelation;
-    this.basePercentage = basePercentage;
+    this.basePercentage = 0.25;
     this.habitationPercentage = 0.25;
+    this.templePercentage = 0.25;
+    this.wellPercentage = 1 - this.basePercentage - this.habitationPercentage - this.templePercentage;
   }
 
   generateField() {
@@ -100,14 +102,26 @@ class CreateFieldEngine {
 
   getBuildingType() {
     const r = Math.random();
-    if (r <= this.basePercentage) {
-      return Models.BuildingTypes.BASE;
-    }
-    if (r > this.basePercentage && r <= this.basePercentage + this.habitationPercentage) {
-      return Models.BuildingTypes.HABITATION;
-    }
-    if (r > this.basePercentage + this.habitationPercentage) {
-      return Models.BuildingTypes.TEMPLE;
+    const typesList = [
+      Models.BuildingTypes.BASE,
+      Models.BuildingTypes.HABITATION,
+      Models.BuildingTypes.TEMPLE,
+      Models.BuildingTypes.WELL,
+    ];
+    const chanceList = [
+      this.basePercentage,
+      this.habitationPercentage,
+      this.templePercentage,
+      this.wellPercentage,
+    ];
+    const mapList = chanceList.reduce((acc, curr) => {
+      return [...acc, acc[acc.length - 1] + curr];
+    }, [0]).slice(1);
+    for (const [idx, value] of mapList.entries()) {
+      if (r <= value) {
+        console.log(`getBuildingType: ${r} ${typesList[idx]}`);
+        return typesList[idx];
+      }
     }
   }
 
