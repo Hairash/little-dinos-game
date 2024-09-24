@@ -7,6 +7,7 @@ export const GAME_STATUS_FIELDS = [
   'lastPlayerPhase',
   'lastPlayer',
 ];
+// TODO: Refactor fields, make all in one place - name, toSave (true/false), type (number, bool), min/max, ...
 export const FIELDS_TO_SAVE = [
   'field',
   'humanPlayersNum',
