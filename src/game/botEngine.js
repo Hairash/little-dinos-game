@@ -1,6 +1,7 @@
 // Responsible for bot moves
 
 import { getNeighbours } from '@/game/helpers';
+import Models from '@/game/models';
 
 export class BotEngine {
   constructor(field, width, height, enableFogOfWar, fieldEngine, waveEngine) {
@@ -33,6 +34,12 @@ export class BotEngine {
     const unit = this.field[x][y].unit;
     const reachableCoordsArr = this.waveEngine.getReachableCoordsArr(x, y, unit.movePoints);
     if (reachableCoordsArr.length === 0) return;
+
+    // Check is it occupying building (not base)
+    if (this.field[x][y].building && this.field[x][y].building._type !== Models.BuildingTypes.BASE) {
+      if (Math.random() > 0.2) return;
+    }
+
     // Capture the building
     const reachableVisibleCoordsArr = this.enableFogOfWar ?
       this.getReachableVisibleCoordsArr(reachableCoordsArr) :
