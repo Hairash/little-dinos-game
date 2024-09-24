@@ -24,10 +24,15 @@ class CreateFieldEngine {
     this.maxSpeed = maxSpeed;
     this.fogOfWarRadius = fogOfWarRadius;
     this.visibilitySpeedRelation = visibilitySpeedRelation;
-    this.basePercentage = 0.25;
-    this.habitationPercentage = 0.25;
-    this.templePercentage = 0.25;
-    this.wellPercentage = 1 - this.basePercentage - this.habitationPercentage - this.templePercentage;
+    // TODO: Refactor this
+    // this.buildingChances = {
+    //   Models.BuildingTypes.BASE: 1,
+    // };
+    this.basePercentage = 0.2;
+    this.habitationPercentage = 0.2;
+    this.templePercentage = 0.2;
+    this.wellPercentage = 0.2;
+    this.stogarePercentage = 1 - this.basePercentage - this.habitationPercentage - this.templePercentage - this.wellPercentage;
   }
 
   generateField() {
@@ -107,12 +112,14 @@ class CreateFieldEngine {
       Models.BuildingTypes.HABITATION,
       Models.BuildingTypes.TEMPLE,
       Models.BuildingTypes.WELL,
+      Models.BuildingTypes.STORAGE,
     ];
     const chanceList = [
       this.basePercentage,
       this.habitationPercentage,
       this.templePercentage,
       this.wellPercentage,
+      this.stogarePercentage,
     ];
     const mapList = chanceList.reduce((acc, curr) => {
       return [...acc, acc[acc.length - 1] + curr];
