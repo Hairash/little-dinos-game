@@ -158,6 +158,9 @@ export class FieldEngine {
             else if (this.field[x][y].building._type === Models.BuildingTypes.TEMPLE) {
               templesOccupied++;
             }
+            else if (this.field[x][y].building._type === Models.BuildingTypes.WELL) {
+              this.field[x][y].unit.movePoints++;
+            }
           }
         }
       }
