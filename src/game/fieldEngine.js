@@ -27,6 +27,7 @@ export class FieldEngine {
     this.maxUnitsNum = maxUnitsNum;
     this.killAtBirth = killAtBirth;
     this.visibilitySpeedRelation = visibilitySpeedRelation;
+    this.maxTowersNum = 3;
   }
 
   getCurrentVisibilitySet(player) {
@@ -114,15 +115,59 @@ export class FieldEngine {
     }
   }
 
+  getBuildingsOccupied(curPlayer) {
+    const buildings = {};
+    for (let _type in Models.BuildingTypes) {
+      buildings[Models.BuildingTypes[_type]] = 0;
+    }
+
+    for (let x = 0; x < this.width; x++) {
+      for (let y = 0; y < this.height; y++) {
+        if (this.field[x][y].building) {
+          if (
+              this.field[x][y].building._type === Models.BuildingTypes.BASE
+          ) {
+            if (this.field[x][y].building.player === curPlayer) {
+              buildings[Models.BuildingTypes.BASE]++;
+            }
+          }
+          else if (
+              this.field[x][y].unit &&
+              this.field[x][y].unit.player === curPlayer
+          ) {
+            buildings[this.field[x][y].building._type]++;
+          }
+        }
+      }
+    }
+
+    return buildings;
+  }
+
   captureBuildingIfNeeded(x1, y1, player) {
-    if (this.field[x1][y1].building && this.field[x1][y1].building._type === Models.BuildingTypes.BASE) {
-      this.field[x1][y1].building.player = player;
-      return true;
+    const buildings = this.getBuildingsOccupied(player);
+    console.log('buildings', buildings);
+    console.log(buildings[Models.BuildingTypes.BASE]);
+    console.log(this.maxTowersNum + buildings[Models.BuildingTypes.STORAGE] * 3);
+    console.log(buildings[Models.BuildingTypes.BASE] < this.maxTowersNum + buildings[Models.BuildingTypes.STORAGE] * 3);
+    if (
+        this.field[x1][y1].building &&
+        this.field[x1][y1].building._type === Models.BuildingTypes.BASE
+    ) {
+      if (buildings[Models.BuildingTypes.BASE] < this.maxTowersNum + buildings[Models.BuildingTypes.STORAGE] * 3) {
+        this.field[x1][y1].building.player = player;
+        return true;
+      }
+      else {
+        this.field[x1][y1].building.player = null;
+        return false;
+      }
     }
     return false;
   }
 
   restoreAndProduceUnits(curPlayer) {
+    // TODO: Refactor. Rename everywhere base > tower
     let buildingsNum = 0;
     let unitsNum = 0;
     let producedNum = 0;

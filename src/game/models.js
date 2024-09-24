@@ -5,9 +5,10 @@ const TerrainTypes = {
 
 const BuildingTypes = {
     BASE: 'base',  // military - produce units
-    HABITATION: 'habitation',  // habitation - increase units limit
-    TEMPLE: 'temple',  // upgrade - increase speed for generated units
+    HABITATION: 'habitation',  // increase units limit
+    TEMPLE: 'temple',  // increase speed for generated units
     WELL: 'well',  // increase speed for current unit
+    STORAGE: 'storage',  // increase towers (bases) limit
 };
 
 const PlayerTypes = {

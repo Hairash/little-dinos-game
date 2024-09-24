@@ -67,6 +67,7 @@ export default {
     minSpeed: Number,
     maxSpeed: Number,
     maxUnitsNum: Number,
+    // maxTowersNum: Number,  TODO: Add
     basePercentage: Number,
     hideEnemySpeed: Boolean,
     killAtBirth: Boolean,
