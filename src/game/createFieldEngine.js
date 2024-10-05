@@ -14,7 +14,7 @@ class CreateFieldEngine {
       maxSpeed,
       fogOfWarRadius,
       visibilitySpeedRelation,
-      // basePercentage,
+      buildingRates,
     ) {
     this.playersNum = playersNum;
     this.width = width;
@@ -24,15 +24,7 @@ class CreateFieldEngine {
     this.maxSpeed = maxSpeed;
     this.fogOfWarRadius = fogOfWarRadius;
     this.visibilitySpeedRelation = visibilitySpeedRelation;
-    // TODO: Refactor this
-    // this.buildingChances = {
-    //   Models.BuildingTypes.BASE: 1,
-    // };
-    this.basePercentage = 0.2;
-    this.habitationPercentage = 0.2;
-    this.templePercentage = 0.2;
-    this.wellPercentage = 0.2;
-    this.stogarePercentage = 1 - this.basePercentage - this.habitationPercentage - this.templePercentage - this.wellPercentage;
+    this.buildingRates = buildingRates;
   }
 
   generateField() {
@@ -106,31 +98,21 @@ class CreateFieldEngine {
   }
 
   getBuildingType() {
-    const r = Math.random();
-    const typesList = [
-      Models.BuildingTypes.BASE,
-      Models.BuildingTypes.HABITATION,
-      Models.BuildingTypes.TEMPLE,
-      Models.BuildingTypes.WELL,
-      Models.BuildingTypes.STORAGE,
-    ];
-    const chanceList = [
-      this.basePercentage,
-      this.habitationPercentage,
-      this.templePercentage,
-      this.wellPercentage,
-      this.stogarePercentage,
-    ];
-    const mapList = chanceList.reduce((acc, curr) => {
-      return [...acc, acc[acc.length - 1] + curr];
-    }, [0]).slice(1);
-    for (const [idx, value] of mapList.entries()) {
-      if (r <= value) {
-        console.log(`getBuildingType: ${r} ${typesList[idx]}`);
-        return typesList[idx];
-      }
+  const r = Math.random();
+  const typesList = Object.keys(this.buildingRates);
+  const cumulativeRates = typesList.reduce((acc, type) => {
+    const lastRate = acc.length > 0 ? acc[acc.length - 1].rate : 0;
+    acc.push({ type, rate: lastRate + this.buildingRates[type] });
+    return acc;
+  }, []);
+
+  for (const { type, rate } of cumulativeRates) {
+    if (r <= rate) {
+      // console.log(`getBuildingType: ${r} ${type}`);
+      return type;
     }
   }
+}
 
   getSector(x, y) {
     return [Math.floor(x * this.sectorsNum / this.width), Math.floor(y * this.sectorsNum / this.height)];

@@ -41,25 +41,34 @@ export function createNewUnit(player, minSpeed, maxSpeed, avgVisibility, visibil
   if (visibilitySpeedRelation) {
     visibility = calculateUnitVisibility(movePoints, minSpeed, maxSpeed, avgVisibility);
   }
+  console.log(`Speed: ${movePoints}, visibility: ${visibility}`);
   return new Models.Unit(
     player,
     // TODO: make fair dict with images
     `dino${player + 1}`,
     movePoints,
-      visibility,
+    visibility,
   );
 }
 
 function calculateUnitVisibility(movePoints, minSpeed, maxSpeed, avgVisibility) {
+  console.log(`Speed: ${movePoints}, minSpeed: ${minSpeed}, maxSpeed: ${maxSpeed}, avgVisibility: ${avgVisibility}`);
+  if (movePoints > maxSpeed) {
+    return 1;
+  }
+  if (minSpeed === maxSpeed) {
+    return avgVisibility;
+  }
   const minVisibility = 1;
   const maxVisibility = 2 * avgVisibility - minVisibility;
+  console.log(`minVisibility: ${minVisibility}, maxVisibility: ${maxVisibility}`);
 
   const normalizedSpeed = (movePoints - minSpeed) / (maxSpeed - minSpeed);
-  // console.log(`normalizedSpeed: ${normalizedSpeed}`);
+  console.log(`normalizedSpeed: ${normalizedSpeed}`);
   const adjustedSpeed = adjustSpeed(normalizedSpeed);
-  // console.log(`adjustedSpeed: ${adjustedSpeed}`);
+  console.log(`adjustedSpeed: ${adjustedSpeed}`);
   const visibility = minVisibility + Math.round((maxVisibility - minVisibility) * adjustedSpeed);
-  // console.log(`Speed: ${movePoints}, visibility: ${visibility}`);
+  console.log(`Speed: ${movePoints}, visibility: ${visibility}`);
   return visibility;
 }
 

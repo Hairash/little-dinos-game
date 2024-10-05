@@ -67,8 +67,8 @@ export default {
     minSpeed: Number,
     maxSpeed: Number,
     maxUnitsNum: Number,
-    // maxTowersNum: Number,  TODO: Add
-    basePercentage: Number,
+    maxBasesNum: Number,
+    buildingRates: Object,
     hideEnemySpeed: Boolean,
     killAtBirth: Boolean,
     enableUndo: Boolean,
@@ -128,7 +128,7 @@ export default {
       this.maxSpeed,
       this.fogOfWarRadius,
       this.visibilitySpeedRelation,
-      this.basePercentage,
+      this.buildingRates,
     );
     this.loadFieldOrGenerateNewField();
     this.waveEngine = new WaveEngine(
@@ -151,6 +151,7 @@ export default {
       this.minSpeed,
       this.maxSpeed,
       this.maxUnitsNum,
+      this.maxBasesNum,
       this.killAtBirth,
       this.visibilitySpeedRelation,
     );
@@ -368,7 +369,6 @@ export default {
         }
       }
       // Set visibility
-      // TODO: Change 10 -> maxSpeed
       for (let curX = x - r - this.maxSpeed; curX <= x + r + this.maxSpeed; curX++) {
           for (let curY = y - r - this.maxSpeed; curY <= y + r + this.maxSpeed; curY++) {
             let curR = 0;
@@ -479,7 +479,7 @@ export default {
       this.state = this.STATES.play;
       console.log(`Player ${this.currentPlayer + 1} turn start`);
       this.unitCoordsArr = this.getCurrentUnitCoords();
-      // TODO: Choose order of moves (calculate, which move is more profitable) - ideal algorhytm
+      // TODO: Choose order of moves (calculate, which move is more profitable) - ideal algorithm
       while (this.unitCoordsArr.length > 0)
         this.botEngine.makeBotUnitMove(this.unitCoordsArr, this.currentPlayer, this.moveUnit);
       emitter.emit('processEndTurn');
