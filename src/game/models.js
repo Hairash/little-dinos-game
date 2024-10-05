@@ -8,7 +8,7 @@ const BuildingTypes = {
     HABITATION: 'habitation',  // increase units limit
     TEMPLE: 'temple',  // increase speed for generated units
     WELL: 'well',  // increase speed for current unit
-    STORAGE: 'storage',  // increase towers (bases) limit
+    STORAGE: 'storage',  // increase bases limit
 };
 
 const PlayerTypes = {

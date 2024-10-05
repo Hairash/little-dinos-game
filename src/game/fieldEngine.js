@@ -14,6 +14,7 @@ export class FieldEngine {
       minSpeed,
       maxSpeed,
       maxUnitsNum,
+      maxBasesNum,
       killAtBirth,
       visibilitySpeedRelation,
   ) {
@@ -25,9 +26,9 @@ export class FieldEngine {
     this.minSpeed = minSpeed;
     this.maxSpeed = maxSpeed;
     this.maxUnitsNum = maxUnitsNum;
+    this.maxBasesNum = maxBasesNum;
     this.killAtBirth = killAtBirth;
     this.visibilitySpeedRelation = visibilitySpeedRelation;
-    this.maxTowersNum = 3;
   }
 
   getCurrentVisibilitySet(player) {
@@ -146,15 +147,18 @@ export class FieldEngine {
 
   captureBuildingIfNeeded(x1, y1, player) {
     const buildings = this.getBuildingsOccupied(player);
-    console.log('buildings', buildings);
-    console.log(buildings[Models.BuildingTypes.BASE]);
-    console.log(this.maxTowersNum + buildings[Models.BuildingTypes.STORAGE] * 3);
-    console.log(buildings[Models.BuildingTypes.BASE] < this.maxTowersNum + buildings[Models.BuildingTypes.STORAGE] * 3);
+    // console.log('buildings', buildings);
+    // console.log(buildings[Models.BuildingTypes.BASE]);
+    // console.log(this.maxBasesNum + buildings[Models.BuildingTypes.STORAGE] * 3);
+    // console.log(buildings[Models.BuildingTypes.BASE] < this.maxBasesNum + buildings[Models.BuildingTypes.STORAGE] * 3);
     if (
         this.field[x1][y1].building &&
         this.field[x1][y1].building._type === Models.BuildingTypes.BASE
     ) {
-      if (buildings[Models.BuildingTypes.BASE] < this.maxTowersNum + buildings[Models.BuildingTypes.STORAGE] * 3) {
+      if (
+        !this.maxBasesNum ||
+        buildings[Models.BuildingTypes.BASE] < this.maxBasesNum + buildings[Models.BuildingTypes.STORAGE] * 3
+      ) {
         this.field[x1][y1].building.player = player;
         return true;
       }
@@ -167,7 +171,6 @@ export class FieldEngine {
   }
 
   restoreAndProduceUnits(curPlayer) {
-    // TODO: Refactor. Rename everywhere base > tower
     let buildingsNum = 0;
     let unitsNum = 0;
     let producedNum = 0;
@@ -204,6 +207,7 @@ export class FieldEngine {
               templesOccupied++;
             }
             else if (this.field[x][y].building._type === Models.BuildingTypes.WELL) {
+              // TODO: Add limit ?
               this.field[x][y].unit.movePoints++;
             }
           }
