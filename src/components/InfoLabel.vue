@@ -3,7 +3,7 @@
     <button type="button" @click="handleChangeCellSize(10)">+</button>
     <button type="button" @click="handleChangeCellSize(-10)">-</button>
     <span class="infoTextLabel">
-      <!-- TODO: Fix it. Make images for players (not units) -->
+      <!-- TODO: Fix it. Make images for players (not units) ? -->
       <img
         class="curPlayerImage"
         :src="`/images/dino${currentPlayer + 1}.png`"

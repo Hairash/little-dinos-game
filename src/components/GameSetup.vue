@@ -9,11 +9,11 @@
     <h1>Game setup</h1>
     <div>
       <label for="width">Width:</label>
-      <input type="number" id="width" class="inputNumber" v-model.number="width" min="5" max="50" />
+      <input type="number" id="width" class="inputNumber" v-model.number="width" min="5" max="50"/>
     </div>
     <div>
       <label for="height">Height:</label>
-      <input type="number" id="height" class="inputNumber" v-model.number="height" min="5" max="50" />
+      <input type="number" id="height" class="inputNumber" v-model.number="height" min="5" max="50"/>
     </div>
     <!-- <h2>Players</h2> -->
     <div>
@@ -33,7 +33,7 @@
     </div> -->
     <div class="botBlock">
       <label for="botPlayersNum">Number of bot players:</label>
-      <input type="number" id="botPlayersNum" class="inputNumber" v-model.number="botPlayersNum" min="0" max="7" />
+      <input type="number" id="botPlayersNum" class="inputNumber" v-model.number="botPlayersNum" min="0" max="7"/>
     </div>
     <div>
       <label for="scoresToWin">Scores to win:</label>
@@ -44,39 +44,100 @@
       <input type="number" id="maxUnitsNum" class="inputNumber" v-model.number="maxUnitsNum" min="0" max="50"/>
     </div>
     <div>
-      <label for="basePercentage">Percent of bases:</label>
-      <input type="number" step="0.01" id="basePercentage" class="inputNumber" v-model.number="basePercentage"/>
+      <label for="maxBasesNum">Max towers number:</label>
+      <input type="number" id="maxBasesNum" class="inputNumber" v-model.number="maxBasesNum" min="0" max="50"/>
+    </div>
+
+    <div>
+      <label for="baseRate" class="labelRange">Rate of bases:</label>
+      <input
+        type="range"
+        step="0.01"
+        id="baseRate"
+        class="inputRange"
+        v-model.number="buildingRates.base"
+        min="0"
+        max="1"
+      />
+    </div>
+    <div>
+      <label for="habitationRate" class="labelRange">Rate of habitations:</label>
+      <input
+        type="range"
+        step="0.01"
+        id="habitationRate"
+        class="inputRange"
+        v-model.number="buildingRates.habitation"
+        min="0"
+        max="1"
+      />
+    </div>
+    <div>
+      <label for="templeRate" class="labelRange">Rate of temples:</label>
+      <input
+        type="range"
+        step="0.01"
+        id="templeRate"
+        class="inputRange"
+        v-model.number="buildingRates.temple"
+        min="0"
+        max="1"
+      />
+    </div>
+    <div>
+      <label for="wellRate" class="labelRange">Rate of wells:</label>
+      <input
+        type="range"
+        step="0.01"
+        id="wellRate"
+        class="inputRange"
+        v-model.number="buildingRates.well"
+        min="0"
+        max="1"
+      />
+    </div>
+    <div>
+      <label for="storageRate" class="labelRange">Rate of storages:</label>
+      <input
+        type="range"
+        step="0.01"
+        id="storageRate"
+        class="inputRange"
+        v-model.number="buildingRates.storage"
+        min="0"
+        max="1"
+      />
     </div>
     <div>
       <label for="fogOfWar">Enable fog of war:</label>
-      <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar" />
+      <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar"/>
     </div>
     <div v-if="enableFogOfWar">
       <label for="fogOfWarRadius">Fog of war radius:</label>
       <input type="number" id="fogOfWarRadius" class="inputNumber" v-model.number="fogOfWarRadius" min="1" max="20"/>
     </div>
-<!--  Removed ability to disable scout mode  -->
-<!--    <div v-if="enableFogOfWar">-->
-<!--      <label for="scoutMode">Enable scout mode:</label>-->
-<!--      <input type="checkbox" id="scoutMode" v-model="enableScoutMode" />-->
-<!--    </div>-->
+    <!--  Removed ability to disable scout mode  -->
+    <!--    <div v-if="enableFogOfWar">-->
+    <!--      <label for="scoutMode">Enable scout mode:</label>-->
+    <!--      <input type="checkbox" id="scoutMode" v-model="enableScoutMode" />-->
+    <!--    </div>-->
     <div v-if="enableFogOfWar">
       <label for="visibilitySpeedRelation">Visibility-speed relation:</label>
-      <input type="checkbox" id="scoutMode" v-model="visibilitySpeedRelation" />
+      <input type="checkbox" id="scoutMode" v-model="visibilitySpeedRelation"/>
     </div>
     <div>
       <label for="unitSpeedRange">Dinos speed range:</label>
-      <input type="number" id="minSpeed" class="inputNumber" v-model.number="minSpeed" min="1" max="20" />
+      <input type="number" id="minSpeed" class="inputNumber" v-model.number="minSpeed" min="1" max="20"/>
       -
-      <input type="number" id="maxSpeed" class="inputNumber" v-model.number="maxSpeed" min="1" max="20" />
+      <input type="number" id="maxSpeed" class="inputNumber" v-model.number="maxSpeed" min="1" max="20"/>
     </div>
     <div>
       <label for="hideEnemySpeed">Hide enemy speed:</label>
-      <input type="checkbox" id="hideEnemySpeed" v-model="hideEnemySpeed" />
+      <input type="checkbox" id="hideEnemySpeed" v-model="hideEnemySpeed"/>
     </div>
     <div>
       <label for="killAtBirth">Kill at birth:</label>
-      <input type="checkbox" id="killAtBirth" v-model="killAtBirth" />
+      <input type="checkbox" id="killAtBirth" v-model="killAtBirth"/>
     </div>
     <!-- <div>
       <label for="Undo">Enable undo:</label>
@@ -186,6 +247,10 @@ export default {
         min: 0,
         max: 50,
       },
+      maxBasesNum: {
+        min: 0,
+        max: 50,
+      },
     };
     // const PLAYER_TYPES = Models.PlayerTypes;
     return {
@@ -200,7 +265,7 @@ export default {
       humanPlayersNum: 1,
       botPlayersNum: 3,
       scoresToWin: 200,
-      // TODO: make them changeable
+      // TODO: make them changeable ?
       sectorsNum: 4,
       enableFogOfWar: false,
       fogOfWarRadius: 3,
@@ -209,7 +274,14 @@ export default {
       minSpeed: 1,
       maxSpeed: 10,
       maxUnitsNum: 15,
-      basePercentage: 0.6,
+      maxBasesNum: 3,
+      buildingRates: {
+        base: 0.5,
+        habitation: 0.5,
+        temple: 0.5,
+        well: 0.5,
+        storage: 0.5,
+      },
       hideEnemySpeed: false,
       killAtBirth: true,
       enableUndo: false,
@@ -248,15 +320,16 @@ export default {
         maxSpeed: this.maxSpeed,
         scoresToWin: this.scoresToWin,
         maxUnitsNum: this.maxUnitsNum,
+        maxBasesNum: this.maxBasesNum,
       };
       if (!this.isInputValid(settings)) {
-        alert('Invalid input');
         return;
       }
       // let players = Array.from({ length: this.humanPlayersNum }, () => new Models.Player(Models.PlayerTypes.HUMAN));
       // players = players.concat(Array.from({ length: this.humanPlayersNum }, () => new Models.Player(Models.PlayerTypes.HUMAN)));
       const playersNum = this.humanPlayersNum + this.botPlayersNum;
       this.sectorsNum = playersNum <= 4 ? 4 : 6;
+      const buildingRates = this.calculateBuildingsRate();
       settings = {
         ...settings,
         sectorsNum: this.sectorsNum,
@@ -269,7 +342,8 @@ export default {
         enableUndo: this.enableUndo,
         loadGame: this.loadGame,
         maxUnitsNum: this.maxUnitsNum,
-        basePercentage: this.basePercentage,
+        maxBasesNum: this.maxBasesNum,
+        buildingRates: buildingRates,
       }
       this.handleClick(settings);
     },
@@ -288,14 +362,28 @@ export default {
           settings[key] < this.LIMITS[key].min ||
           settings[key] > this.LIMITS[key].max
         ) {
+          alert(`Wrong value for ${key}`);
           return false;
         }
       }
-      // TODO: Add alert with error - no more than 8 players
-      if (this.humanPlayersNum + this.botPlayersNum > 8) return false;
-      if (this.maxSpeed < this.minSpeed) return false;
+      if (this.humanPlayersNum + this.botPlayersNum > 8) {
+        alert('Total number of players shouldn\'t be greater than 8');
+        return false;
+      }
+      if (this.maxSpeed < this.minSpeed) {
+        alert('Max speed should be greater than min speed');
+        return false;
+      }
       return true;
     },
+    calculateBuildingsRate() {
+      const totalRate = Object.values(this.buildingRates).reduce((sum, rate) => sum + rate, 0);
+      const normalizedRates = {};
+      for (const key in this.buildingRates) {
+        normalizedRates[key] = this.buildingRates[key] / totalRate;
+      }
+      return normalizedRates;
+    }
   },
 }
 </script>
@@ -338,7 +426,17 @@ div.textBlock {
 }
 
 input.inputNumber {
-  max-width: 40px;
+  max-width: 50px;
+}
+
+label.labelRange {
+  display: inline-block;
+  width: 150px;
+}
+
+input.inputRange {
+  vertical-align: middle;
+  max-width: 100px;
 }
 
 /* div.botBlock {
