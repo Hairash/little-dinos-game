@@ -2,7 +2,7 @@
 
 import Models from '@/game/models';
 import { createNewUnit, getNeighbours } from "@/game/helpers";
-import { SCORE_MOD } from "@/game/const";
+import { SCORE_MOD, ACTIONS } from "@/game/const";
 
 export class FieldEngine {
   constructor(
@@ -145,29 +145,35 @@ export class FieldEngine {
     return buildings;
   }
 
-  captureBuildingIfNeeded(x1, y1, player) {
+  captureBuildingIfNeeded(x, y, player) {
     const buildings = this.getBuildingsOccupied(player);
     // console.log('buildings', buildings);
     // console.log(buildings[Models.BuildingTypes.BASE]);
     // console.log(this.maxBasesNum + buildings[Models.BuildingTypes.STORAGE] * 3);
     // console.log(buildings[Models.BuildingTypes.BASE] < this.maxBasesNum + buildings[Models.BuildingTypes.STORAGE] * 3);
     if (
-        this.field[x1][y1].building &&
-        this.field[x1][y1].building._type === Models.BuildingTypes.BASE
+        this.field[x][y].building &&
+        this.field[x][y].building._type === Models.BuildingTypes.BASE
     ) {
       if (
         !this.maxBasesNum ||
         buildings[Models.BuildingTypes.BASE] < this.maxBasesNum + buildings[Models.BuildingTypes.STORAGE] * 3
       ) {
-        this.field[x1][y1].building.player = player;
+        this.field[x][y].building.player = player;
         return true;
       }
       else {
-        this.field[x1][y1].building.player = null;
+        this.field[x][y].building.player = null;
         return false;
       }
     }
     return false;
+  }
+
+  getActionTriggered(x, y) {
+    if (this.field[x][y].building && this.field[x][y].building._type === Models.BuildingTypes.OBELISK) {
+      return ACTIONS.scouting;
+    }
   }
 
   restoreAndProduceUnits(curPlayer) {

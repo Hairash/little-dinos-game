@@ -1,7 +1,7 @@
 <template>
   <div class="gameSetup">
     <span class="gameTitle">
-      <img class="unitImg" :src="`/images/dino3.png`">
+      <img class="unitImg" :src="`/images/dino03.png`">
       <h1>Little DinoS</h1>
       <img class="unitImg" :src="`/images/dino3a.png`">
     </span>
@@ -104,6 +104,18 @@
         id="storageRate"
         class="inputRange"
         v-model.number="buildingRates.storage"
+        min="0"
+        max="1"
+      />
+    </div>
+    <div>
+      <label for="obeliskRate" class="labelRange">Rate of obelisks:</label>
+      <input
+        type="range"
+        step="0.01"
+        id="obeliskRate"
+        class="inputRange"
+        v-model.number="buildingRates.obelisk"
         min="0"
         max="1"
       />
@@ -281,6 +293,7 @@ export default {
         temple: 0.5,
         well: 0.5,
         storage: 0.5,
+        obelisk: 0.5,
       },
       hideEnemySpeed: false,
       killAtBirth: true,
