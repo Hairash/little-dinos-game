@@ -185,6 +185,7 @@ export default {
     emitter.on('processEndTurn', this.processEndTurn);
     emitter.on('startTurn', this.startTurn);
     emitter.on('moveUnit', this.emitMoveUnit);
+    emitter.on('addVisibilityForCoords', this.emitAddVisibilityForCoords);
 
     this.startTurn();
   },
@@ -193,6 +194,7 @@ export default {
     emitter.off('processEndTurn', this.processEndTurn);
     emitter.off('startTurn', this.startTurn);
     emitter.off('moveUnit', this.moveUnit);
+    emitter.off('addVisibilityForCoords', this.emitAddVisibilityForCoords);
   },
   methods: {
     // Main events
@@ -235,6 +237,10 @@ export default {
 
       this.fieldEngine.moveUnit(x0, y0, x1, y1, unit);
       const buildingCaptured = this.fieldEngine.captureBuildingIfNeeded(x1, y1, unit.player);
+      const action = this.fieldEngine.getActionTriggered(x1, y1);
+      if (action) {
+        emitter.emit('setAction', action);
+      }
       this.fieldEngine.killNeighbours(x1, y1, unit.player);
 
       this.checkEndOfGame();
@@ -326,6 +332,9 @@ export default {
     // Visibility helpers
     doesVisibilityMakeSense() {
       return this.enableFogOfWar && this.players[this.currentPlayer].active
+    },
+    emitAddVisibilityForCoords(data) {
+      this.addVisibilityForCoords(data.x, data.y, data.fogRadius);
     },
     addVisibilityForCoords(x, y, fogRadius) {
       // TODO: Think about common naming (visibility instead of fogRadius)
@@ -480,6 +489,7 @@ export default {
       console.log(`Player ${this.currentPlayer + 1} turn start`);
       this.unitCoordsArr = this.getCurrentUnitCoords();
       // TODO: Choose order of moves (calculate, which move is more profitable) - ideal algorithm
+      // TODO: Get visibility here and add visibility get from obelisks on each unit's move
       while (this.unitCoordsArr.length > 0)
         this.botEngine.makeBotUnitMove(this.unitCoordsArr, this.currentPlayer, this.moveUnit);
       emitter.emit('processEndTurn');
