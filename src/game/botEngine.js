@@ -35,8 +35,11 @@ export class BotEngine {
     const reachableCoordsArr = this.waveEngine.getReachableCoordsArr(x, y, unit.movePoints);
     if (reachableCoordsArr.length === 0) return;
 
-    // Check is it occupying building (not base)
-    if (this.field[x][y].building && this.field[x][y].building._type !== Models.BuildingTypes.BASE) {
+    // Check is it occupying building (not base or obelisk)
+    if (
+      this.field[x][y].building &&
+      ![Models.BuildingTypes.BASE, Models.BuildingTypes.OBELISK].includes(this.field[x][y].building._type)
+    ) {
       if (Math.random() > 0.2) return;
     }
 

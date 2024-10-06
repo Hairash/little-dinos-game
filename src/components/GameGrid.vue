@@ -1,4 +1,5 @@
 <template>
+  <ActionHint v-if="selectedAction" :action="selectedAction" />
   <div class="game-grid-container">
     <div
       class="board-wrapper"
@@ -39,12 +40,15 @@ import GameCell from '@/components/GameCell.vue'
 import Models from '@/game/models'
 import { WaveEngine } from '@/game/waveEngine'
 import { FieldEngine } from '@/game/fieldEngine'
+import { ACTIONS } from '@/game/const'
 
 import emitter from '@/game/eventBus';
+import ActionHint from "@/components/ActionHint.vue";
 
 export default {
   name: "GameGrid",
   components: {
+    ActionHint,
     GameCell,
   },
   props: {
@@ -71,6 +75,7 @@ export default {
       height,
       fieldT,
       selectedCoords: null,
+      selectedAction: null,
       waveEngine: null,
       fieldEngine: null,
       fieldOutput,
@@ -122,10 +127,12 @@ export default {
   mounted() {
     emitter.on('initTurn', this.initTurn);
     emitter.on('selectNextUnit', this.selectNextUnit);
+    emitter.on('setAction', this.setAction);
   },
   beforeUnmount() {
     emitter.off('initTurn', this.initTurn);
     emitter.off('selectNextUnit', this.selectNextUnit);
+    emitter.off('setAction', this.setAction);
   },
   watch: {
     currentPlayer() {
@@ -135,6 +142,7 @@ export default {
   methods: {
     initTurn() {
       this.selectedCoords = null;
+      this.selectedAction = null;
       this.removeHighlights();
     },
     selectNextUnit(unitCoordsArr) {
@@ -156,6 +164,11 @@ export default {
       this.setHighlights(x, y, movePoints);
     },
     processClick(event, x, y) {
+      if (this.selectedAction === ACTIONS.scouting) {
+        emitter.emit('addVisibilityForCoords', {x: x, y: y, fogRadius: this.fogOfWarRadius});
+        this.selectedAction = null;
+        return;
+      }
       const unit = this.field[x][y].unit;
       if (unit) {
         if (unit.player === this.currentPlayer && !unit.hasMoved) {
@@ -200,6 +213,9 @@ export default {
         const curY = coords[1];
         this.fieldOutput[curX][curY].isHighlighted = true;
       }
+    },
+    setAction(action) {
+      this.selectedAction = action;
     },
   }
 }
