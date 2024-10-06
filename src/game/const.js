@@ -7,6 +7,7 @@ export const GAME_STATUS_FIELDS = [
   'lastPlayerPhase',
   'lastPlayer',
 ];
+
 // TODO: Refactor fields, make all in one place - name, toSave (true/false), type (number, bool), min/max, ...
 export const FIELDS_TO_SAVE = [
   'field',
@@ -30,6 +31,7 @@ export const FIELDS_TO_SAVE = [
   'killAtBirth',
   'enableUndo',
 ].concat(GAME_STATUS_FIELDS);
+
 export const SCORE_MOD = {
   kill: 10,
   building: -3,
@@ -38,4 +40,8 @@ export const SCORE_MOD = {
   capture: 0,
   lose: 0,
   unit: 0,
+};
+
+export const ACTIONS = {
+  scouting: 'scouting',
 };

@@ -9,6 +9,7 @@ const BuildingTypes = {
     TEMPLE: 'temple',  // increase speed for generated units
     WELL: 'well',  // increase speed for current unit
     STORAGE: 'storage',  // increase bases limit
+    OBELISK: 'obelisk',  // gives scouting
 };
 
 const PlayerTypes = {
