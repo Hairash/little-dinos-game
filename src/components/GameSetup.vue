@@ -332,7 +332,7 @@ div.textBlock {
 }
 
 input.inputNumber {
-  max-width: 40px;
+  max-width: 50px;
 }
 
 /* div.botBlock {
