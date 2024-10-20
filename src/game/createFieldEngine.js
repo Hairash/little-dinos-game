@@ -53,10 +53,15 @@ class CreateFieldEngine {
       let x = Math.floor(Math.random() * this.width);
       let y = Math.floor(Math.random() * this.height);
       let [sectorX, sectorY] = this.getSector(x, y);
-      while (field[x][y].terrain.kind === Models.TerrainTypes.MOUNTAIN || !this.validateSector(sectorX, sectorY, sectors)) {
+      let tryCtr = 0;
+      while (
+        field[x][y].terrain.kind === Models.TerrainTypes.MOUNTAIN ||
+        (!this.validateSector(sectorX, sectorY, sectors) && tryCtr < 100)
+      ) {
         x = Math.floor(Math.random() * this.width);
         y = Math.floor(Math.random() * this.height);
         [sectorX, sectorY] = this.getSector(x, y);
+        tryCtr++;
       }
       // console.log(sectorX, sectorY);
       sectors.push([sectorX, sectorY]);
