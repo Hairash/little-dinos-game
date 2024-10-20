@@ -13,6 +13,7 @@ const PlayerTypes = {
 };
 
 class Cell {
+    // terrain is dict {kind: 'empty', idx: 1}
     constructor(terrain) {
         this.terrain = terrain;
         this.building = null;
@@ -44,7 +45,8 @@ class Player {
         this.lost = 0;
         this.score = 0;
         this.active = true;
-        this.informed_lose = false;
+        this.informedLose = false;
+        this.scrollCoords = [0, 0];
     }
 }
 

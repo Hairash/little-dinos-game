@@ -26,9 +26,10 @@ class CreateFieldEngine {
         // const terrain = terrainTypesArr[Math.floor(r * terrainTypesArr.length)];
         // TODO: Make a fair terrain generation
         const terrain = r > 0.75 ? Models.TerrainTypes.MOUNTAIN : Models.TerrainTypes.EMPTY;
-        const cell = {
-          terrain: terrain,
-        };
+        const cell = new Models.Cell({
+          kind: terrain,
+          idx: 0,
+        });
         // if (r < 0.05) cell.unit = new Models.Unit(0, 'dino1', Math.round(r * 1000) % 10 + 1);
         // else if (r < 0.1) cell.unit = new Models.Unit(1, 'dino2', Math.round(r * 1000) % 10 + 1);
         col.push(cell);
@@ -41,7 +42,7 @@ class CreateFieldEngine {
       let x = Math.floor(Math.random() * this.width);
       let y = Math.floor(Math.random() * this.height);
       let [sectorX, sectorY] = this.getSector(x, y);
-      while (field[x][y].terrain === Models.TerrainTypes.MOUNTAIN || !this.validateSector(sectorX, sectorY, sectors)) {
+      while (field[x][y].terrain.kind === Models.TerrainTypes.MOUNTAIN || !this.validateSector(sectorX, sectorY, sectors)) {
         x = Math.floor(Math.random() * this.width);
         y = Math.floor(Math.random() * this.height);
         [sectorX, sectorY] = this.getSector(x, y);
@@ -65,7 +66,7 @@ class CreateFieldEngine {
     for (let building = 0; building < this.width * this.height * 0.03; building++) {
       let x = Math.floor(Math.random() * this.width);
       let y = Math.floor(Math.random() * this.height);
-      while (field[x][y].terrain === Models.TerrainTypes.MOUNTAIN || !this.noBuildingsInDistance(field, x, y, 5)) {
+      while (field[x][y].terrain.kind === Models.TerrainTypes.MOUNTAIN || !this.noBuildingsInDistance(field, x, y, 5)) {
         x = Math.floor(Math.random() * this.width);
         y = Math.floor(Math.random() * this.height);
         failCtr++;

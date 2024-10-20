@@ -1,13 +1,23 @@
 <template>
-  <div class="game-grid-wrapper">
-    <div class="board-wrapper">
-      <div class="board">
-        <div class="cell_line" v-for="(line, y) in fieldT" :key=y>
+  <div ref="gameGridContainer" class="game-grid-container">
+    <div
+      class="board-wrapper"
+      :style="{ width: boardWrapperWidth, height: boardWrapperHeight }"
+    >
+      <div
+        class="board"
+        :style="{ width: boardWidth, height: boardHeight }"
+      >
+        <div
+            class="cell_line" v-for="(line, y) in fieldT"
+            :key=y
+            :style="{ width: lineWidth, height: lineHeight }"
+        >
           <template v-for="(cellData, x) in line" :key=x>
             <GameCell
               :hidden="field[x][y].isHidden"
-              :width=cellSize
-              :height=cellSize
+              :width="cellSize"
+              :height="cellSize"
               :terrain=cellData.terrain
               :unit=cellData.unit
               :building=cellData.building
@@ -29,7 +39,6 @@ import GameCell from '@/components/GameCell.vue'
 import Models from '@/game/models'
 import { WaveEngine } from '@/game/waveEngine'
 import { FieldEngine } from '@/game/fieldEngine'
-import { CELL_SIZE } from '@/game/const'
 
 import emitter from '@/game/eventBus';
 
@@ -46,6 +55,7 @@ export default {
     hideEnemySpeed: Boolean,
     field: Array[Array[Models.Cell]],
     currentPlayer: Number,
+    cellSize: Number,
   },
   data() {
     const width = this.field.length;
@@ -60,20 +70,39 @@ export default {
       width,
       height,
       fieldT,
-      cellSize: CELL_SIZE,
       selectedCoords: null,
       waveEngine: null,
       fieldEngine: null,
       fieldOutput,
-      cssProps: {
-        lineHeight: `${CELL_SIZE + 2}px`,
-        lineWidth: `${(CELL_SIZE + 2) * width}px`,
-        boardHeight: `${(CELL_SIZE + 2) * height}px`,
-        boardWidth: `${(CELL_SIZE + 2) * width}px`,
-        boardWrapperHeight: `${(CELL_SIZE + 2) * height + 35}px`,
-        boardWrapperWidth: `${(CELL_SIZE + 2) * width}px`,
-      },
+      // cssProps: {
+      //   lineHeight: `${this.cellSize}px`,
+      //   lineWidth: `${this.cellSize * width}px`,
+      //   boardHeight: `${this.cellSize * height}px`,
+      //   boardWidth: `${this.cellSize * width}px`,
+      //   boardWrapperHeight: `${this.cellSize * height + 35}px`,
+      //   boardWrapperWidth: `${this.cellSize * width}px`,
+      // },
     }
+  },
+  computed: {
+    lineHeight() {
+      return `${this.cellSize}px`;
+    },
+    lineWidth() {
+      return `${this.cellSize * this.width}px`;
+    },
+    boardHeight() {
+      return `${this.cellSize * this.height}px`;
+    },
+    boardWidth() {
+      return `${this.cellSize * this.width}px`;
+    },
+    boardWrapperHeight() {
+      return `${this.cellSize * this.height + 35}px`
+    },
+    boardWrapperWidth() {
+      return `${this.cellSize * this.width}px`;
+    },
   },
   created() {
     this.waveEngine = new WaveEngine(
@@ -89,25 +118,31 @@ export default {
       this.height,
       this.fogOfWarRadius,
     );
-    // this.calculateCellSize();
   },
   mounted() {
     emitter.on('initTurn', this.initTurn);
     emitter.on('selectNextUnit', this.selectNextUnit);
+    emitter.on('saveCoords', this.saveCoords);
+    emitter.on('getScrollCoordsByCell', this.getScrollCoordsByCell);
   },
   beforeUnmount() {
     emitter.off('initTurn', this.initTurn);
     emitter.off('selectNextUnit', this.selectNextUnit);
+    emitter.off('saveCoords', this.saveCoords);
+    emitter.off('getScrollCoordsByCell', this.getScrollCoordsByCell);
   },
   watch: {
-    currentPlayer() {
-      this.initTurn();
-    }
+    // currentPlayer() {
+    //   this.initTurn();
+    // }
   },
   methods: {
-    initTurn() {
+    initTurn(scrollCoords) {
+      console.log(scrollCoords);
       this.selectedCoords = null;
       this.removeHighlights();
+
+      this.$refs.gameGridContainer.scrollTo(...scrollCoords);
     },
     selectNextUnit(unitCoordsArr) {
       let coords = unitCoordsArr[0];
@@ -140,12 +175,25 @@ export default {
     },
     moveUnit(fromCoords, toCoords) {
       let [x, y] = fromCoords;
-      // Save movePoints value for the futher remove highlights
+      // Save movePoints value for the further remove highlights
       const movePoints = this.field[x][y].unit.movePoints;
       // Call game moveUnit function to change field
       emitter.emit('moveUnit', {fromCoords: fromCoords, toCoords: toCoords});
       this.selectedCoords = null;
       this.removeHighlightsForArea(x, y, movePoints);
+    },
+    saveCoords(player) {
+      const container = this.$refs.gameGridContainer;
+      console.log(player.scrollCoords);
+      player.scrollCoords = [container.scrollLeft, container.scrollTop];
+      console.log(player.scrollCoords);
+    },
+    getScrollCoordsByCell(coords) {
+      const [x, y] = coords;
+      const container = this.$refs.gameGridContainer;
+      const scrollX = (x * this.cellSize) - (container.clientWidth / 2) + (this.cellSize / 2);
+      const scrollY = (y * this.cellSize) - (container.clientHeight / 2) + (this.cellSize / 2);
+      return [scrollX, scrollY];
     },
 
     // Highlights helpers
@@ -178,30 +226,28 @@ export default {
 </script>
 
 <style scoped>
-div.game-grid-wrapper {
-  overflow: auto;
+.game-grid-container {
+  width: 95vw;    /* Full viewport width */
+  height: 95vh;   /* Full viewport height */
+  overflow: auto;  /* Enables scroll when the content overflows */
   position: relative;
-  width: 100%;
-  height: 100%;
+  /* Hide scrollbars but keep scrolling */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
-div.board {
-  position: relative;
-  width: v-bind('cssProps.boardWidth');
-  height: v-bind('cssProps.boardHeight');
-  border: solid 2px;
-  color: #2c3e50;
+.game-grid-container::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
 }
 
 div.board-wrapper {
   position: relative;
-  width: v-bind('cssProps.boardWrapperWidth');
-  height: v-bind('cssProps.boardWrapperHeight');
+  display: inline-block;
 }
 
-div.cell_line {
-  width: v-bind('cssProps.lineWidth');
-  height: v-bind('cssProps.lineHeight');
+div.board {
+  position: relative;
+  border: solid 2px;
+  color: #2c3e50;
 }
-
 </style>

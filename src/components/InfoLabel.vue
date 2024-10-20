@@ -1,5 +1,7 @@
 <template>
   <div class="infoLabel">
+    <button type="button" @click="handleChangeCellSize(10)">+</button>
+    <button type="button" @click="handleChangeCellSize(-10)">-</button>
     <span class="infoTextLabel">
       <!-- TODO: Fix it. Make images for players (not units) -->
       <img
@@ -17,7 +19,8 @@
         class="tooltip"
       >
         <div v-for="(p, idx) in players" :key=idx>
-          P{{ idx + 1 }}: {{ p.score }}
+          <img class="playerImage" :src="`/images/dino${idx + 1}.png`">:
+          <span>{{ p.score }}</span>
         </div>
       </div>
     </span>
@@ -43,6 +46,8 @@ export default {
     getCurrentActiveUnits: Function,
     handleEndTurnBtnClick: Function,
     handleImgClick: Function,
+    cellSize: Number,
+    handleChangeCellSize: Function,
   },
   data() {
     return {
@@ -87,6 +92,12 @@ div.infoLabel {
 img.curPlayerImage {
   width: 30px;
   height: 30px;
+  vertical-align: bottom;
+}
+
+img.playerImage {
+  width: 20px;
+  height: 20px;
   vertical-align: bottom;
 }
 

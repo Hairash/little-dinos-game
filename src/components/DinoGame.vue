@@ -4,7 +4,7 @@
     :on-click-action="readyBtnClick"
     :current-player="currentPlayer"
     :is-active-player="players[currentPlayer].active"
-    :is-player-informed-lose="players[currentPlayer].informed_lose"
+    :is-player-informed-lose="players[currentPlayer].informedLose"
     :are-all-human-players-eliminated="humanPhase === HUMAN_PHASES.all_eliminated"
     :winner="prepareWinner()"
     :last-player="prepareLastPlayer()"
@@ -173,6 +173,8 @@ export default {
     });
   },
   mounted() {
+    this.initPlayersScrollCoords();
+
     emitter.on('makeBotMove', this.makeBotMove);
     emitter.on('processEndTurn', this.processEndTurn);
     emitter.on('startTurn', this.startTurn);
@@ -208,7 +210,8 @@ export default {
         emitter.emit('makeBotMove');
       }
       else {
-        emitter.emit('initTurn');
+
+        emitter.emit('initTurn', this.players[this.currentPlayer].scrollCoords);
         if (this.checkSkipReadyLabel()) {
           this.state = this.STATES.play;
         }
@@ -241,6 +244,7 @@ export default {
     },
     processEndTurn() {
       if (this.state === this.STATES.ready) return;
+      emitter.emit('saveCoords', this.players[this.currentPlayer]);
       this.state = this.STATES.ready;
       this.storeStateIfNeeded();
       this.selectNextPlayerAndCheckPhases();
@@ -257,8 +261,8 @@ export default {
       if (this.lastPlayerPhase === this.LAST_PLAYER_PHASES.last_player) {
         this.lastPlayerPhase = this.LAST_PLAYER_PHASES.informed;
       }
-      if (!this.players[this.currentPlayer].active && !this.players[this.currentPlayer].informed_lose) {
-        this.players[this.currentPlayer].informed_lose = true;
+      if (!this.players[this.currentPlayer].active && !this.players[this.currentPlayer].informedLose) {
+        this.players[this.currentPlayer].informedLose = true;
       }
     },
 
@@ -309,6 +313,12 @@ export default {
         }
       }
       while (!this.players[this.currentPlayer].active);
+    },
+    initPlayersScrollCoords() {
+      for (let playerNum = 0; playerNum < this.players.length; playerNum++) {
+        const coords = this.getCurrentUnitCoords(playerNum)[0];
+        this.players[playerNum].scrollCoords = this.$refs.gameGridRef.getScrollCoordsByCell(coords);
+      }
     },
 
     // Visibility helpers
@@ -420,7 +430,7 @@ export default {
           }
         }
         for (let player of this.players) {
-          player.informed_lose = false;
+          player.informedLose = false;
         }
       }
       else {
@@ -480,12 +490,12 @@ export default {
       if (coordsArr.length === 0) return;
       emitter.emit('selectNextUnit', coordsArr);
     },
-    getCurrentUnitCoords() {
+    getCurrentUnitCoords(playerNum=this.currentPlayer) {
       const coordsArr = [];
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
           const unit = this.field[x][y].unit;
-          if (unit && unit.player === this.currentPlayer && !unit.hasMoved) {
+          if (unit && unit.player === playerNum && !unit.hasMoved) {
             coordsArr.push([x, y]);
           }
         }
