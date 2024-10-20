@@ -1,8 +1,8 @@
 // Helpers related to field
 
 import Models from '@/game/models';
-import { createNewUnit, getNeighbours } from "@/game/helpers";
-import { SCORE_MOD, ACTIONS } from "@/game/const";
+import {calculateUnitVisibility, createNewUnit, getNeighbours} from "@/game/helpers";
+import {ACTIONS, SCORE_MOD} from "@/game/const";
 
 export class FieldEngine {
   constructor(
@@ -162,10 +162,11 @@ export class FieldEngine {
         this.field[x][y].building.player = player;
         return true;
       }
-      else {
-        this.field[x][y].building.player = null;
-        return false;
-      }
+      // else {
+      //   TODO: Make options here (do nothing, not allow such move, clear your first tower
+      //   this.field[x][y].building.player = null;
+      //   return false;
+      // }
     }
     return false;
   }
@@ -214,7 +215,16 @@ export class FieldEngine {
             }
             else if (this.field[x][y].building._type === Models.BuildingTypes.WELL) {
               // TODO: Add limit ?
-              this.field[x][y].unit.movePoints++;
+              const unit = this.field[x][y].unit;
+              unit.movePoints++;
+              if (this.visibilitySpeedRelation) {
+                this.field[x][y].unit.visibility = calculateUnitVisibility(
+                  unit.movePoints,
+                  this.minSpeed,
+                  this.maxSpeed,
+                  this.fogOfWarRadius,
+                );
+              }
             }
           }
         }
