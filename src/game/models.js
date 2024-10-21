@@ -51,6 +51,7 @@ class Player {
         this.score = 0;
         this.active = true;
         this.informed_lose = false;
+        this.scrollCoords = [0, 0];
     }
 }
 
