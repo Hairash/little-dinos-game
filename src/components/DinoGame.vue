@@ -23,6 +23,7 @@
     v-if="state === STATES.play"
     :current-player="currentPlayer"
     :players="players"
+    :max-units-num="maxUnitsNum"
     :get-current-active-units="getCurrentActiveUnits"
     :handle-end-turn-btn-click="processEndTurn"
     :handle-img-click="findNextUnit"
@@ -158,12 +159,13 @@ export default {
     console.log(this.players);
     window.addEventListener('keyup', (e) => {
       if (e.key === 'Enter') this.state = this.STATES.play;
+      if (e.key === 'e' && this.state === this.STATES.play) this.processEndTurn();
       // TODO: Add test mode
       // if (e.key === 'Enter') this.makeBotUnitMove();
     });
     window.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      this.processEndTurn();
+      // this.processEndTurn();
     });
     window.addEventListener('mouseup', (e) => {
       e.preventDefault();

@@ -80,6 +80,7 @@ div.cell {
   width: v-bind('cssProps.width');
   height: v-bind('cssProps.height');
   transition: v-bind('cssProps.transitionBorder');
+  user-select: none;
 }
 div.cell.hidden {
   border: solid 1px black;

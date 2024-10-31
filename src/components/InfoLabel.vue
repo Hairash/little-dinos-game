@@ -1,34 +1,47 @@
 <template>
-  <div class="infoLabel">
-    <span class="infoTextLabel">
-      <!-- TODO: Fix it. Make images for players (not units) -->
-      <img
-        class="curPlayerImage"
-        :src="`/images/dino${currentPlayer + 1}.png`"
-        title="Next unit"
+  <div class="infoLabelWrapper">
+    <div class="infoLabel">
+      <span
+        class="infoTextLabel"
         @click="handleImgClick"
       >
-    </span>
-    <span class="infoTextLabel">Active: {{ activeUnits }}/{{ totalUnits }}</span>
-    <span class="infoTextLabel">Killed: {{ player.killed }} Lost: {{ player.lost }}</span>
-    <span class="infoTextLabel" @click="showScore = !showScore">
-      Score: {{ player.score }}
-      <div v-if="showScore"
-        class="tooltip"
-      >
-        <div v-for="(p, idx) in players" :key=idx>
-          P{{ idx + 1 }}: {{ p.score }}
+        <!-- TODO: Fix it. Make images for players (not units) -->
+        <img
+          class="curPlayerImage"
+          :src="`/images/dino${currentPlayer + 1}.png`"
+          title="Next unit"
+        >
+        <span
+          class="unitsLabel" title="Active / Total / Max"
+        >
+          {{ activeUnits }}/{{ totalUnits }}/{{ maxUnitsNum }}
+        </span>
+      </span>
+      <span class="infoTextLabel" title="Killed / Lost">☠️: {{ player.killed }} 🪦: {{ player.lost }}</span>
+      <span class="infoTextLabel" title="Score" @click="showScore = !showScore">
+        🏆: {{ player.score }}
+        <div v-if="showScore"
+          class="tooltip"
+        >
+          <div v-for="(p, idx) in players" :key=idx>
+            <img class="playerImage" :src="`/images/dino${idx + 1}.png`">:
+            <span>{{ p.score }}</span>
+          </div>
         </div>
-      </div>
-    </span>
+      </span>
 
-    <button
-      type="button"
-      @click="handleEndTurnBtnClick"
-      :disabled="player.type === botType"
-    >
-      End turn
-    </button>
+      <button
+        type="button"
+        class="endBtn"
+        title="End turn"
+        @click="handleEndTurnBtnClick"
+        :disabled="player.type === botType"
+      >
+        🔚
+  <!--      ↩️-->
+  <!--      ▶️-->
+      </button>
+    </div>
   </div>
 </template>
 
@@ -40,6 +53,7 @@ export default {
   props: {
     currentPlayer: Number,
     players: Array[Models.Player],
+    maxUnitsNum: Number,
     getCurrentActiveUnits: Function,
     handleEndTurnBtnClick: Function,
     handleImgClick: Function,
@@ -64,35 +78,49 @@ export default {
     },
     botType() {
       return Models.PlayerTypes.BOT;
-    }
+    },
   },
 }
 </script>
 
 <style scoped>
-div.infoLabel {
+div.infoLabelWrapper {
   position: fixed;
-  padding-bottom: 6px;
   bottom: 0;
   left: 0;
   right: 0;
   background: black;
+}
+
+div.infoLabel {
   display: flex;
   justify-content: space-around;
   align-items: center;
   max-width: 600px;
   margin: 0 auto;
+  padding: 3px;
 }
 
 img.curPlayerImage {
   width: 30px;
   height: 30px;
-  vertical-align: bottom;
+  //vertical-align: bottom;
+}
+
+span.unitsLabel {
+  margin-left: 5px;
+}
+
+img.playerImage {
+  width: 20px;
+  height: 20px;
 }
 
 span.infoTextLabel {
   margin-right: 15px;
   user-select: none;
+  display: flex;
+  align-items: center;
 }
 
 div.tooltip {
@@ -103,4 +131,10 @@ div.tooltip {
   min-width: 52px;
   padding: 4px;
 }
+
+button.endBtn {
+  font-size: 18px;
+  width: 70px;
+}
+
 </style>
