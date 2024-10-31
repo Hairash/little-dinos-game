@@ -245,7 +245,6 @@ export default {
         maxUnitsNum: this.maxUnitsNum,
       };
       if (!this.isInputValid(settings)) {
-        alert('Invalid input');
         return;
       }
       // let players = Array.from({ length: this.humanPlayersNum }, () => new Models.Player(Models.PlayerTypes.HUMAN));
@@ -282,12 +281,18 @@ export default {
           settings[key] < this.LIMITS[key].min ||
           settings[key] > this.LIMITS[key].max
         ) {
+          alert(`Wrong value for ${key}: ${settings[key]}`);
           return false;
         }
       }
-      // TODO: Add alert with error - no more than 8 players
-      if (this.humanPlayersNum + this.botPlayersNum > 8) return false;
-      if (this.maxSpeed < this.minSpeed) return false;
+      if (this.humanPlayersNum + this.botPlayersNum > 8) {
+        alert('Total number of players shouldn\'t be greater than 8');
+        return false;
+      }
+      if (this.maxSpeed < this.minSpeed) {
+        alert('Max speed should be greater than min speed');
+        return false;
+      }
       return true;
     },
   },
