@@ -36,10 +36,6 @@
       <input type="number" id="botPlayersNum" class="inputNumber" v-model.number="botPlayersNum" min="0" max="7" />
     </div>
     <div>
-      <label for="scoresToWin">Scores to win:</label>
-      <input type="number" id="scoresToWin" class="inputNumber" v-model.number="scoresToWin" min="0" max="10000"/>
-    </div>
-    <div>
       <label for="maxUnitsNum">Max units number:</label>
       <input type="number" id="maxUnitsNum" class="inputNumber" v-model.number="maxUnitsNum" min="0" max="50"/>
     </div>
@@ -74,6 +70,36 @@
       <label for="killAtBirth">Kill at birth:</label>
       <input type="checkbox" id="killAtBirth" v-model="killAtBirth" />
     </div>
+
+    <div class="scoreBlock">
+      <span class="scoreHeader">Scores</span>
+      <div class="scoreInput">
+        <label for="scoresToWin">Scores to win:</label>
+        <input type="number" id="scoresToWin" class="inputNumber" v-model.number="scoresToWin" min="0" max="10000"/>
+      </div>
+      <div v-for="(value, key) in scoreMods" :key="key">
+        <label :for="key" class="labelRange">{{ key }}:</label>
+        <input
+          type="range"
+          step="1"
+          :id="key"
+          class="inputRange"
+          v-model.number="scoreMods[key]"
+          :min="-20"
+          :max="20"
+        />
+        <span class="rangeValue">{{ scoreMods[key] }}</span>
+        <span class="scoreHelpIcon" :class="{ selected: scoreHelp === key }" @click="scoreHelp=key" title="Score help">
+          ℹ️
+          <div v-if="scoreHelp === key" class="scoreHelpText">{{scoreHelpMap[key]}}</div>
+        </span>
+      </div>
+      <div class="randomScoreBlock">
+        <button type="button" class="scoreBtn" @click="randomizeScoreValues">Randomize</button>
+        <button type="button" class="scoreBtn" @click="setDefaultScoreValues">Set default</button>
+      </div>
+    </div>
+
     <!-- <div>
       <label for="Undo">Enable undo:</label>
       <input type="checkbox" id="Undo" v-model="enableUndo" />
@@ -93,10 +119,10 @@
       <button type="button" @click="processLoadBtnClick" v-if="loadGamePossible">Load previous game</button>
     </div>
     <div>
-      <button type="button" @click="areRulesOpen = !areRulesOpen">Show game rules</button>
+      <button type="button" @click="processOpenRulesBtnClick">Show game rules</button>
     </div>
     <div v-if="areRulesOpen" class="toggleContent">
-      <div class="contentBlock">
+      <div class="contentBlock" ref="contentBlock">
         <br>
         <b>Summary</b><br>
         <div class="textBlock">
@@ -127,7 +153,6 @@
           dino lands on an enemy tower, it captures the tower and it becomes yours. With every new turn, each your
           unoccupied towers will produce a new dino with a randomly assigned speed.<br>
           <br>
-          You receive 10 score for every enemy you kill and lose 3 score every turn for every tower you control.<br>
           Before you dive in, note that there are a few game settings available. Kindly recommend you to start with the
           "fog of war" option disabled to
           <img class="unitImg" style="float: right" :src="`/images/dino3.png`">
@@ -183,6 +208,16 @@ export default {
         max: 50,
       },
     };
+    const SCORE_HELP_MAP = {
+      kill: 'Kill enemy unit',
+      lose: 'Lose your unit',
+      building: 'Building under control at the beginning of the turn',
+      unit: 'Unit under control at the beginning of the turn',
+      produce: 'Produce unit at the beginning of the turn',
+      move: 'Move unit',
+      capture: 'Capture building',
+      leave: 'Lose building',
+    };
     // const PLAYER_TYPES = Models.PlayerTypes;
     return {
       humanPlayerNames: [''],
@@ -196,7 +231,19 @@ export default {
       humanPlayersNum: 1,
       botPlayersNum: 3,
       scoresToWin: 200,
-      // TODO: make them changeable
+      scoreMods: {
+        kill: 10,  // kill enemy unit
+        lose: -5,  // lose your unit
+        building: -3,  // building under control at the beginning of the turn
+        unit: 1,  // unit under control at the beginning of the turn
+        produce: 2,  // produce unit at the beginning of the turn
+        move: -1,  // mover unit
+        capture: 20,  // capture building
+        leave: -8,  // lose building
+      },
+      scoreHelp: null,
+      scoreHelpMap: SCORE_HELP_MAP,
+      // TODO: make them changeable ?
       sectorsNum: 4,
       enableFogOfWar: false,
       fogOfWarRadius: 3,
@@ -262,7 +309,7 @@ export default {
         killAtBirth: this.killAtBirth,
         enableUndo: this.enableUndo,
         loadGame: this.loadGame,
-        maxUnitsNum: this.maxUnitsNum,
+        scoreMods: this.scoreMods,
       }
       this.handleClick(settings);
     },
@@ -272,6 +319,14 @@ export default {
         this.loadGame = true;
       }
       this.processStartBtnClick();
+    },
+    processOpenRulesBtnClick() {
+      this.areRulesOpen = !this.areRulesOpen;
+      if (this.areRulesOpen) {
+        this.$nextTick(() => {
+          this.$refs.contentBlock.scrollIntoView({ behavior: 'smooth' });
+        });
+      }
     },
     isInputValid(settings) {
       for (const key in settings) {
@@ -295,6 +350,23 @@ export default {
       }
       return true;
     },
+    randomizeScoreValues() {
+      for (const key in this.scoreMods) {
+        this.scoreMods[key] = Math.floor(Math.random() * 41) - 20;
+      }
+    },
+    setDefaultScoreValues() {
+      this.scoreMods = {
+        kill: 10,
+        lose: 0,
+        building: -3,
+        unit: 0,
+        produce: 0,
+        move: 0,
+        capture: 0,
+        leave: 0,
+      };
+    }
   },
 }
 </script>
@@ -338,6 +410,73 @@ div.textBlock {
 
 input.inputNumber {
   max-width: 50px;
+}
+
+div.scoreBlock {
+  border: 1px solid;
+  width: 260px;
+  position: relative;
+  margin: 10px auto;
+  padding: 8px 10px 12px 10px;
+}
+
+span.scoreHeader {
+  display: inline-block;
+  margin-bottom: 5px;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+div.scoreInput {
+  margin-bottom: 10px;
+}
+
+label.labelRange {
+  display: inline-block;
+  width: 100px;
+}
+
+input.inputRange {
+  vertical-align: middle;
+  max-width: 100px;
+}
+
+span.rangeValue {
+  display: inline-block;
+  width: 30px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+span.scoreHelpIcon {
+  position: relative;
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  line-height: 24px;
+  cursor: pointer;
+}
+
+span.scoreHelpIcon.selected {
+  background-color: lightgray;
+}
+
+div.scoreHelpText {
+  position: absolute;
+  bottom: 0;
+  left: 24px;
+  width: 100px;
+  background: black;
+  color: white;
+  border: solid 2px;
+}
+
+div.randomScoreBlock {
+  margin-top: 10px;
+}
+
+button.scoreBtn {
+  margin: 0 21px;
 }
 
 /* div.botBlock {

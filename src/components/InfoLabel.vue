@@ -12,22 +12,34 @@
           title="Next unit"
         >
         <span
-          class="unitsLabel" title="Active / Total / Max"
+          class="unitsLabel" title="Units: Active / Total / Max"
         >
           {{ activeUnits }}/{{ totalUnits }}/{{ maxUnitsNum }}
         </span>
       </span>
-      <span class="infoTextLabel" title="Killed / Lost">☠️: {{ player.killed }} 🪦: {{ player.lost }}</span>
-      <span class="infoTextLabel" title="Score" @click="showScore = !showScore">
-        🏆: {{ player.score }}
-        <div v-if="showScore"
-          class="tooltip"
-        >
-          <div v-for="(p, idx) in players" :key=idx>
-            <img class="playerImage" :src="`/images/dino${idx + 1}.png`">:
-            <span>{{ p.score }}</span>
+
+      <span class="hideOnSmallScreen infoTextLabel" title="Killed / Lost">☠️: {{ player.killed }} 🪦: {{ player.lost }}</span>
+      <span class="infoTextLabel">
+        <span @click="showScoreValues = !showScoreValues" title="Score: Current / Max">
+          🏆: {{ player.score }}/{{ scoresToWin }}
+          <div v-if="showScoreValues"
+            class="tooltip"
+          >
+            <div v-for="(p, idx) in players" :key=idx>
+              <img class="playerImage" :src="`/images/dino${idx + 1}.png`">:
+              <span>{{ p.score }}</span>
+            </div>
           </div>
-        </div>
+        </span>
+        <span class="scoreHelpIcon" @click="showScoreHelp = !showScoreHelp" title="Score help">
+          ℹ️
+          <div v-if="showScoreHelp" class="tooltip">
+            <div v-for="(value, key) in scoreMods" :key="key">
+              <span>{{ key }}: </span>
+              <span>{{ value }}</span>
+            </div>
+          </div>
+        </span>
       </span>
 
       <button
@@ -54,13 +66,16 @@ export default {
     currentPlayer: Number,
     players: Array[Models.Player],
     maxUnitsNum: Number,
+    scoresToWin: Number,
+    scoreMods: Object,
     getCurrentActiveUnits: Function,
     handleEndTurnBtnClick: Function,
     handleImgClick: Function,
   },
   data() {
     return {
-      showScore: false,
+      showScoreValues: false,
+      showScoreHelp: false,
     }
   },
   computed: {
@@ -117,7 +132,7 @@ img.playerImage {
 }
 
 span.infoTextLabel {
-  margin-right: 15px;
+  //margin-right: 15px;
   user-select: none;
   display: flex;
   align-items: center;
@@ -132,9 +147,21 @@ div.tooltip {
   padding: 4px;
 }
 
+span.scoreHelpIcon {
+  margin-left: 5px;
+  cursor: pointer;
+}
+
 button.endBtn {
   font-size: 18px;
   width: 70px;
 }
+
+@media (max-width: 400px) {
+  .hideOnSmallScreen {
+    display: none !important;
+  }
+}
+
 
 </style>
