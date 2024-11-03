@@ -24,6 +24,8 @@
     :current-player="currentPlayer"
     :players="players"
     :max-units-num="maxUnitsNum"
+    :scores-to-win="scoresToWin"
+    :score-mods="scoreMods"
     :get-current-active-units="getCurrentActiveUnits"
     :handle-end-turn-btn-click="processEndTurn"
     :handle-img-click="findNextUnit"
@@ -40,7 +42,7 @@ import { WaveEngine } from "@/game/waveEngine";
 import { FieldEngine } from "@/game/fieldEngine";
 import { BotEngine } from "@/game/botEngine";
 import { createPlayers } from "@/game/helpers";
-import { FIELDS_TO_SAVE, GAME_STATUS_FIELDS, SCORE_MOD } from "@/game/const";
+import { FIELDS_TO_SAVE, GAME_STATUS_FIELDS } from "@/game/const";
 
 import emitter from '@/game/eventBus';
 
@@ -57,6 +59,7 @@ export default {
     width: Number,
     height: Number,
     scoresToWin: Number,
+    scoreMods: Object,
     sectorsNum: Number,
     enableFogOfWar: Boolean,
     fogOfWarRadius: Number,
@@ -147,6 +150,7 @@ export default {
       this.maxUnitsNum,
       this.killAtBirth,
       this.visibilitySpeedRelation,
+      this.scoreMods,
     );
     this.botEngine = new BotEngine(
       this.field,
@@ -266,13 +270,13 @@ export default {
 
     // Global helpers
     updatePlayerScore(killedBefore, buildingsNum, unitsNum, producedNum) {
-      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.building * buildingsNum);
-      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.unit * unitsNum);
+      this.fieldEngine.changeScore(this.currentPlayer, this.scoreMods.building * buildingsNum);
+      this.fieldEngine.changeScore(this.currentPlayer, this.scoreMods.unit * unitsNum);
       this.checkEndOfGame();
-      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.produce * producedNum);
+      this.fieldEngine.changeScore(this.currentPlayer, this.scoreMods.produce * producedNum);
       this.checkEndOfGame();
       const killed = this.players[this.currentPlayer].killed - killedBefore;
-      this.fieldEngine.changeScore(this.currentPlayer, SCORE_MOD.kill * killed);
+      this.fieldEngine.changeScore(this.currentPlayer, this.scoreMods.kill * killed);
       this.checkEndOfGame();
     },
     checkEndOfGame() {

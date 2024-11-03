@@ -1,7 +1,6 @@
 // Helpers related to field
 
 import { createNewUnit, getNeighbours } from "@/game/helpers";
-import { SCORE_MOD } from "@/game/const";
 
 export class FieldEngine {
   constructor(
@@ -15,6 +14,7 @@ export class FieldEngine {
       maxUnitsNum,
       killAtBirth,
       visibilitySpeedRelation,
+      scoreMods,
   ) {
     this.field = field;
     this.width = width;
@@ -26,6 +26,7 @@ export class FieldEngine {
     this.maxUnitsNum = maxUnitsNum;
     this.killAtBirth = killAtBirth;
     this.visibilitySpeedRelation = visibilitySpeedRelation;
+    this.scoreMods = scoreMods;
   }
 
   getCurrentVisibilitySet(player) {
@@ -94,6 +95,7 @@ export class FieldEngine {
     unit.hasMoved = true;
     delete(this.field[x0][y0].unit);
     this.field[x1][y1].unit = unit;
+    this.changeScore(unit.player, this.scoreMods.move);
   }
 
   killNeighbours(x, y, curPlayer, countScore=true) {
@@ -102,16 +104,23 @@ export class FieldEngine {
       const [curX, curY] = neighbour;
       if (this.field[curX][curY].unit && this.field[curX][curY].unit.player !== curPlayer) {
         this.players[curPlayer].killed++;
-        if (countScore) this.changeScore(curPlayer, SCORE_MOD.kill);
-        this.players[this.field[curX][curY].unit.player].lost++;
+        if (countScore) this.changeScore(curPlayer, this.scoreMods.kill);
+        const enemyPlayer = this.field[curX][curY].unit.player;
+        this.players[enemyPlayer].lost++;
+        this.changeScore(enemyPlayer, this.scoreMods.lose);
         delete(this.field[curX][curY].unit);
       }
     }
   }
 
   captureBuildingIfNeeded(x1, y1, player) {
-    if (this.field[x1][y1].building) {
+    let buildingOwner;
+    if (this.field[x1][y1].building && (buildingOwner = this.field[x1][y1].building.player) !== player) {
       this.field[x1][y1].building.player = player;
+      this.changeScore(player, this.scoreMods.capture);
+      if (buildingOwner !== null) {
+        this.changeScore(buildingOwner, this.scoreMods.leave);
+      }
       return true;
     }
     return false;
@@ -154,14 +163,19 @@ export class FieldEngine {
         }
       }
     }
+    else {
+      producedNum = 0;
+    }
     return {
       buildingsNum: buildingsNum,
       unitsNum: unitsNum,
       producedNum: producedNum,
-    }
+    };
   }
 
   changeScore(player, value) {
+    if (player === 0)
+      console.log(`% ${value}`);
     this.players[player].score += value;
     if (this.players[player].score < 0) this.players[player].score = 0;
   }

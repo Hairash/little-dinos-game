@@ -10,6 +10,7 @@
     :width = "settings.width"
     :height = "settings.height"
     :scoresToWin = "settings.scoresToWin"
+    :score-mods = "settings.scoreMods"
     :sectorsNum = "settings.sectorsNum"
     :enableFogOfWar = "settings.enableFogOfWar"
     :fogOfWarRadius = "settings.fogOfWarRadius"
