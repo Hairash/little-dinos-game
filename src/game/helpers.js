@@ -45,6 +45,9 @@ export function createNewUnit(player, minSpeed, maxSpeed, avgVisibility, visibil
 }
 
 function calculateUnitVisibility(movePoints, minSpeed, maxSpeed, avgVisibility) {
+  if (minSpeed === maxSpeed) {
+    return avgVisibility;
+  }
   const minVisibility = 1;
   const maxVisibility = 2 * avgVisibility - minVisibility;
 
