@@ -1,6 +1,6 @@
 // Here we have functions useful for developer
 
-function showWave(wave) {
+export function showWave(wave) {
   let waveS = '';
   for (const el of wave) {
     waveS += '(' + el + ')' + ', ';
@@ -8,7 +8,7 @@ function showWave(wave) {
   console.log(waveS);
 }
 
-function showField(field) {
+export function showField(field) {
   const fieldT = (m => m[0].map((x,i) => m.map(x => x[i])))(field);
   let fieldS = '';
   for (let x = 0; x < fieldT.length; x++) {
@@ -24,7 +24,7 @@ function showField(field) {
   console.log(fieldS);
 }
 
-export default {
-  showWave,
-  showField,
-};
+export function outputField(field) {
+  const fieldT = field[0].map((_, colIndex) => field.map(row => row[colIndex]));
+  console.log(fieldT);
+}
