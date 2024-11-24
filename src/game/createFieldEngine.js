@@ -14,6 +14,8 @@ class CreateFieldEngine {
     this.maxSpeed = maxSpeed;
     this.fogOfWarRadius = fogOfWarRadius;
     this.visibilitySpeedRelation = visibilitySpeedRelation;
+
+    this.startPositions = [];  // Used for generation algorithm
   }
 
   generateField() {
@@ -67,6 +69,10 @@ class CreateFieldEngine {
           this.fogOfWarRadius,
           this.visibilitySpeedRelation,
       );
+      this.startPositions.push([x, y]);
+    }
+    if (this.playersNum > 1) {
+      this.makeFieldLinked(field);
     }
     // Set buildings
     let failCtr = 0;
@@ -120,6 +126,130 @@ class CreateFieldEngine {
         // console.log(field[curX][curY]);
         if (field[curX][curY].building) return false;
       }
+    }
+    return true;
+  }
+
+  // Make field linked methods
+  makeFieldLinked(field) {
+    let wField = this.wave(field, this.width, this.height);
+    let maxNumCell = this.getMaxNumCell(wField, field);
+    let maxNum = maxNumCell.num;
+    let [startX, startY] = maxNumCell.cell;
+    while (!this.allPlayersReached(wField) && maxNum > 0) {
+      this.fixWave(wField, field, this.width, this.height, maxNum, startX, startY);
+      wField = this.wave(field, this.width, this.height);
+      maxNumCell = this.getMaxNumCell(wField, field);
+      maxNum = maxNumCell.num;
+      [startX, startY] = maxNumCell.cell;
+    }
+  }
+
+
+  // Create wave field - number of walls from first player start pos to each other player's
+  wave(field, width, height) {
+    const wField = [];
+    for (let x = 0; x < width; x++) {
+      const line = [];
+      for (let y = 0; y < height; y++) {
+        // TODO: Push MAX_INT value
+        line.push(999);
+      }
+      wField.push(line);
+    }
+    // TODO: Select random player to start algorithm
+    const [startX, startY] = this.startPositions[0];
+    wField[startX][startY] = 0;
+    const queue = [[startX, startY]];
+    while (queue.length > 0) {
+      const [curX, curY] = queue.shift();
+      const neighbours = this.findNeighbours(curX, curY, width, height);
+      for (let neighbour of neighbours) {
+        const [x, y] = neighbour;
+        const prevValue = wField[x][y];
+        if (field[x][y].terrain === Models.TerrainTypes.MOUNTAIN) wField[x][y] = Math.min(wField[x][y], wField[curX][curY] + 1);
+        else wField[x][y] = Math.min(wField[x][y], wField[curX][curY]);
+        if (wField[x][y] < prevValue) queue.push([x, y]);
+      }
+    }
+    return wField;
+  }
+
+  // TODO: Probably there some duplicated functions like this
+  // Get list of neighbors of cell
+  findNeighbours(x, y, width, height) {
+    const neighbours = [];
+    if (x > 0) neighbours.push([x - 1, y]);
+    if (x < width - 1) neighbours.push([x + 1, y]);
+    if (y > 0) neighbours.push([x, y - 1]);
+    if (y < height - 1) neighbours.push([x, y + 1]);
+    return neighbours;
+  }
+
+  // Get player with max number of walls on the path to them
+  getMaxNumCell(wField, field) {
+    let max = 0;
+    let maxCell = [];
+    for (let [x, y] of this.startPositions) {
+      const cell = wField[x][y];
+      if (field[x][y].terrain !== Models.TerrainTypes.MOUNTAIN) {
+        if (cell > max) {
+          maxCell = [x, y];
+          max = cell;
+        }
+      }
+    }
+    return {num: max, cell: maxCell};
+  }
+
+  // Remove wall with highest wave value
+  fixWave(wField, field, width, height, maxNum, startX, startY) {
+    console.log(`Fix wave${maxNum} ${startX} ${startY}`);
+    const queue = [[startX, startY]];
+    const visitedCells = new Set();
+    while(queue.length > 0) {
+      // console.log('Queue:', JSON.stringify(queue));
+      const [curX, curY] = queue.shift();
+      if (visitedCells.has(`${curX}, ${curY}`)) continue;
+      visitedCells.add(`${curX}, ${curY}`);
+
+      const neighbours = this.findNeighbours(curX, curY, width, height);
+      // TODO: Select random neighbour if there are several with the same value
+      for (let [x, y] of neighbours) {
+        if (wField[x][y] !== maxNum) continue;
+        if (field[x][y].terrain === Models.TerrainTypes.MOUNTAIN) {
+          if (this.fixWall(wField, field, width, height, maxNum, x, y)) {
+            return;
+          }
+        }
+        else {
+          const alreadyVisited = visitedCells.has(`${x}, ${y}`);
+          if (!alreadyVisited) queue.push([x, y]);
+        }
+      }
+    }
+  }
+
+  // Remove wall from cell if there is an N-1 wall nearby
+  fixWall(wField, field, width, height, maxNum, wallX, wallY) {
+    // console.log('fixWall', wallX, wallY);
+    const neighbours = this.findNeighbours(wallX, wallY, width, height);
+    // console.log('Wall neighbours:', neighbours);
+    for (let neighbour of neighbours) {
+      const [x, y] = neighbour;
+      if (wField[x][y] === maxNum - 1) {
+        field[wallX][wallY].terrain = Models.TerrainTypes.EMPTY;
+        console.log('Wall fixed', wallX, wallY);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Check that every player has path to each other
+  allPlayersReached(wField) {
+    for (let [x, y] of this.startPositions) {
+      if (wField[x][y] > 0) return false;
     }
     return true;
   }
