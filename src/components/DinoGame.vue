@@ -187,6 +187,9 @@ export default {
     emitter.on('moveUnit', this.emitMoveUnit);
     emitter.on('addVisibilityForCoords', this.emitAddVisibilityForCoords);
 
+    if (!this.loadGame) {
+      this.initPlayersScrollCoords();
+    }
     this.startTurn();
   },
   beforeUnmount() {
@@ -218,7 +221,7 @@ export default {
         emitter.emit('makeBotMove');
       }
       else {
-        emitter.emit('initTurn');
+        emitter.emit('initTurn', this.players[this.currentPlayer].scrollCoords);
         if (this.checkSkipReadyLabel()) {
           this.state = this.STATES.play;
         }
@@ -256,6 +259,7 @@ export default {
     processEndTurn() {
       if (this.state === this.STATES.ready) return;
       this.state = this.STATES.ready;
+      emitter.emit('saveCoords', this.players[this.currentPlayer]);
       this.storeStateIfNeeded();
       this.selectNextPlayerAndCheckPhases();
       emitter.emit('startTurn');
@@ -327,6 +331,12 @@ export default {
     changeCellSize(delta) {
       this.cellSize = Math.max(10, this.cellSize + delta);
       console.log(this.cellSize);
+    },
+    initPlayersScrollCoords() {
+      for (let playerNum = 0; playerNum < this.players.length; playerNum++) {
+        const coords = this.getCurrentUnitCoords(playerNum)[0];
+        this.players[playerNum].scrollCoords = this.$refs.gameGridRef.getScrollCoordsByCell(coords);
+      }
     },
 
     // Visibility helpers
@@ -413,7 +423,13 @@ export default {
     saveState() {
       // TODO: Save only game situation, not game settings
       for (const field of FIELDS_TO_SAVE) {
-        localStorage.setItem(field, JSON.stringify(this[field]));
+        if (field === 'field') {
+          const _field = this.field.map(row => row.map(cell => ({ ...cell, isHidden: true })));
+          localStorage.setItem(field, JSON.stringify(_field));
+        }
+        else {
+          localStorage.setItem(field, JSON.stringify(this[field]));
+        }
       }
     },
     loadFieldOrGenerateNewField() {
@@ -501,12 +517,12 @@ export default {
       if (coordsArr.length === 0) return;
       emitter.emit('selectNextUnit', coordsArr);
     },
-    getCurrentUnitCoords() {
+    getCurrentUnitCoords(playerNum=this.currentPlayer) {
       const coordsArr = [];
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
           const unit = this.field[x][y].unit;
-          if (unit && unit.player === this.currentPlayer && !unit.hasMoved) {
+          if (unit && unit.player === playerNum && !unit.hasMoved) {
             coordsArr.push([x, y]);
           }
         }
