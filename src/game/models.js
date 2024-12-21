@@ -23,6 +23,7 @@ class Cell {
         this.terrain = terrain;
         this.building = null;
         this.unit = null;
+        this.isHidden = true;
     }
 }
 
@@ -51,6 +52,7 @@ class Player {
         this.score = 0;
         this.active = true;
         this.informed_lose = false;
+        this.scrollCoords = [0, 0];
     }
 }
 
