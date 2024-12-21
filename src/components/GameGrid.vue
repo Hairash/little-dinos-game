@@ -1,6 +1,6 @@
 <template>
   <ActionHint v-if="selectedAction" :action="selectedAction" />
-  <div class="game-grid-container">
+  <div ref="gameGridContainer" class="game-grid-container">
     <div
       class="board-wrapper"
       :style="{ width: boardWrapperWidth, height: boardWrapperHeight }"
@@ -15,6 +15,7 @@
             :style="{ width: lineWidth, height: lineHeight }"
         >
           <template v-for="(cellData, x) in line" :key=x>
+            <!-- TODO: Why do we have isHidden applied to field and not to fieldOutput? -->
             <GameCell
               :hidden="field[x][y].isHidden"
               :width="cellSize"
@@ -128,22 +129,23 @@ export default {
     emitter.on('initTurn', this.initTurn);
     emitter.on('selectNextUnit', this.selectNextUnit);
     emitter.on('setAction', this.setAction);
+    emitter.on('saveCoords', this.saveCoords);
+    emitter.on('getScrollCoordsByCell', this.getScrollCoordsByCell);
   },
   beforeUnmount() {
     emitter.off('initTurn', this.initTurn);
     emitter.off('selectNextUnit', this.selectNextUnit);
     emitter.off('setAction', this.setAction);
-  },
-  watch: {
-    currentPlayer() {
-      this.initTurn();
-    }
+    emitter.off('saveCoords', this.saveCoords);
+    emitter.off('getScrollCoordsByCell', this.getScrollCoordsByCell);
   },
   methods: {
-    initTurn() {
+    initTurn(scrollCoords) {
+      console.log(scrollCoords);
       this.selectedCoords = null;
       this.selectedAction = null;
       this.removeHighlights();
+      this.$refs.gameGridContainer.scrollTo(...scrollCoords);
     },
     selectNextUnit(unitCoordsArr) {
       let coords = unitCoordsArr[0];
@@ -188,6 +190,22 @@ export default {
       this.selectedCoords = null;
       this.removeHighlightsForArea(x, y, movePoints);
     },
+    setAction(action) {
+      this.selectedAction = action;
+    },
+    saveCoords(player) {
+      const container = this.$refs.gameGridContainer;
+      console.log(player.scrollCoords);
+      player.scrollCoords = [container.scrollLeft, container.scrollTop];
+      console.log(player.scrollCoords);
+    },
+    getScrollCoordsByCell(coords) {
+      const [x, y] = coords;
+      const container = this.$refs.gameGridContainer;
+      const scrollX = (x * this.cellSize) - (container.clientWidth / 2) + (this.cellSize / 2);
+      const scrollY = (y * this.cellSize) - (container.clientHeight / 2) + (this.cellSize / 2);
+      return [scrollX, scrollY];
+    },
 
     // Highlights helpers
     removeHighlights() {
@@ -213,9 +231,6 @@ export default {
         const curY = coords[1];
         this.fieldOutput[curX][curY].isHighlighted = true;
       }
-    },
-    setAction(action) {
-      this.selectedAction = action;
     },
   }
 }
