@@ -20,13 +20,13 @@
     :current-player="currentPlayer"
     :cellSize="cellSize"
   />
-  <InfoLabel
+  <InfoPanel
     v-if="state === STATES.play"
     :current-player="currentPlayer"
     :players="players"
-    :get-current-active-units="getCurrentActiveUnits"
+    :current-stats="getCurrentStats()"
     :handle-end-turn-btn-click="processEndTurn"
-    :handle-img-click="findNextUnit"
+    :handle-unit-click="findNextUnit"
     :cellSize="cellSize"
     :handle-change-cell-size="changeCellSize"
   />
@@ -35,7 +35,7 @@
 <script>
 import ReadyLabel from '@/components/ReadyLabel.vue';
 import GameGrid from '@/components/GameGrid.vue';
-import InfoLabel from '@/components/InfoLabel.vue';
+import InfoPanel from '@/components/InfoPanel.vue';
 import Models from "@/game/models";
 import { CreateFieldEngine } from "@/game/createFieldEngine";
 import { WaveEngine } from "@/game/waveEngine";
@@ -51,7 +51,7 @@ export default {
   components: {
     ReadyLabel,
     GameGrid,
-    InfoLabel,
+    InfoPanel,
   },
   props: {
     humanPlayersNum: Number,
@@ -513,7 +513,8 @@ export default {
 
     // Unit helpers
     findNextUnit() {
-      const coordsArr = this.getCurrentActiveUnits().coordsArr;
+      // TODO: Think how to refactor this
+      const coordsArr = this.getCurrentStats().units.coordsArr;
       if (coordsArr.length === 0) return;
       emitter.emit('selectNextUnit', coordsArr);
     },
@@ -529,23 +530,44 @@ export default {
       }
       return coordsArr;
     },
-    getCurrentActiveUnits() {
-      let totalCtr = 0;
-      let activeCtr = 0;
-      const coordsArr = [];
+    getCurrentStats() {
+      const stats = {
+        units: {
+          active: 0,
+          total: 0,
+          max: this.maxUnitsNum,
+          coordsArr: [],
+        },
+        towers: {
+          total: 0,
+          max: this.maxBasesNum,
+        },
+      };
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
           const unit = this.field[x][y].unit;
+          const building = this.field[x][y].building;
           if (unit && unit.player === this.currentPlayer) {
-            totalCtr++;
+            stats.units.total++;
             if (!unit.hasMoved) {
-              coordsArr.push([x, y]);
-              activeCtr++;
+              stats.units.coordsArr.push([x, y]);
+              stats.units.active++;
             }
+            if (building && building._type === Models.BuildingTypes.HABITATION && this.maxUnitsNum > 0) {
+              // TODO: Get this value from settings
+              stats.units.max += 3;
+            }
+            if (building && building._type === Models.BuildingTypes.STORAGE && this.maxBasesNum > 0) {
+              // TODO: Get this value from settings
+              stats.towers.max += 3;
+            }
+          }
+          if (building && building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) {
+            stats.towers.total++;
           }
         }
       }
-      return {active: activeCtr, total: totalCtr, coordsArr: coordsArr};
+      return stats
     },
 
     // State helpers
