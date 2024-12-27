@@ -1,39 +1,41 @@
 <template>
   <ActionHint v-if="selectedAction" :action="selectedAction" />
-  <div ref="gameGridContainer" class="game-grid-container">
-    <div
-      class="board-wrapper"
-      :style="{ width: boardWrapperWidth, height: boardWrapperHeight }"
-    >
+<!--  <div class="main-wrapper">-->
+    <div ref="gameGridContainer" class="game-grid-container">
       <div
-        class="board"
-        :style="{ width: boardWidth, height: boardHeight }"
+        class="board-wrapper"
+        :style="{ width: boardWrapperWidth, height: boardWrapperHeight }"
       >
         <div
-            class="cell_line" v-for="(line, y) in fieldT"
-            :key=y
-            :style="{ width: lineWidth, height: lineHeight }"
+          class="board"
+          :style="{ width: boardWidth, height: boardHeight }"
         >
-          <template v-for="(cellData, x) in line" :key=x>
-            <!-- TODO: Why do we have isHidden applied to field and not to fieldOutput? -->
-            <GameCell
-              :hidden="field[x][y].isHidden"
-              :width="cellSize"
-              :height="cellSize"
-              :terrain=cellData.terrain
-              :unit=cellData.unit
-              :building=cellData.building
-              :selected="(selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y)"
-              :highlighted="fieldOutput[x][y].isHighlighted"
-              :currentPlayer="currentPlayer"
-              :hideEnemySpeed="hideEnemySpeed"
-              @click="processClick($event, x, y)"
-            />
-          </template>
+          <div
+              class="cell_line" v-for="(line, y) in fieldT"
+              :key=y
+              :style="{ width: lineWidth, height: lineHeight }"
+          >
+            <template v-for="(cellData, x) in line" :key=x>
+              <!-- TODO: Why do we have isHidden applied to field and not to fieldOutput? -->
+              <GameCell
+                :hidden="field[x][y].isHidden"
+                :width="cellSize"
+                :height="cellSize"
+                :terrain=cellData.terrain
+                :unit=cellData.unit
+                :building=cellData.building
+                :selected="(selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y)"
+                :highlighted="fieldOutput[x][y].isHighlighted"
+                :currentPlayer="currentPlayer"
+                :hideEnemySpeed="hideEnemySpeed"
+                @click="processClick($event, x, y)"
+              />
+            </template>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+<!--  </div>-->
 </template>
 
 <script>
@@ -104,7 +106,7 @@ export default {
       return `${this.cellSize * this.width}px`;
     },
     boardWrapperHeight() {
-      return `${this.cellSize * this.height + 35}px`
+      return `${this.cellSize * this.height + 50}px`
     },
     boardWrapperWidth() {
       return `${this.cellSize * this.width}px`;
@@ -159,6 +161,8 @@ export default {
       const [x, y] = coords;
       const unit = this.field[x][y].unit;
       this.selectUnit(x, y, unit.movePoints);
+      const scrollCoords = this.getScrollCoordsByCell([x, y]);
+      this.$refs.gameGridContainer.scrollTo(...scrollCoords);
     },
     selectUnit(x, y, movePoints) {
       this.selectedCoords = [x, y];
@@ -237,14 +241,24 @@ export default {
 </script>
 
 <style scoped>
+.main-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+}
+
 .game-grid-container {
-  width: 95vw;    /* Full viewport width */
-  height: 95vh;   /* Full viewport height */
+  width: 100vw;    /* Full viewport width */
+  height: 100vh;   /* Full viewport height */
   overflow: auto;  /* Enables scroll when the content overflows */
   position: relative;
   /* Hide scrollbars but keep scrolling */
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+  background-image: url('/public/images/background.png');
+  background-size: cover;
 }
 
 .game-grid-container::-webkit-scrollbar {

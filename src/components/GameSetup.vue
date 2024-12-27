@@ -403,7 +403,6 @@ export default {
 
 <style scoped>
 /* TODO: Unify font style for all labels - add font style to the App */
-/* TODO: Center the label */
 div.gameSetup {
   position: relative;
   top: 20px;
