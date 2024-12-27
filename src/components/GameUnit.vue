@@ -72,6 +72,7 @@ export default {
 
 <style scoped>
 div.unitContainer {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
   transition: v-bind('cssProps.transitionOpacity');
 }
 div.unitContainer.hidden {
