@@ -1,4 +1,10 @@
 <template>
+  <GameMenu
+    v-if="state === STATES.menu"
+    :handleStartBtnClick = "() => { state = STATES.setup }"
+    :handleHelpBtnClick = "() => { state = STATES.help }"
+    :handleLoadBtnClick = "loadGame"
+  />
   <GameSetup
     v-if="state === STATES.setup"
     :handleClick = "handleStartBtnClick"
@@ -28,21 +34,25 @@
 </template>
 
 <script>
+import GameMenu from "@/components/GameMenu.vue";
 import GameSetup from './components/GameSetup.vue'
 import DinoGame from './components/DinoGame.vue'
 
 export default {
   name: 'App',
   components: {
+    GameMenu,
     GameSetup,
     DinoGame,
   },
   data() {
     const STATES = {
+      menu: 'menu',
+      help: 'help',
       setup: 'setup',
       game: 'game',
     }
-    const state = STATES.setup;
+    const state = STATES.menu;
     let settings = {};
     return {
       STATES,
@@ -56,6 +66,9 @@ export default {
       this.settings = settings;
       this.state = this.STATES.game;
     },
+    loadGame() {
+      console.log('Load game clicked');
+    }
   },
 }
 </script>
