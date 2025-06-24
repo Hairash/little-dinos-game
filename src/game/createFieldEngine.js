@@ -80,25 +80,60 @@ class CreateFieldEngine {
     }
     // Set buildings
     let failCtr = 0;
-    for (let building = 0; building < this.width * this.height * 0.03; building++) {
-      let x = Math.floor(Math.random() * this.width);
-      let y = Math.floor(Math.random() * this.height);
-      while (field[x][y].terrain.kind === Models.TerrainTypes.MOUNTAIN || !this.noBuildingsInDistance(field, x, y, 5)) {
-        x = Math.floor(Math.random() * this.width);
-        y = Math.floor(Math.random() * this.height);
-        failCtr++;
-        if (failCtr > 100) {
-          x = null;
-          y = null;
-          break;
+    let minDistance = 5;
+    for (let buildingType in this.buildingRates) {
+      if (this.buildingRates[buildingType] === 0) continue;
+      const average = 2 ** (this.buildingRates[buildingType]);
+      const min = Math.floor(average / 2);
+      const max = Math.ceil(average * 1.5);
+      // Take a random number of buildings for this type
+      const buildingsNum = Math.max(
+        1, Math.floor((Math.random() * (max - min + 1) + min) * this.width * this.height * 0.0025)
+      );
+      console.log(`${buildingType}: ${buildingsNum}`);
+      for (let buildingCtr = 0; buildingCtr < buildingsNum; buildingCtr++) {
+        let x = Math.floor(Math.random() * this.width);
+        let y = Math.floor(Math.random() * this.height);
+        while (field[x][y].terrain.kind === Models.TerrainTypes.MOUNTAIN || !this.noBuildingsInDistance(field, x, y, minDistance)) {
+          x = Math.floor(Math.random() * this.width);
+          y = Math.floor(Math.random() * this.height);
+          failCtr++;
+          if (failCtr > 100) {
+            minDistance--;
+            console.log(`failCtr=${failCtr}, minDistance=${minDistance}`);
+            failCtr = 0;
+            if (minDistance < -1) {
+              console.warn(`Cannot place ${buildingType} building, all the cells are occupied`);
+              x = null;
+              y = null;
+              break;
+            }
+          }
+        }
+        if (x !== null && y !== null) {
+          field[x][y].building = new Models.Building(null, buildingType);
         }
       }
-      if (x !== null && y !== null) {
-        let buildingType = this.getBuildingType();
-        field[x][y].building = new Models.Building(null, buildingType);
-      }
     }
-    // console.log(field);
+    // for (let building = 0; building < this.width * this.height * 0.03; building++) {
+    //   let x = Math.floor(Math.random() * this.width);
+    //   let y = Math.floor(Math.random() * this.height);
+    //   while (field[x][y].terrain.kind === Models.TerrainTypes.MOUNTAIN || !this.noBuildingsInDistance(field, x, y, 5)) {
+    //     x = Math.floor(Math.random() * this.width);
+    //     y = Math.floor(Math.random() * this.height);
+    //     failCtr++;
+    //     if (failCtr > 100) {
+    //       x = null;
+    //       y = null;
+    //       break;
+    //     }
+    //   }
+    //   if (x !== null && y !== null) {
+    //     let buildingType = this.getBuildingType();
+    //     field[x][y].building = new Models.Building(null, buildingType);
+    //   }
+    // }
+    console.log(field);
     return field;
   }
 
