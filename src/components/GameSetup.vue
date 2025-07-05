@@ -1,11 +1,13 @@
 <template>
   <div class="gameSetup">
-    <span class="gameTitle">
-      <img class="unitImg" :src="`/images/dino03.png`">
-      <h1>Little DinoS</h1>
-      <img class="unitImg" :src="`/images/dino3a.png`">
-    </span>
-
+  <!--  Add button to go back  -->
+    <button
+      type="button"
+      class="goBackBtn"
+      @click="handleBackBtnClick"
+    >
+      <img :src="`/images/arrow_white.png`">
+    </button>
     <h1>Game setup</h1>
     <div class="plate" style="width: 178px;">
       <div class="icon">
@@ -346,60 +348,60 @@
         </option>
       </select>
     </div> -->
-    <div>
-      <button type="button" @click="processStartBtnClick">Start game</button>
+    <div style="padding: 30px">
+      <button
+        type="button"
+        class="startBtn"
+        @click="processStartBtnClick"
+      >
+        <span>GO!</span>
+      </button>
     </div>
-    <div>
-      <button type="button" @click="processLoadBtnClick" v-if="loadGamePossible">Load previous game</button>
-    </div>
-    <div>
-      <button type="button" @click="areRulesOpen = !areRulesOpen">Show game rules</button>
-    </div>
-    <div v-if="areRulesOpen" class="toggleContent">
-      <div class="contentBlock">
-        <br>
-        <b>Summary</b><br>
-        <div class="textBlock">
-          🌿 At the start of each turn, every empty tower of your color spawns a new dino with a random speed.<br>
-          🌿 At the end of dino's move all adjacent enemy dinos (4 directions) die.<br>
-          🌿 If your dino comes to an enemy tower, it becomes yours.<br>
-          🌿 You can move any number of your dinos each turn.<br>
-          🌿 A dino can move a number of cells up to its speed during a turn.<br>
-          🌿 Rocks and other dinos block movement.<br>
-          🌿 There are 2 ways to win:<br>
-          &emsp;&emsp;🌱 eliminate all other players or<br>
-          &emsp;&emsp;🌱 reach specific number of score (set up in settings)<br>
-        </div>
-        <br>
-        <b>Description</b><br>
-        <div class="textBlock">
-          It is a simple turn-based strategy game, where you can challenge the bots, play with friends, or even mix it
-          up
-          with both bots and pals.<br>
-          <br>
-          The gameplay unfolds on a randomly generated grid, punctuated by impassable rock cells. As the game begins,
-          you'll have a tower and a dino of the same color (e.g., blue for the first player) staying on it. The dino
-          displays its speed as a number in its bottom right corner, representing how many cells it can traverse in a
-          single turn. Other dinos, whether they're friend or foe, are obstacles you can't move through as well as
-          rocks.
-          <br>
-          <br>
-          To move a dino, simply click or tap on it, then select the cell you want it to go to. When a dino completes
-          its
-          move, it eliminates opposing dinos in its immediate vicinity (those in the 4 main directions: ⬅️➡️⬇️⬆️). If
-          your
-          dino lands on an enemy tower, it captures the tower and it becomes yours. With every new turn, each your
-          unoccupied towers will produce a new dino with a randomly assigned speed.<br>
-          <br>
-          You receive 10 score for every enemy you kill and lose 3 score every turn for every tower you control.<br>
-          Before you dive in, note that there are a few game settings available. Kindly recommend you to start with the
-          "fog of war" option disabled to
-          <img class="unitImg" style="float: right" :src="`/images/dino3.png`">
-          understand what's going on.<br>
-          Enjoy!
-        </div>
-      </div>
-    </div>
+<!--    <div v-if="areRulesOpen" class="toggleContent">-->
+<!--      <div class="contentBlock">-->
+<!--        <br>-->
+<!--        <b>Summary</b><br>-->
+<!--        <div class="textBlock">-->
+<!--          🌿 At the start of each turn, every empty tower of your color spawns a new dino with a random speed.<br>-->
+<!--          🌿 At the end of dino's move all adjacent enemy dinos (4 directions) die.<br>-->
+<!--          🌿 If your dino comes to an enemy tower, it becomes yours.<br>-->
+<!--          🌿 You can move any number of your dinos each turn.<br>-->
+<!--          🌿 A dino can move a number of cells up to its speed during a turn.<br>-->
+<!--          🌿 Rocks and other dinos block movement.<br>-->
+<!--          🌿 There are 2 ways to win:<br>-->
+<!--          &emsp;&emsp;🌱 eliminate all other players or<br>-->
+<!--          &emsp;&emsp;🌱 reach specific number of score (set up in settings)<br>-->
+<!--        </div>-->
+<!--        <br>-->
+<!--        <b>Description</b><br>-->
+<!--        <div class="textBlock">-->
+<!--          It is a simple turn-based strategy game, where you can challenge the bots, play with friends, or even mix it-->
+<!--          up-->
+<!--          with both bots and pals.<br>-->
+<!--          <br>-->
+<!--          The gameplay unfolds on a randomly generated grid, punctuated by impassable rock cells. As the game begins,-->
+<!--          you'll have a tower and a dino of the same color (e.g., blue for the first player) staying on it. The dino-->
+<!--          displays its speed as a number in its bottom right corner, representing how many cells it can traverse in a-->
+<!--          single turn. Other dinos, whether they're friend or foe, are obstacles you can't move through as well as-->
+<!--          rocks.-->
+<!--          <br>-->
+<!--          <br>-->
+<!--          To move a dino, simply click or tap on it, then select the cell you want it to go to. When a dino completes-->
+<!--          its-->
+<!--          move, it eliminates opposing dinos in its immediate vicinity (those in the 4 main directions: ⬅️➡️⬇️⬆️). If-->
+<!--          your-->
+<!--          dino lands on an enemy tower, it captures the tower and it becomes yours. With every new turn, each your-->
+<!--          unoccupied towers will produce a new dino with a randomly assigned speed.<br>-->
+<!--          <br>-->
+<!--          You receive 10 score for every enemy you kill and lose 3 score every turn for every tower you control.<br>-->
+<!--          Before you dive in, note that there are a few game settings available. Kindly recommend you to start with the-->
+<!--          "fog of war" option disabled to-->
+<!--          <img class="unitImg" style="float: right" :src="`/images/dino3.png`">-->
+<!--          understand what's going on.<br>-->
+<!--          Enjoy!-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>-->
   </div>
 </template>
 
@@ -407,15 +409,13 @@
 import slider from 'vue3-slider'
 
 // import Models from '@/game/models';
-import {DEFAULT_BUILDING_RATES, FIELDS_TO_SAVE} from '@/game/const';
+import {DEFAULT_BUILDING_RATES, FIELDS_TO_SAVE, GAME_STATES} from '@/game/const';
+import emitter from "@/game/eventBus";
 
 export default {
   name: 'GameSetup',
   components: {
     "vue3-slider": slider,
-  },
-  props: {
-    handleClick: Function,
   },
   data() {
     const LIMITS = {
@@ -510,6 +510,9 @@ export default {
     this.loadGamePossible = !!localStorage.getItem('field');
   },
   methods: {
+    handleBackBtnClick() {
+      emitter.emit('goToPage', GAME_STATES.menu);
+    },
     loadSettings() {
       const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field');
       for (const field of fieldsToLoad) {
@@ -564,7 +567,7 @@ export default {
         maxBasesNum: this.maxBasesNum,
         buildingRates: this.buildingRates,
       }
-      this.handleClick(settings);
+      emitter.emit('startGame', settings);
     },
     processLoadBtnClick() {
       if (this.loadGamePossible) {
@@ -613,6 +616,26 @@ div.gameSetup {
   position: relative;
   background-image: url('/public/images/background.png');
   background-size: cover;
+}
+
+.goBackBtn {
+  position: absolute;
+  top: 34px;
+  left: 16px;
+  border: none;
+  background-color: rgba(0, 0, 0, 0);
+}
+
+.goBackBtn img {
+  width: 40px;
+  height: 40px;
+  user-select: none;
+  cursor: pointer;
+}
+
+.gameSetup h1 {
+  margin: 0;
+  padding: 30px;
 }
 
 .gameTitle h1 {
@@ -746,6 +769,24 @@ span.labelForInput {
   width: 112px;
   margin: auto;
   padding-top: 4px;
+}
+
+.startBtn {
+  width: 200px;
+  height: 60px;
+  border: 0;
+  background-image: url("/public/images/long_setup_btn.png");
+  background-size: 100% 100%;
+  background-color: transparent;
+  font-size: 36px;
+  font-family: "RocknRoll One", Avenir, Helvetica, Arial, sans-serif;
+  cursor: pointer;
+}
+
+.startBtn span {
+  position: relative;
+  top: -2px;
+  font-weight: bold;
 }
 
 /* div.botBlock {
