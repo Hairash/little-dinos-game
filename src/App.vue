@@ -1,16 +1,12 @@
 <template>
   <GameMenu
-    v-if="state === STATES.menu"
-    :handleStartBtnClick = "() => { state = STATES.setup }"
-    :handleHelpBtnClick = "() => { state = STATES.help }"
-    :handleLoadBtnClick = "loadGame"
+    v-if="state === GAME_STATES.menu"
   />
   <GameSetup
-    v-if="state === STATES.setup"
-    :handleClick = "handleStartBtnClick"
+    v-if="state === GAME_STATES.setup"
   />
   <DinoGame
-    v-if="state === STATES.game"
+    v-if="state === GAME_STATES.game"
     :humanPlayersNum = "settings.humanPlayersNum"
     :botPlayersNum = "settings.botPlayersNum"
     :width = "settings.width"
@@ -31,45 +27,76 @@
     :killAtBirth = "settings.killAtBirth"
     :loadGame = "settings.loadGame"
   />
+  <GameHelp
+    v-if="state === GAME_STATES.help"
+  />
+
 </template>
 
 <script>
 import GameMenu from "@/components/GameMenu.vue";
-import GameSetup from './components/GameSetup.vue'
-import DinoGame from './components/DinoGame.vue'
+import GameSetup from '@/components/GameSetup.vue'
+import DinoGame from '@/components/DinoGame.vue'
+import GameHelp from "@/components/GameHelp.vue";
+
+import emitter from "@/game/eventBus";
+import {DEFAULT_BUILDING_RATES, FIELDS_TO_SAVE, GAME_STATES} from "@/game/const";
 
 export default {
   name: 'App',
   components: {
+    GameHelp,
     GameMenu,
     GameSetup,
     DinoGame,
   },
   data() {
-    const STATES = {
-      menu: 'menu',
-      help: 'help',
-      setup: 'setup',
-      game: 'game',
-    }
-    const state = STATES.menu;
+    const state = GAME_STATES.menu;
     let settings = {};
     return {
-      STATES,
+      GAME_STATES,
       state,
       settings,
     }
   },
+  mounted() {
+    emitter.on('startGame', this.startGame);
+    emitter.on('loadGame', this.loadGame);
+    emitter.on('goToPage', this.goToPage);
+  },
   methods: {
-    handleStartBtnClick(settings) {
+    startGame(settings) {
       console.log(settings);
       this.settings = settings;
-      this.state = this.STATES.game;
+      this.state = this.GAME_STATES.game;
+    },
+    goToPage(page) {
+      this.state = page;
     },
     loadGame() {
       console.log('Load game clicked');
-    }
+      const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field');
+      for (const field of fieldsToLoad) {
+        const value = localStorage.getItem(field);
+        // Dirty hack to set default values for buildingRates, because otherwise
+        // vue3-slider displays default values instead of 0
+        if (field === 'buildingRates' && !value) {
+          this.buildingRates = DEFAULT_BUILDING_RATES;
+        }
+        if (value) {
+          this.settings[field] = JSON.parse(value);
+        }
+      }
+      this.settings.loadGame = true;
+      this.state = this.GAME_STATES.game;
+    },
   },
+  beforeUnmount() {
+    emitter.off('startGame', this.startGame);
+    emitter.off('loadGame', this.loadGame);
+    emitter.off('goToPage', this.goToPage);
+    // TODO: Check we didn't forget smth
+  }
 }
 </script>
 
