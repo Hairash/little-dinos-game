@@ -46,7 +46,6 @@ export const ACTIONS = {
   scouting: 'scouting',
 };
 
-
 export const DEFAULT_BUILDING_RATES = {
   base: 3,
   habitation: 5,
@@ -54,4 +53,11 @@ export const DEFAULT_BUILDING_RATES = {
   well: 2,
   storage: 3,
   obelisk: 2,
+};
+
+export const GAME_STATES = {
+  menu: 'menu',
+  setup: 'setup',
+  game: 'game',
+  help: 'help',
 };
