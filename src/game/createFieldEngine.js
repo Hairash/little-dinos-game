@@ -12,6 +12,7 @@ class CreateFieldEngine {
       sectorsNum,
       minSpeed,
       maxSpeed,
+      speedMinVisibility,
       fogOfWarRadius,
       visibilitySpeedRelation,
       buildingRates,
@@ -22,6 +23,7 @@ class CreateFieldEngine {
     this.sectorsNum = sectorsNum;
     this.minSpeed = minSpeed;
     this.maxSpeed = maxSpeed;
+    this.speedMinVisibility = speedMinVisibility;
     this.fogOfWarRadius = fogOfWarRadius;
     this.visibilitySpeedRelation = visibilitySpeedRelation;
     this.buildingRates = buildingRates;
@@ -72,10 +74,11 @@ class CreateFieldEngine {
       field[x][y].unit = createNewUnit(
           player,
           this.minSpeed,
-          this.maxSpeed,
+          this.minSpeed,
+          this.speedMinVisibility,
           this.fogOfWarRadius,
           this.visibilitySpeedRelation,
-          this.minSpeed,
+          0,
       );
     }
     // Set buildings

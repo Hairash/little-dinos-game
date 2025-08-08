@@ -18,9 +18,12 @@
     :enableScoutMode = "settings.enableScoutMode"
     :visibilitySpeedRelation = "settings.visibilitySpeedRelation"
     :minSpeed = "settings.minSpeed"
+    :speedMinVisibility = "settings.speedMinVisibility"
     :maxSpeed = "settings.maxSpeed"
     :max-units-num="settings.maxUnitsNum"
     :max-bases-num="settings.maxBasesNum"
+    :unit-modifier="settings.unitModifier"
+    :base-modifier="settings.baseModifier"
     :building-rates="settings.buildingRates"
     :enableUndo = "settings.enableUndo"
     :hideEnemySpeed = "settings.hideEnemySpeed"
@@ -40,7 +43,7 @@ import DinoGame from '@/components/DinoGame.vue'
 import GameHelp from "@/components/GameHelp.vue";
 
 import emitter from "@/game/eventBus";
-import {DEFAULT_BUILDING_RATES, FIELDS_TO_SAVE, GAME_STATES} from "@/game/const";
+import {DEFAULT_BUILDING_RATES, FIELDS_TO_SAVE, GAME_STATES, INITIAL_SETTINGS} from "@/game/const";
 
 export default {
   name: 'App',
@@ -74,7 +77,12 @@ export default {
       this.state = page;
     },
     loadGame() {
-      console.log('Load game clicked');
+      const loadGamePossible = !!localStorage.getItem('field');
+      if (!loadGamePossible) {
+        alert('No saved game found. Start a new game first.');
+        return;
+      }
+      this.settings = INITIAL_SETTINGS;
       const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field');
       for (const field of fieldsToLoad) {
         const value = localStorage.getItem(field);
@@ -89,6 +97,7 @@ export default {
       }
       this.settings.loadGame = true;
       this.state = this.GAME_STATES.game;
+      console.log(this.settings);
     },
   },
   beforeUnmount() {

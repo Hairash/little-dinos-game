@@ -16,7 +16,7 @@ export const FIELDS_TO_SAVE = [
   'players',
   'width',
   'height',
-  'scoresToWin',
+  // 'scoresToWin',  // Removed
   'sectorsNum',
   'enableFogOfWar',
   'fogOfWarRadius',
@@ -26,6 +26,8 @@ export const FIELDS_TO_SAVE = [
   'maxSpeed',
   'maxUnitsNum',
   'maxBasesNum',
+  'unitModifier',
+  'baseModifier',
   'buildingRates',
   'hideEnemySpeed',
   'killAtBirth',
@@ -60,4 +62,35 @@ export const GAME_STATES = {
   setup: 'setup',
   game: 'game',
   help: 'help',
+};
+
+export const INITIAL_SETTINGS = {
+  width: 20,
+  height: 20,
+  humanPlayersNum: 1,
+  botPlayersNum: 3,
+  scoresToWin: 0,
+  // TODO: make them changeable ?
+  sectorsNum: 4,
+  enableFogOfWar: false,
+  fogOfWarRadius: 3,
+  enableScoutMode: true,
+  visibilitySpeedRelation: true,
+  minSpeed: 1,
+  maxSpeed: 10,
+  speedMinVisibility: 10,
+  maxUnitsNum: 15,
+  maxBasesNum: 3,
+  unitModifier: 3,
+  baseModifier: 3,
+  buildingRates: {
+    base: 0,
+    habitation: 0,
+    temple: 0,
+    well: 0,
+    storage: 0,
+    obelisk: 0,
+  },
+  hideEnemySpeed: false,
+  killAtBirth: true,
 };
