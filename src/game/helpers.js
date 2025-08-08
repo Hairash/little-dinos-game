@@ -29,17 +29,24 @@ export function getNeighbours(field, width, height, x, y) {
 }
 
 // Generate new unit
-export function createNewUnit(player, minSpeed, maxSpeed, avgVisibility, visibilitySpeedRelation, curSpeed=null) {
-  let movePoints;
-  if (curSpeed) {
-    movePoints = curSpeed;
-  }
-  else {
-    movePoints = minSpeed + Math.floor(Math.random() * (maxSpeed - minSpeed + 1));
-  }
+export function createNewUnit(
+  player,
+  minSpeed,
+  maxSpeed,
+  speedMinVisibility,
+  avgVisibility,
+  visibilitySpeedRelation,
+  speedModifier=0,
+) {
+  console.log(
+    `Creating new unit for player ${player} with minSpeed: ${minSpeed}, maxSpeed: ${maxSpeed},
+     speedMinVisibility: ${speedMinVisibility}, avgVisibility: ${avgVisibility},
+     visibilitySpeedRelation: ${visibilitySpeedRelation}, speedModifier: ${speedModifier}`,
+  );
+  const movePoints = minSpeed + Math.floor(Math.random() * (maxSpeed - minSpeed + 1)) + speedModifier;
   let visibility = avgVisibility;
   if (visibilitySpeedRelation) {
-    visibility = calculateUnitVisibility(movePoints, minSpeed, maxSpeed, avgVisibility);
+    visibility = calculateUnitVisibility(movePoints, minSpeed, speedMinVisibility, avgVisibility);
   }
   console.log(`Speed: ${movePoints}, visibility: ${visibility}`);
   return new Models.Unit(
