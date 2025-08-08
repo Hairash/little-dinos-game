@@ -13,8 +13,11 @@ export class FieldEngine {
       players,
       minSpeed,
       maxSpeed,
+      speedMinVisibility,
       maxUnitsNum,
       maxBasesNum,
+      unitModifier,
+      baseModifier,
       killAtBirth,
       visibilitySpeedRelation,
   ) {
@@ -25,8 +28,11 @@ export class FieldEngine {
     this.players = players;
     this.minSpeed = minSpeed;
     this.maxSpeed = maxSpeed;
+    this.speedMinVisibility = speedMinVisibility;
     this.maxUnitsNum = maxUnitsNum;
     this.maxBasesNum = maxBasesNum;
+    this.unitModifier = unitModifier;
+    this.baseModifier = baseModifier;
     this.killAtBirth = killAtBirth;
     this.visibilitySpeedRelation = visibilitySpeedRelation;
   }
@@ -157,7 +163,10 @@ export class FieldEngine {
     ) {
       if (
         !this.maxBasesNum ||
-        buildings[Models.BuildingTypes.BASE] < this.maxBasesNum + buildings[Models.BuildingTypes.STORAGE] * 3
+        (
+          buildings[Models.BuildingTypes.BASE] <
+          this.maxBasesNum + buildings[Models.BuildingTypes.STORAGE] * this.baseModifier
+        )
       ) {
         this.field[x][y].building.player = player;
         return true;
@@ -221,7 +230,7 @@ export class FieldEngine {
                 this.field[x][y].unit.visibility = calculateUnitVisibility(
                   unit.movePoints,
                   this.minSpeed,
-                  this.maxSpeed,
+                  this.speedMinVisibility,
                   this.fogOfWarRadius,
                 );
               }
@@ -230,15 +239,18 @@ export class FieldEngine {
         }
       }
     }
-    if (!this.maxUnitsNum || unitsNum + producedNum <= this.maxUnitsNum + habitationsOccupied * 3) {
+    if (
+      !this.maxUnitsNum || unitsNum + producedNum <= this.maxUnitsNum + habitationsOccupied * this.unitModifier
+    ) {
       for (let [x, y] of unitsToCreateCoords) {
         this.field[x][y].unit = createNewUnit(
             curPlayer,
             this.minSpeed,
             this.maxSpeed,
+            this.speedMinVisibility,
             this.fogOfWarRadius,
             this.visibilitySpeedRelation,
-            this.minSpeed + templesOccupied,
+            templesOccupied,
         );
         if (this.killAtBirth) {
           // countScore=false to avoid double score calculation (here only kill)
