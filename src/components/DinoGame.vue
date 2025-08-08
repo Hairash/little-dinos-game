@@ -66,8 +66,11 @@ export default {
     visibilitySpeedRelation: Boolean,
     minSpeed: Number,
     maxSpeed: Number,
+    speedMinVisibility: Number,
     maxUnitsNum: Number,
     maxBasesNum: Number,
+    unitModifier: Number,
+    baseModifier: Number,
     buildingRates: Object,
     hideEnemySpeed: Boolean,
     killAtBirth: Boolean,
@@ -126,6 +129,7 @@ export default {
       this.sectorsNum,
       this.minSpeed,
       this.maxSpeed,
+      this.speedMinVisibility,
       this.fogOfWarRadius,
       this.visibilitySpeedRelation,
       this.buildingRates,
@@ -150,8 +154,11 @@ export default {
       this.players,
       this.minSpeed,
       this.maxSpeed,
+      this.speedMinVisibility,
       this.maxUnitsNum,
       this.maxBasesNum,
+      this.unitModifier,
+      this.baseModifier,
       this.killAtBirth,
       this.visibilitySpeedRelation,
     );
@@ -329,7 +336,7 @@ export default {
       while (!this.players[this.currentPlayer].active);
     },
     changeCellSize(delta) {
-      this.cellSize = Math.max(10, this.cellSize + delta);
+      this.cellSize = Math.min(Math.max(10, this.cellSize + delta), 70);
       console.log(this.cellSize);
     },
     initPlayersScrollCoords() {
@@ -554,12 +561,10 @@ export default {
               stats.units.active++;
             }
             if (building && building._type === Models.BuildingTypes.HABITATION && this.maxUnitsNum > 0) {
-              // TODO: Get this value from settings
-              stats.units.max += 3;
+              stats.units.max += this.unitModifier;
             }
             if (building && building._type === Models.BuildingTypes.STORAGE && this.maxBasesNum > 0) {
-              // TODO: Get this value from settings
-              stats.towers.max += 3;
+              stats.towers.max += this.baseModifier;
             }
           }
           if (building && building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) {

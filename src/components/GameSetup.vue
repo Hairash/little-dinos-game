@@ -9,330 +9,335 @@
       <img :src="`/images/arrow_white.png`">
     </button>
     <h1>Game setup</h1>
-    <div class="plate" style="width: 178px;">
-      <div class="icon">
-        <img :src="`/images/field_icon.png`">
-      </div>
-      <!--      <label for="width">Width:</label>-->
+    <div id="settings-wrapper">
+      <div id="main-settings">
+        <div class="plate" style="width: 178px;">
+          <div class="icon">
+            <img :src="`/images/field_icon.png`">
+          </div>
+          <!--      <label for="width">Width:</label>-->
 
-      <input
-        type="number"
-        id="width"
-        class="inputNumber digits2"
-        v-model.number="width"
-        min="5"
-        max="50"
-      />
-      <!--    </div>-->
-      <!--    <div>-->
-      <!--      <label for="height">Height:</label>-->
-      <span class="labelForInput">✘</span>
-      <input
-        type="number"
-        id="height"
-        class="inputNumber digits2"
-        v-model.number="height"
-        min="5"
-        max="50"
-      />
-    </div>
-    <!-- <h2>Players</h2> -->
-
-    <div class="upperGrid">
-      <div class="plate" style="width: 112px;">
-        <!--      <label for="humanPlayersNum">Number of human players:</label>-->
-        <div class="icon">
-          <img :src="`/images/human_icon.png`">
+          <input
+            type="number"
+            id="width"
+            class="inputNumber digits2"
+            v-model.number="width"
+            min="5"
+            max="50"
+          />
+          <!--    </div>-->
+          <!--    <div>-->
+          <!--      <label for="height">Height:</label>-->
+          <span class="labelForInput">✘</span>
+          <input
+            type="number"
+            id="height"
+            class="inputNumber digits2"
+            v-model.number="height"
+            min="5"
+            max="50"
+          />
         </div>
-        <input
-          type="number"
-          id="humanPlayersNum"
-          class="inputNumber digits2"
-          v-model.number="humanPlayersNum"
-          min="1"
-          max="8"
-        />
-      </div>
-      <!-- <div v-for="(player, index) in humanPlayerNames" :key="index">
-        <label :for="'player' + index">Player {{ index + 1 }} name:</label>
-        <input type="text" :id="'player' + index" v-model="humanPlayerNames[index]" />
-      </div> -->
-      <div class="botBlock plate" style="width: 112px;">
-        <!--      <label for="botPlayersNum">Number of bot players:</label>-->
-        <div class="icon">
-          <img :src="`/images/bot_icon.png`">
+        <!-- <h2>Players</h2> -->
+
+        <div class="upperGrid">
+          <div class="plate" style="width: 112px;">
+            <!--      <label for="humanPlayersNum">Number of human players:</label>-->
+            <div class="icon">
+              <img :src="`/images/human_icon.png`">
+            </div>
+            <input
+              type="number"
+              id="humanPlayersNum"
+              class="inputNumber digits2"
+              v-model.number="humanPlayersNum"
+              min="1"
+              max="8"
+            />
+          </div>
+          <!-- <div v-for="(player, index) in humanPlayerNames" :key="index">
+            <label :for="'player' + index">Player {{ index + 1 }} name:</label>
+            <input type="text" :id="'player' + index" v-model="humanPlayerNames[index]" />
+          </div> -->
+          <div class="botBlock plate" style="width: 112px;">
+            <!--      <label for="botPlayersNum">Number of bot players:</label>-->
+            <div class="icon">
+              <img :src="`/images/bot_icon.png`">
+            </div>
+            <input
+              type="number"
+              id="botPlayersNum"
+              class="inputNumber digits2"
+              v-model.number="botPlayersNum"
+              min="0"
+              max="7"
+            />
+          </div>
+          <div class="plate" style="width: 112px;">
+            <!--      <label for="maxUnitsNum">Max units number:</label>-->
+            <div class="icon">
+              <img :src="`/images/dino_icon.png`">
+            </div>
+            <input
+              type="number"
+              id="maxUnitsNum"
+              class="inputNumber digits2"
+              v-model.number="maxUnitsNum"
+              min="0"
+              max="50"
+            />
+          </div>
+          <div class="plate" style="width: 112px;">
+            <!--      <label for="maxUnitsNum">Max units number:</label>-->
+            <div class="icon">
+              <img :src="`/images/dino_icon.png`">
+            </div>
+            <input
+              type="number"
+              id="unitModifier"
+              class="inputNumber digits2"
+              v-model.number="unitModifier"
+              min="1"
+              max="20"
+            />
+          </div>
+          <div class="plate" style="width: 112px;">
+            <!--      <label for="maxBasesNum">Max towers number:</label>-->
+            <div class="icon">
+              <img :src="`/images/tower_icon.png`">
+            </div>
+            <input
+              type="number"
+              id="maxBasesNum"
+              class="inputNumber digits2"
+              v-model.number="maxBasesNum"
+              min="0"
+              max="50"
+            />
+          </div>
+          <div class="plate" style="width: 112px;">
+            <!--      <label for="maxBasesNum">Max towers number:</label>-->
+            <div class="icon">
+              <img :src="`/images/tower_icon.png`">
+            </div>
+            <input
+              type="number"
+              id="baseModifier"
+              class="inputNumber digits2"
+              v-model.number="baseModifier"
+              min="1"
+              max="20"
+            />
+          </div>
         </div>
-        <input
-          type="number"
-          id="botPlayersNum"
-          class="inputNumber digits2"
-          v-model.number="botPlayersNum"
-          min="0"
-          max="7"
-        />
-      </div>
-      <div class="plate" style="width: 112px;">
-        <!--      <label for="maxUnitsNum">Max units number:</label>-->
-        <div class="icon">
-          <img :src="`/images/dino_icon.png`">
+
+        <div>
+          <!--      <label for="unitSpeedRange">Dinos speed range:</label>-->
+          <!-- Common plate: 114 x 57 px -->
+          <div class="plate" style="display: inline-block; width: 182px;">
+            <div class="icon">
+              <img :src="`/images/speed_icon.png`">
+            </div>
+            <input type="number" id="minSpeed" class="inputNumber digits2" v-model.number="minSpeed" min="1" max="20"/>
+            <span class="labelForInput" style="font-size: 45px; font-weight: bold; line-height: 38px">-</span>
+            <input type="number" id="maxSpeed" class="inputNumber digits2" v-model.number="maxSpeed" min="1" max="20"/>
+          </div>
+          <div class="plate" style="display: inline-block; width: 112px; margin-left: 5px;">
+            <div class="icon">
+              <img :src="`/images/speed_icon.png`">
+            </div>
+            <input type="number" id="speedMinVisibility" class="inputNumber digits2" v-model.number="speedMinVisibility" min="1" max="20"/>
+          </div>
+
         </div>
-        <input
-          type="number"
-          id="maxUnitsNum"
-          class="inputNumber digits2"
-          v-model.number="maxUnitsNum"
-          min="0"
-          max="50"
-        />
-      </div>
-      <div class="plate" style="width: 112px;">
-        <!--      <label for="maxUnitsNum">Max units number:</label>-->
-        <div class="icon">
-          <img :src="`/images/dino_icon.png`">
+
+
+        <div style="height: 60px; margin: 4px auto;">
+          <!--      <label for="fogOfWar">Enable fog of war:</label>-->
+          <input
+            type="checkbox"
+            id="fogOfWar"
+            v-model="enableFogOfWar"
+            class="hidden-checkbox"
+          />
+          <label for="fogOfWar" class="checkboxImg">
+            <img v-if="!enableFogOfWar" :src="`images/open_eye.png`">
+            <img v-if="enableFogOfWar" :src="`images/closed_eye.png`">
+          </label>
+          <!--      <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar"/>-->
+          <div
+            v-if="enableFogOfWar"
+            class="plate"
+            style="position: relative; display: inline-block; top: -5px; margin: 0 4px;"
+          >
+            <!--      <label for="fogOfWarRadius">Fog of war radius:</label>-->
+            <span class="icon">
+              <img :src="`/images/radius_icon.png`">
+            </span>
+            <input
+              type="number"
+              id="fogOfWarRadius"
+              class="inputNumber digits2"
+              v-model.number="fogOfWarRadius"
+              min="1"
+              max="20"
+            />
+          </div>
+
+          <div v-if="enableFogOfWar" style="display: inline-block;">
+    <!--      <label for="visibilitySpeedRelation">Visibility-speed relation:</label>-->
+            <input type="checkbox" id="scoutMode" v-model="visibilitySpeedRelation" class="hidden-checkbox"/>
+            <label for="scoutMode" class="checkboxImg">
+              <img v-if="!visibilitySpeedRelation" :src="`/images/visibility_speed_no_relation_icon.png`">
+              <img v-if="visibilitySpeedRelation" :src="`/images/visibility_speed_relation_icon.png`">
+            </label>
+          </div>
         </div>
-        <input
-          type="number"
-          id="maxUnitsNum"
-          class="inputNumber digits2"
-          v-model.number="maxUnitsNum"
-          min="0"
-          max="50"
-        />
-      </div>
-      <div class="plate" style="width: 112px;">
-        <!--      <label for="maxBasesNum">Max towers number:</label>-->
-        <div class="icon">
-          <img :src="`/images/tower_icon.png`">
+
+        <!--  Removed ability to disable scout mode  -->
+        <!--    <div v-if="enableFogOfWar">-->
+        <!--      <label for="scoutMode">Enable scout mode:</label>-->
+        <!--      <input type="checkbox" id="scoutMode" v-model="enableScoutMode" />-->
+        <!--    </div>-->
+
+        <div>
+          <!--      <label for="killAtBirth">Kill at birth:</label>-->
+          <input type="checkbox" id="killAtBirth" v-model="killAtBirth" class="hidden-checkbox"/>
+          <label for="killAtBirth" class="checkboxImg" style="margin-right: 4px;">
+            <img v-if="!killAtBirth" :src="`/images/dino_birth_icon.png`">
+            <img v-if="killAtBirth" :src="`/images/dino_birth_kill_icon.png`">
+          </label>
+
+          <input type="checkbox" id="hideEnemySpeed" v-model="hideEnemySpeed" class="hidden-checkbox"/>
+          <label for="hideEnemySpeed" class="checkboxImg">
+            <img v-if="!hideEnemySpeed" :src="`/images/show_speed_icon.png`">
+            <img v-if="hideEnemySpeed" :src="`/images/hide_speed_icon.png`">
+          </label>
         </div>
-        <input
-          type="number"
-          id="maxBasesNum"
-          class="inputNumber digits2"
-          v-model.number="maxBasesNum"
-          min="0"
-          max="50"
-        />
       </div>
-      <div class="plate" style="width: 112px;">
-        <!--      <label for="maxBasesNum">Max towers number:</label>-->
-        <div class="icon">
-          <img :src="`/images/tower_icon.png`">
+
+      <div id="buildings-settings">
+        <div>
+          <!--      <label for="baseRate" class="labelRange">Rate of bases:</label>-->
+          <div class="icon">
+            <img :src="`/images/base.png`">
+          </div>
+          <vue3-slider
+            id="baseRate"
+            class="slider"
+            v-model="buildingRates.base"
+            :min="0"
+            :max="5"
+            :step="1"
+            :color="'#ae7b62'"
+            :sticky="true"
+            :tooltip="true"
+            :formatTooltip="value => marks[value]"
+            :handleScale="2.5"
+            :alwaysShowHandle="true"
+          ></vue3-slider>
         </div>
-        <input
-          type="number"
-          id="maxBasesNum"
-          class="inputNumber digits2"
-          v-model.number="maxBasesNum"
-          min="0"
-          max="50"
-        />
-      </div>
-    </div>
-
-    <div>
-      <!--      <label for="unitSpeedRange">Dinos speed range:</label>-->
-      <!-- Common plate: 114 x 57 px -->
-      <div class="plate" style="display: inline-block; width: 182px;">
-        <div class="icon">
-          <img :src="`/images/speed_icon.png`">
+        <div>
+          <!--      <label for="habitationRate" class="labelRange">Rate of habitations:</label>-->
+          <div class="icon">
+            <img :src="`/images/habitation.png`">
+          </div>
+          <vue3-slider
+            id="baseRate"
+            class="slider"
+            v-model="buildingRates.habitation"
+            :min="0"
+            :max="5"
+            :step="1"
+            :color="'#ae7b62'"
+            :sticky="true"
+            :tooltip="true"
+            :formatTooltip="value => marks[value]"
+            :handleScale="2.5"
+            :alwaysShowHandle="true"
+          ></vue3-slider>
         </div>
-        <input type="number" id="minSpeed" class="inputNumber digits2" v-model.number="minSpeed" min="1" max="20"/>
-        <span class="labelForInput" style="font-size: 45px; font-weight: bold; line-height: 38px">-</span>
-        <input type="number" id="maxSpeed" class="inputNumber digits2" v-model.number="maxSpeed" min="1" max="20"/>
-      </div>
-      <div class="plate" style="display: inline-block; width: 112px; margin-left: 5px;">
-        <div class="icon">
-          <img :src="`/images/speed_icon.png`">
+        <div>
+          <!--      <label for="templeRate" class="labelRange">Rate of temples:</label>-->
+          <div class="icon">
+            <img :src="`/images/temple.png`">
+          </div>
+          <vue3-slider
+            id="baseRate"
+            class="slider"
+            v-model="buildingRates.temple"
+            :min="0"
+            :max="5"
+            :step="1"
+            :color="'#ae7b62'"
+            :sticky="true"
+            :tooltip="true"
+            :formatTooltip="value => marks[value]"
+            :handleScale="2.5"
+            :alwaysShowHandle="true"
+          ></vue3-slider>
         </div>
-        <input type="number" id="maxSpeed" class="inputNumber digits2" v-model.number="maxSpeed" min="1" max="20"/>
+        <div>
+          <!--      <label for="wellRate" class="labelRange">Rate of wells:</label>-->
+          <div class="icon">
+            <img :src="`/images/well.png`">
+          </div>
+          <vue3-slider
+            id="baseRate"
+            class="slider"
+            v-model="buildingRates.well"
+            :min="0"
+            :max="5"
+            :step="1"
+            :color="'#ae7b62'"
+            :sticky="true"
+            :tooltip="true"
+            :formatTooltip="value => marks[value]"
+            :handleScale="2.5"
+            :alwaysShowHandle="true"
+          ></vue3-slider>
+        </div>
+        <div>
+          <!--      <label for="storageRate" class="labelRange">Rate of storages:</label>-->
+          <div class="icon">
+            <img :src="`/images/storage.png`">
+          </div>
+          <vue3-slider
+            id="baseRate"
+            class="slider"
+            v-model="buildingRates.storage"
+            :min="0"
+            :max="5"
+            :step="1"
+            :color="'#ae7b62'"
+            :sticky="true"
+            :tooltip="true"
+            :formatTooltip="value => marks[value]"
+            :handleScale="2.5"
+            :alwaysShowHandle="true"
+          ></vue3-slider>
+        </div>
+        <div>
+          <!--      <label for="obeliskRate" class="labelRange">Rate of obelisks:</label>-->
+          <div class="icon">
+            <img :src="`/images/obelisk.png`">
+          </div>
+          <vue3-slider
+            id="baseRate"
+            class="slider"
+            v-model="buildingRates.obelisk"
+            :min="0"
+            :max="5"
+            :step="1"
+            :color="'#ae7b62'"
+            :sticky="true"
+            :tooltip="true"
+            :formatTooltip="value => marks[value]"
+            :handleScale="2.5"
+            :alwaysShowHandle="true"
+          ></vue3-slider>
+        </div>
       </div>
-
-    </div>
-
-
-    <div style="height: 60px; margin: 4px auto;">
-      <!--      <label for="fogOfWar">Enable fog of war:</label>-->
-      <input
-        type="checkbox"
-        id="fogOfWar"
-        v-model="enableFogOfWar"
-        class="hidden-checkbox"
-      />
-      <label for="fogOfWar" class="checkboxImg">
-        <img v-if="!enableFogOfWar" :src="`images/open_eye.png`">
-        <img v-if="enableFogOfWar" :src="`images/closed_eye.png`">
-      </label>
-      <!--      <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar"/>-->
-      <div
-        v-if="enableFogOfWar"
-        class="plate"
-        style="position: relative; display: inline-block; top: -5px; margin: 0 4px;"
-      >
-        <!--      <label for="fogOfWarRadius">Fog of war radius:</label>-->
-        <span class="icon">
-          <img :src="`/images/radius_icon.png`">
-        </span>
-        <input
-          type="number"
-          id="fogOfWarRadius"
-          class="inputNumber digits2"
-          v-model.number="fogOfWarRadius"
-          min="1"
-          max="20"
-        />
-      </div>
-
-      <div v-if="enableFogOfWar" style="display: inline-block;">
-<!--      <label for="visibilitySpeedRelation">Visibility-speed relation:</label>-->
-        <input type="checkbox" id="scoutMode" v-model="visibilitySpeedRelation" class="hidden-checkbox"/>
-        <label for="scoutMode" class="checkboxImg">
-          <img v-if="!visibilitySpeedRelation" :src="`/images/visibility_speed_no_relation_icon.png`">
-          <img v-if="visibilitySpeedRelation" :src="`/images/visibility_speed_relation_icon.png`">
-        </label>
-      </div>
-    </div>
-
-    <!--  Removed ability to disable scout mode  -->
-    <!--    <div v-if="enableFogOfWar">-->
-    <!--      <label for="scoutMode">Enable scout mode:</label>-->
-    <!--      <input type="checkbox" id="scoutMode" v-model="enableScoutMode" />-->
-    <!--    </div>-->
-
-    <div>
-      <!--      <label for="killAtBirth">Kill at birth:</label>-->
-      <input type="checkbox" id="killAtBirth" v-model="killAtBirth" class="hidden-checkbox"/>
-      <label for="killAtBirth" class="checkboxImg" style="margin-right: 4px;">
-        <img v-if="!killAtBirth" :src="`/images/dino_birth_icon.png`">
-        <img v-if="killAtBirth" :src="`/images/dino_birth_kill_icon.png`">
-      </label>
-
-      <input type="checkbox" id="hideEnemySpeed" v-model="hideEnemySpeed" class="hidden-checkbox"/>
-      <label for="hideEnemySpeed" class="checkboxImg">
-        <img v-if="!hideEnemySpeed" :src="`/images/show_speed_icon.png`">
-        <img v-if="hideEnemySpeed" :src="`/images/hide_speed_icon.png`">
-      </label>
-    </div>
-
-
-    <div>
-      <!--      <label for="baseRate" class="labelRange">Rate of bases:</label>-->
-      <div class="icon">
-        <img :src="`/images/base.png`">
-      </div>
-      <vue3-slider
-        id="baseRate"
-        class="slider"
-        v-model="buildingRates.base"
-        :min="0"
-        :max="5"
-        :step="1"
-        :color="'#ae7b62'"
-        :sticky="true"
-        :tooltip="true"
-        :formatTooltip="value => marks[value]"
-        :handleScale="2.5"
-        :alwaysShowHandle="true"
-      ></vue3-slider>
-    </div>
-    <div>
-      <!--      <label for="habitationRate" class="labelRange">Rate of habitations:</label>-->
-      <div class="icon">
-        <img :src="`/images/habitation.png`">
-      </div>
-      <vue3-slider
-        id="baseRate"
-        class="slider"
-        v-model="buildingRates.habitation"
-        :min="0"
-        :max="5"
-        :step="1"
-        :color="'#ae7b62'"
-        :sticky="true"
-        :tooltip="true"
-        :formatTooltip="value => marks[value]"
-        :handleScale="2.5"
-        :alwaysShowHandle="true"
-      ></vue3-slider>
-    </div>
-    <div>
-      <!--      <label for="templeRate" class="labelRange">Rate of temples:</label>-->
-      <div class="icon">
-        <img :src="`/images/temple.png`">
-      </div>
-      <vue3-slider
-        id="baseRate"
-        class="slider"
-        v-model="buildingRates.temple"
-        :min="0"
-        :max="5"
-        :step="1"
-        :color="'#ae7b62'"
-        :sticky="true"
-        :tooltip="true"
-        :formatTooltip="value => marks[value]"
-        :handleScale="2.5"
-        :alwaysShowHandle="true"
-      ></vue3-slider>
-    </div>
-    <div>
-      <!--      <label for="wellRate" class="labelRange">Rate of wells:</label>-->
-      <div class="icon">
-        <img :src="`/images/well.png`">
-      </div>
-      <vue3-slider
-        id="baseRate"
-        class="slider"
-        v-model="buildingRates.well"
-        :min="0"
-        :max="5"
-        :step="1"
-        :color="'#ae7b62'"
-        :sticky="true"
-        :tooltip="true"
-        :formatTooltip="value => marks[value]"
-        :handleScale="2.5"
-        :alwaysShowHandle="true"
-      ></vue3-slider>
-    </div>
-    <div>
-      <!--      <label for="storageRate" class="labelRange">Rate of storages:</label>-->
-      <div class="icon">
-        <img :src="`/images/storage.png`">
-      </div>
-      <vue3-slider
-        id="baseRate"
-        class="slider"
-        v-model="buildingRates.storage"
-        :min="0"
-        :max="5"
-        :step="1"
-        :color="'#ae7b62'"
-        :sticky="true"
-        :tooltip="true"
-        :formatTooltip="value => marks[value]"
-        :handleScale="2.5"
-        :alwaysShowHandle="true"
-      ></vue3-slider>
-    </div>
-    <div>
-      <!--      <label for="obeliskRate" class="labelRange">Rate of obelisks:</label>-->
-      <div class="icon">
-        <img :src="`/images/obelisk.png`">
-      </div>
-      <vue3-slider
-        id="baseRate"
-        class="slider"
-        v-model="buildingRates.obelisk"
-        :min="0"
-        :max="5"
-        :step="1"
-        :color="'#ae7b62'"
-        :sticky="true"
-        :tooltip="true"
-        :formatTooltip="value => marks[value]"
-        :handleScale="2.5"
-        :alwaysShowHandle="true"
-      ></vue3-slider>
     </div>
 
 
@@ -409,7 +414,7 @@
 import slider from 'vue3-slider'
 
 // import Models from '@/game/models';
-import {DEFAULT_BUILDING_RATES, FIELDS_TO_SAVE, GAME_STATES} from '@/game/const';
+import {DEFAULT_BUILDING_RATES, FIELDS_TO_SAVE, GAME_STATES, INITIAL_SETTINGS} from '@/game/const';
 import emitter from "@/game/eventBus";
 
 export default {
@@ -443,6 +448,10 @@ export default {
         min: 1,
         max: 20,
       },
+      speedMinVisibility: {
+        min: 1,
+        max: 20,
+      },
       scoresToWin: {
         min: 0,
         max: 10000,
@@ -455,40 +464,24 @@ export default {
         min: 0,
         max: 50,
       },
+      unitModifier: {
+        min: 1,
+        max: 20,
+      },
+      baseModifier: {
+        min: 1,
+        max: 20,
+      },
     };
     // const PLAYER_TYPES = Models.PlayerTypes;
     return {
+      ...INITIAL_SETTINGS,
       humanPlayerNames: [''],
       //   new Models.Player(Models.PlayerTypes.HUMAN),
       //   new Models.Player(Models.PlayerTypes.BOT),
       //   new Models.Player(Models.PlayerTypes.BOT),
       //   new Models.Player(Models.PlayerTypes.BOT),
       // ],
-      width: 20,
-      height: 20,
-      humanPlayersNum: 1,
-      botPlayersNum: 3,
-      scoresToWin: 200,
-      // TODO: make them changeable ?
-      sectorsNum: 4,
-      enableFogOfWar: false,
-      fogOfWarRadius: 3,
-      enableScoutMode: true,
-      visibilitySpeedRelation: true,
-      minSpeed: 1,
-      maxSpeed: 10,
-      maxUnitsNum: 15,
-      maxBasesNum: 3,
-      buildingRates: {
-        base: 0,
-        habitation: 0,
-        temple: 0,
-        well: 0,
-        storage: 0,
-        obelisk: 0,
-      },
-      hideEnemySpeed: false,
-      killAtBirth: true,
       enableUndo: false,
       loadGame: false,
       loadGamePossible: false,
@@ -539,9 +532,12 @@ export default {
         botPlayersNum: this.botPlayersNum,
         minSpeed: this.minSpeed,
         maxSpeed: this.maxSpeed,
+        speedMinVisibility: this.speedMinVisibility,
         scoresToWin: this.scoresToWin,
         maxUnitsNum: this.maxUnitsNum,
         maxBasesNum: this.maxBasesNum,
+        unitModifier: this.unitModifier,
+        baseModifier: this.baseModifier,
       };
       if (!this.isInputValid(settings)) {
         return;
@@ -596,6 +592,10 @@ export default {
         alert('Max speed should be greater than min speed');
         return false;
       }
+      if (this.speedMinVisibility < this.minSpeed) {
+        alert('Blind speed should be greater than min speed');
+        return false;
+      }
       return true;
     },
     calculateBuildingsRate() {
@@ -616,6 +616,9 @@ div.gameSetup {
   position: relative;
   background-image: url('/public/images/background.png');
   background-size: cover;
+  overflow: auto;
+  height: 100vh;
+  width: 100vw;
 }
 
 .goBackBtn {
@@ -677,12 +680,35 @@ input.inputRange {
   max-width: 200px;
 }
 
+#settings-wrapper {
+  display: flex;
+  flex-direction: column; /* Stack vertically by default (for small screens) */
+  align-items: center;
+  gap: 24px;
+  max-width: 840px;
+  margin: 0 auto;
+}
+
+@media (min-width: 760px) {
+  #settings-wrapper {
+    flex-direction: row; /* Horizontal alignment */
+    justify-content: center;
+    align-items: flex-start;
+  }
+}
+
+
+#main-settings {
+  width: 360px;
+  margin: 0 auto;
+}
+
 .upperGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px 0;
+  gap: 4px 13px;
   margin: 4px auto;
-  width: 234px;
+  width: 360px;
 }
 
 .icon {
@@ -769,6 +795,17 @@ span.labelForInput {
   width: 112px;
   margin: auto;
   padding-top: 4px;
+}
+
+#buildings-settings {
+  width: 360px;
+  margin: 0 auto;
+}
+
+@media (min-width: 760px) {
+  #buildings-settings {
+    padding-top: 52px;
+  }
 }
 
 .startBtn {
