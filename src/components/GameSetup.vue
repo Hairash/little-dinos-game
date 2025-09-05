@@ -90,7 +90,7 @@
           <div class="plate" style="width: 112px;">
             <!--      <label for="maxUnitsNum">Max units number:</label>-->
             <div class="icon">
-              <img :src="`/images/dino_icon.png`">
+              <img :src="`/images/dino_icon_plus.png`">
             </div>
             <input
               type="number"
@@ -118,7 +118,7 @@
           <div class="plate" style="width: 112px;">
             <!--      <label for="maxBasesNum">Max towers number:</label>-->
             <div class="icon">
-              <img :src="`/images/tower_icon.png`">
+              <img :src="`/images/tower_icon_plus.png`">
             </div>
             <input
               type="number"
@@ -142,13 +142,6 @@
             <span class="labelForInput" style="font-size: 45px; font-weight: bold; line-height: 38px">-</span>
             <input type="number" id="maxSpeed" class="inputNumber digits2" v-model.number="maxSpeed" min="1" max="20"/>
           </div>
-          <div class="plate" style="display: inline-block; width: 112px; margin-left: 5px;">
-            <div class="icon">
-              <img :src="`/images/speed_icon.png`">
-            </div>
-            <input type="number" id="speedMinVisibility" class="inputNumber digits2" v-model.number="speedMinVisibility" min="1" max="20"/>
-          </div>
-
         </div>
 
 
@@ -183,14 +176,26 @@
               max="20"
             />
           </div>
+        </div>
 
-          <div v-if="enableFogOfWar" style="display: inline-block;">
-    <!--      <label for="visibilitySpeedRelation">Visibility-speed relation:</label>-->
+        <div v-if="enableFogOfWar" style="height: 60px; margin: 4px auto;">
+          <div style="display: inline-block;">
+            <!--      <label for="visibilitySpeedRelation">Visibility-speed relation:</label>-->
             <input type="checkbox" id="scoutMode" v-model="visibilitySpeedRelation" class="hidden-checkbox"/>
             <label for="scoutMode" class="checkboxImg">
               <img v-if="!visibilitySpeedRelation" :src="`/images/visibility_speed_no_relation_icon.png`">
               <img v-if="visibilitySpeedRelation" :src="`/images/visibility_speed_relation_icon.png`">
             </label>
+          </div>
+          <div
+            v-if="visibilitySpeedRelation"
+            class="plate"
+            style="position: relative; display: inline-block; top: -5px; margin: 0 4px;"
+          >
+            <div class="icon">
+              <img :src="`/images/speed_icon_max.png`">
+            </div>
+            <input type="number" id="speedMinVisibility" class="inputNumber digits2" v-model.number="speedMinVisibility" min="1" max="20"/>
           </div>
         </div>
 
@@ -706,9 +711,9 @@ input.inputRange {
 .upperGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px 13px;
+  gap: 4px 5px;
   margin: 4px auto;
-  width: 360px;
+  width: 229px;
 }
 
 .icon {
@@ -804,7 +809,7 @@ span.labelForInput {
 
 @media (min-width: 760px) {
   #buildings-settings {
-    padding-top: 52px;
+    padding-top: 67px;
   }
 }
 
