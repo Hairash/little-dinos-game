@@ -434,7 +434,7 @@ export default {
           const _field = this.field.map(row => row.map(cell => ({ ...cell, isHidden: true })));
           localStorage.setItem(field, JSON.stringify(_field));
         }
-        else {
+        else if (this[field] !== undefined) {
           localStorage.setItem(field, JSON.stringify(this[field]));
         }
       }

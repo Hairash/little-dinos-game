@@ -8,15 +8,28 @@
         <button @click="handleHelpBtnClick">Help</button>
       </div>
     </div>
+    <MenuError
+      v-if="error"
+      :error="error"
+      :setError="setError"
+    />
   </div>
 </template>
 
 <script>
 import emitter from "@/game/eventBus";
 import {GAME_STATES} from "@/game/const";
+import MenuError from '@/components/MenuError.vue';
 
 export default {
   name: 'GameMenu',
+  components: {
+    MenuError,
+  },
+  props: {
+    error: String,
+    setError: Function,
+  },
   methods: {
     handleStartBtnClick() {
       emitter.emit('goToPage', GAME_STATES.setup);
@@ -57,11 +70,11 @@ export default {
   font-size: 48px;
 }
 
-#menu #buttons {
+#menu-content #buttons {
   margin-top: 60px;
 }
 
-#menu button {
+#menu-content button {
   position: relative;
   display: block;
   margin: 30px auto 0 auto;
@@ -90,10 +103,10 @@ export default {
     margin: 0;
     font-size: 8vh;
   }
-  #menu #buttons {
+  #menu-content #buttons {
     margin-top: 10vh;
   }
-  #menu button {
+  #menu-content button {
     max-width: 60vh;
     height: 14vh;
     font-size: 5vh;
