@@ -1,6 +1,8 @@
 <template>
   <GameMenu
     v-if="state === GAME_STATES.menu"
+    :error="currentError"
+    :setError="setError"
   />
   <GameSetup
     v-if="state === GAME_STATES.setup"
@@ -60,6 +62,7 @@ export default {
       GAME_STATES,
       state,
       settings,
+      currentError: null,
     }
   },
   mounted() {
@@ -79,7 +82,8 @@ export default {
     loadGame() {
       const loadGamePossible = !!localStorage.getItem('field');
       if (!loadGamePossible) {
-        alert('No saved game found. Start a new game first.');
+        // TODO: Use dialog instead of alert
+        this.setError('No saved game found. Start a new game first.');
         return;
       }
       this.settings = INITIAL_SETTINGS;
@@ -98,6 +102,9 @@ export default {
       this.settings.loadGame = true;
       this.state = this.GAME_STATES.game;
       console.log(this.settings);
+    },
+    setError(error) {
+      this.currentError = error;
     },
   },
   beforeUnmount() {
