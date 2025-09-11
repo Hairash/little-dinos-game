@@ -37,7 +37,9 @@
       </div>
 
       <div>
-        <button type="button" @click="onClickAction">Ready</button>
+        <button type="button" @click="onClickAction">
+          <div style="position: relative; top: -2px;">Ready</div>
+        </button>
       </div>
     </div>
   </div>
@@ -84,5 +86,17 @@ img.curPlayerImage {
   height: 35px;
   position: relative;
   top: 5px;
+}
+
+button {
+  background-color: transparent;
+  background-image: url("/public/images/long_setup_btn_clean.png");
+  background-size: 100% 100%;
+  border: 0;
+  padding: 8px 20px;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
 }
 </style>

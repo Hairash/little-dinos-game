@@ -1,59 +1,47 @@
 <template>
-  <div class="gameSetup">
-  <!--  Add button to go back  -->
-    <button
-      type="button"
-      class="goBackBtn"
-      @click="handleBackBtnClick"
-    >
+  <div class="gameSetup" @click="clickOutside">
+    <button type="button" class="goBackBtn" @click="handleBackBtnClick">
       <img :src="`/images/arrow_white.png`">
     </button>
     <h1>Game setup</h1>
     <div id="settings-wrapper">
       <div id="main-settings">
         <div class="plate" style="width: 178px;">
+          <MenuHint
+            id="fieldSize"
+            hint="Width and height of the game field"
+            :currentHint=currentHint
+            @click="toggleHint('fieldSize')"
+          />
           <div class="icon">
             <img :src="`/images/field_icon.png`">
           </div>
           <!--      <label for="width">Width:</label>-->
 
-          <input
-            type="number"
-            id="width"
-            class="inputNumber digits2"
-            v-model.number="width"
-            min="5"
-            max="50"
-          />
+          <input type="number" id="width" class="inputNumber digits2" v-model.number="width" min="5" max="50" />
           <!--    </div>-->
           <!--    <div>-->
           <!--      <label for="height">Height:</label>-->
           <span class="labelForInput">✘</span>
-          <input
-            type="number"
-            id="height"
-            class="inputNumber digits2"
-            v-model.number="height"
-            min="5"
-            max="50"
-          />
+          <input type="number" id="height" class="inputNumber digits2" v-model.number="height" min="5" max="50" />
         </div>
         <!-- <h2>Players</h2> -->
 
         <div class="upperGrid">
-          <div class="plate" style="width: 112px;">
+          <div class="plate">
+            
             <!--      <label for="humanPlayersNum">Number of human players:</label>-->
+            <MenuHint 
+              id="humanPlayersNum"
+              hint="Number of human players"
+              :currentHint=currentHint
+              @click="toggleHint('humanPlayersNum')"
+            />
             <div class="icon">
               <img :src="`/images/human_icon.png`">
             </div>
-            <input
-              type="number"
-              id="humanPlayersNum"
-              class="inputNumber digits2"
-              v-model.number="humanPlayersNum"
-              min="1"
-              max="8"
-            />
+            <input type="number" id="humanPlayersNum" class="inputNumber digits2" v-model.number="humanPlayersNum"
+              min="1" max="8" />
           </div>
           <!-- <div v-for="(player, index) in humanPlayerNames" :key="index">
             <label :for="'player' + index">Player {{ index + 1 }} name:</label>
@@ -61,73 +49,79 @@
           </div> -->
           <div class="botBlock plate" style="width: 112px;">
             <!--      <label for="botPlayersNum">Number of bot players:</label>-->
+            <MenuHint
+              id="botPlayersNum"
+              hint="Number of bot players"
+              :currentHint=currentHint
+              @click="toggleHint('botPlayersNum')"
+              hint-orientation="right"
+              style="margin-left: 122px;"
+            />
             <div class="icon">
               <img :src="`/images/bot_icon.png`">
             </div>
-            <input
-              type="number"
-              id="botPlayersNum"
-              class="inputNumber digits2"
-              v-model.number="botPlayersNum"
-              min="0"
-              max="7"
-            />
+            <input type="number" id="botPlayersNum" class="inputNumber digits2" v-model.number="botPlayersNum" min="0"
+              max="7" />
           </div>
-          <div class="plate" style="width: 112px;">
+          <div class="plate">
+            <MenuHint
+              id="maxUnitsNum"
+              hint="Max units number"
+              :currentHint=currentHint
+              @click="toggleHint('maxUnitsNum')"
+            />
             <!--      <label for="maxUnitsNum">Max units number:</label>-->
             <div class="icon">
               <img :src="`/images/dino_icon.png`">
             </div>
-            <input
-              type="number"
-              id="maxUnitsNum"
-              class="inputNumber digits2"
-              v-model.number="maxUnitsNum"
-              min="0"
-              max="50"
-            />
+            <input type="number" id="maxUnitsNum" class="inputNumber digits2" v-model.number="maxUnitsNum" min="0"
+              max="50" />
           </div>
-          <div class="plate" style="width: 112px;">
+          <div class="plate">
+            <MenuHint
+              id="unitModifier"
+              hint="Number of additional dinos per habitation"
+              :currentHint=currentHint
+              @click="toggleHint('unitModifier')"
+              style="margin-left: 122px;"
+              hint-orientation="right"
+            />
             <!--      <label for="maxUnitsNum">Max units number:</label>-->
             <div class="icon">
               <img :src="`/images/dino_icon_plus.png`">
             </div>
-            <input
-              type="number"
-              id="unitModifier"
-              class="inputNumber digits2"
-              v-model.number="unitModifier"
-              min="1"
-              max="20"
-            />
+            <input type="number" id="unitModifier" class="inputNumber digits2" v-model.number="unitModifier" min="1"
+              max="20" />
           </div>
-          <div class="plate" style="width: 112px;">
+          <div class="plate">
+            <MenuHint
+              id="maxBasesNum"
+              hint="Max towers number"
+              :currentHint=currentHint
+              @click="toggleHint('maxBasesNum')"
+            />
             <!--      <label for="maxBasesNum">Max towers number:</label>-->
             <div class="icon">
               <img :src="`/images/tower_icon.png`">
             </div>
-            <input
-              type="number"
-              id="maxBasesNum"
-              class="inputNumber digits2"
-              v-model.number="maxBasesNum"
-              min="0"
-              max="50"
-            />
+            <input type="number" id="maxBasesNum" class="inputNumber digits2" v-model.number="maxBasesNum" min="0"
+              max="50" />
           </div>
-          <div class="plate" style="width: 112px;">
+          <div class="plate">
+            <MenuHint
+              id="baseModifier"
+              hint="Number of additional towers per storage"
+              :currentHint=currentHint
+              @click="toggleHint('baseModifier')"
+              hint-orientation="right"
+              style="margin-left: 122px;"
+            />
             <!--      <label for="maxBasesNum">Max towers number:</label>-->
             <div class="icon">
               <img :src="`/images/tower_icon_plus.png`">
             </div>
-            <input
-              type="number"
-              id="baseModifier"
-              class="inputNumber digits2"
-              v-model.number="baseModifier"
-              min="1"
-              max="20"
-            />
+            <input type="number" id="baseModifier" class="inputNumber digits2" v-model.number="baseModifier" min="1"
+              max="20" />
           </div>
         </div>
 
@@ -135,67 +129,89 @@
           <!--      <label for="unitSpeedRange">Dinos speed range:</label>-->
           <!-- Common plate: 114 x 57 px -->
           <div class="plate" style="display: inline-block; width: 182px;">
+            <MenuHint
+              id="speedRange"
+              hint="Speed range"
+              :currentHint=currentHint
+              @click="toggleHint('speedRange')"
+            />
             <div class="icon">
               <img :src="`/images/speed_icon.png`">
             </div>
-            <input type="number" id="minSpeed" class="inputNumber digits2" v-model.number="minSpeed" min="1" max="20"/>
+            <input type="number" id="minSpeed" class="inputNumber digits2" v-model.number="minSpeed" min="1" max="20" />
             <span class="labelForInput" style="font-size: 45px; font-weight: bold; line-height: 38px">-</span>
-            <input type="number" id="maxSpeed" class="inputNumber digits2" v-model.number="maxSpeed" min="1" max="20"/>
+            <input type="number" id="maxSpeed" class="inputNumber digits2" v-model.number="maxSpeed" min="1" max="20" />
           </div>
         </div>
 
 
         <div style="height: 60px; margin: 4px auto;">
           <!--      <label for="fogOfWar">Enable fog of war:</label>-->
-          <input
-            type="checkbox"
-            id="fogOfWar"
-            v-model="enableFogOfWar"
-            class="hidden-checkbox"
-          />
-          <label for="fogOfWar" class="checkboxImg">
-            <img v-if="!enableFogOfWar" :src="`images/open_eye.png`">
-            <img v-if="enableFogOfWar" :src="`images/closed_eye.png`">
-          </label>
+          <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar" class="hidden-checkbox" />
+          <div style="display: inline-block;">
+            <MenuHint
+              id="fogOfWar"
+              hint="Toggle fog of war"
+              :currentHint=currentHint
+              @click="toggleHint('fogOfWar')"
+              style="margin-top: 18px;"
+            />
+            <label for="fogOfWar" class="checkboxImg">
+              <img v-if="!enableFogOfWar" :src="`images/open_eye.png`">
+              <img v-if="enableFogOfWar" :src="`images/closed_eye.png`">
+            </label>
+          </div>
           <!--      <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar"/>-->
-          <div
-            v-if="enableFogOfWar"
-            class="plate"
-            style="position: relative; display: inline-block; top: -5px; margin: 0 4px;"
-          >
+          <div v-if="enableFogOfWar" class="plate"
+            style="position: relative; display: inline-block; top: -5px; margin: 0 4px;">
+            <MenuHint
+              id="fogOfWarRadius"
+              hint="Fog of war radius"
+              :currentHint=currentHint
+              @click="toggleHint('fogOfWarRadius')"
+              hint-orientation="right"
+              style="margin-left: 122px;"
+            />
             <!--      <label for="fogOfWarRadius">Fog of war radius:</label>-->
             <span class="icon">
               <img :src="`/images/radius_icon.png`">
             </span>
-            <input
-              type="number"
-              id="fogOfWarRadius"
-              class="inputNumber digits2"
-              v-model.number="fogOfWarRadius"
-              min="1"
-              max="20"
-            />
+            <input type="number" id="fogOfWarRadius" class="inputNumber digits2" v-model.number="fogOfWarRadius" min="1"
+              max="10" />
           </div>
         </div>
 
         <div v-if="enableFogOfWar" style="height: 60px; margin: 4px auto;">
           <div style="display: inline-block;">
             <!--      <label for="visibilitySpeedRelation">Visibility-speed relation:</label>-->
-            <input type="checkbox" id="scoutMode" v-model="visibilitySpeedRelation" class="hidden-checkbox"/>
+            <MenuHint
+              id="visibilitySpeedRelation"
+              hint="Link / unlink dinos' speed and visibility"
+              :currentHint=currentHint
+              @click="toggleHint('visibilitySpeedRelation')"
+              style="margin-top: 18px;"
+            />
+            <input type="checkbox" id="scoutMode" v-model="visibilitySpeedRelation" class="hidden-checkbox" />
             <label for="scoutMode" class="checkboxImg">
               <img v-if="!visibilitySpeedRelation" :src="`/images/visibility_speed_no_relation_icon.png`">
               <img v-if="visibilitySpeedRelation" :src="`/images/visibility_speed_relation_icon.png`">
             </label>
           </div>
-          <div
-            v-if="visibilitySpeedRelation"
-            class="plate"
-            style="position: relative; display: inline-block; top: -5px; margin: 0 4px;"
-          >
+          <div v-if="visibilitySpeedRelation" class="plate"
+            style="position: relative; display: inline-block; top: -5px; margin: 0 4px;">
+            <MenuHint
+              id="speedMinVisibility"
+              hint="Threshold speed for minimum visibility"
+              :currentHint=currentHint
+              @click="toggleHint('speedMinVisibility')"
+              hint-orientation="right"
+              style="margin-left: 122px;"
+            />
             <div class="icon">
               <img :src="`/images/speed_icon_max.png`">
             </div>
-            <input type="number" id="speedMinVisibility" class="inputNumber digits2" v-model.number="speedMinVisibility" min="1" max="20"/>
+            <input type="number" id="speedMinVisibility" class="inputNumber digits2" v-model.number="speedMinVisibility"
+              min="1" max="20" />
           </div>
         </div>
 
@@ -207,140 +223,135 @@
 
         <div>
           <!--      <label for="killAtBirth">Kill at birth:</label>-->
-          <input type="checkbox" id="killAtBirth" v-model="killAtBirth" class="hidden-checkbox"/>
-          <label for="killAtBirth" class="checkboxImg" style="margin-right: 4px;">
-            <img v-if="!killAtBirth" :src="`/images/dino_birth_icon.png`">
-            <img v-if="killAtBirth" :src="`/images/dino_birth_kill_icon.png`">
-          </label>
+          <input type="checkbox" id="killAtBirth" v-model="killAtBirth" class="hidden-checkbox" />
+          <div style="display: inline-block;">
+            <MenuHint
+              id="killAtBirth"
+              hint="Kill or not surrounding enemies at birth"
+              :currentHint=currentHint
+              @click="toggleHint('killAtBirth')"
+              style="margin-top: 18px;"
+            />
+            <label for="killAtBirth" class="checkboxImg" style="margin-right: 4px;">
+              <img v-if="!killAtBirth" :src="`/images/dino_birth_icon.png`">
+              <img v-if="killAtBirth" :src="`/images/dino_birth_kill_icon.png`">
+            </label>
+          </div>
 
-          <input type="checkbox" id="hideEnemySpeed" v-model="hideEnemySpeed" class="hidden-checkbox"/>
-          <label for="hideEnemySpeed" class="checkboxImg">
-            <img v-if="!hideEnemySpeed" :src="`/images/show_speed_icon.png`">
-            <img v-if="hideEnemySpeed" :src="`/images/hide_speed_icon.png`">
-          </label>
+          <input type="checkbox" id="hideEnemySpeed" v-model="hideEnemySpeed" class="hidden-checkbox" />
+          <div style="display: inline-block;">
+            <MenuHint
+              id="hideEnemySpeed"
+              hint="Show / hide enemy speed"
+              :currentHint=currentHint
+              @click="toggleHint('hideEnemySpeed')"
+              hint-orientation="right"
+              style="margin-top: 18px; margin-left: 69px;"
+            />
+            <label for="hideEnemySpeed" class="checkboxImg">
+              <img v-if="!hideEnemySpeed" :src="`/images/show_speed_icon.png`">
+              <img v-if="hideEnemySpeed" :src="`/images/hide_speed_icon.png`">
+            </label>
+          </div>
         </div>
       </div>
 
       <div id="buildings-settings">
         <div>
           <!--      <label for="baseRate" class="labelRange">Rate of bases:</label>-->
+          <MenuHint
+            id="baseRate"
+            hint="Main building - generate dinos each turn"
+            :currentHint=currentHint
+            @click="toggleHint('baseRate')"
+            style="margin-left: -5px;"
+          />
           <div class="icon">
             <img :src="`/images/base.png`">
           </div>
-          <vue3-slider
-            id="baseRate"
-            class="slider"
-            v-model="buildingRates.base"
-            :min="0"
-            :max="5"
-            :step="1"
-            :color="'#ae7b62'"
-            :sticky="true"
-            :tooltip="true"
-            :formatTooltip="value => marks[value]"
-            :handleScale="2.5"
-            :alwaysShowHandle="true"
-          ></vue3-slider>
+          <vue3-slider id="baseRate" class="slider" v-model="buildingRates.base" :min="0" :max="5" :step="1"
+            :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
+            :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
         </div>
         <div>
           <!--      <label for="habitationRate" class="labelRange">Rate of habitations:</label>-->
+          <MenuHint
+            id="habitationRate"
+            hint="Increase maximum number of dinos"
+            :currentHint=currentHint
+            @click="toggleHint('habitationRate')"
+            style="margin-left: -5px;"
+          />
           <div class="icon">
             <img :src="`/images/habitation.png`">
           </div>
-          <vue3-slider
-            id="baseRate"
-            class="slider"
-            v-model="buildingRates.habitation"
-            :min="0"
-            :max="5"
-            :step="1"
-            :color="'#ae7b62'"
-            :sticky="true"
-            :tooltip="true"
-            :formatTooltip="value => marks[value]"
-            :handleScale="2.5"
-            :alwaysShowHandle="true"
-          ></vue3-slider>
+          <vue3-slider id="baseRate" class="slider" v-model="buildingRates.habitation" :min="0" :max="5" :step="1"
+            :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
+            :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
         </div>
         <div>
           <!--      <label for="templeRate" class="labelRange">Rate of temples:</label>-->
+          <MenuHint
+            id="templeRate"
+            hint="Increase speed of newly generated dinos by 1"
+            :currentHint=currentHint
+            @click="toggleHint('templeRate')"
+            style="margin-left: -5px;"
+          />
           <div class="icon">
             <img :src="`/images/temple.png`">
           </div>
-          <vue3-slider
-            id="baseRate"
-            class="slider"
-            v-model="buildingRates.temple"
-            :min="0"
-            :max="5"
-            :step="1"
-            :color="'#ae7b62'"
-            :sticky="true"
-            :tooltip="true"
-            :formatTooltip="value => marks[value]"
-            :handleScale="2.5"
-            :alwaysShowHandle="true"
-          ></vue3-slider>
+          <vue3-slider id="baseRate" class="slider" v-model="buildingRates.temple" :min="0" :max="5" :step="1"
+            :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
+            :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
         </div>
         <div>
           <!--      <label for="wellRate" class="labelRange">Rate of wells:</label>-->
+          <MenuHint
+            id="wellRate"
+            hint="Increase speed of dino staying on it by 1"
+            :currentHint=currentHint
+            @click="toggleHint('wellRate')"
+            style="margin-left: -5px;"
+          />
           <div class="icon">
             <img :src="`/images/well.png`">
           </div>
-          <vue3-slider
-            id="baseRate"
-            class="slider"
-            v-model="buildingRates.well"
-            :min="0"
-            :max="5"
-            :step="1"
-            :color="'#ae7b62'"
-            :sticky="true"
-            :tooltip="true"
-            :formatTooltip="value => marks[value]"
-            :handleScale="2.5"
-            :alwaysShowHandle="true"
-          ></vue3-slider>
+          <vue3-slider id="baseRate" class="slider" v-model="buildingRates.well" :min="0" :max="5" :step="1"
+            :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
+            :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
         </div>
         <div>
           <!--      <label for="storageRate" class="labelRange">Rate of storages:</label>-->
+          <MenuHint
+            id="storageRate"
+            hint="Increase maximum number of towers"
+            :currentHint=currentHint
+            @click="toggleHint('storageRate')"
+            style="margin-left: -5px;"
+          />
           <div class="icon">
             <img :src="`/images/storage.png`">
           </div>
-          <vue3-slider
-            id="baseRate"
-            class="slider"
-            v-model="buildingRates.storage"
-            :min="0"
-            :max="5"
-            :step="1"
-            :color="'#ae7b62'"
-            :sticky="true"
-            :tooltip="true"
-            :formatTooltip="value => marks[value]"
-            :handleScale="2.5"
-            :alwaysShowHandle="true"
-          ></vue3-slider>
+          <vue3-slider id="baseRate" class="slider" v-model="buildingRates.storage" :min="0" :max="5" :step="1"
+            :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
+            :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
         </div>
         <div>
           <!--      <label for="obeliskRate" class="labelRange">Rate of obelisks:</label>-->
+          <MenuHint
+            id="obeliskRate"
+            hint="Instantly shows any part of the map"
+            :currentHint=currentHint
+            @click="toggleHint('obeliskRate')"
+            style="margin-left: -5px;"
+          />
           <div class="icon">
             <img :src="`/images/obelisk.png`">
           </div>
-          <vue3-slider
-            id="baseRate"
-            class="slider"
-            v-model="buildingRates.obelisk"
-            :min="0"
-            :max="5"
-            :step="1"
-            :color="'#ae7b62'"
-            :sticky="true"
-            :tooltip="true"
-            :formatTooltip="value => marks[value]"
-            :handleScale="2.5"
-            :alwaysShowHandle="true"
-          ></vue3-slider>
+          <vue3-slider id="baseRate" class="slider" v-model="buildingRates.obelisk" :min="0" :max="5" :step="1"
+            :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
+            :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
         </div>
       </div>
     </div>
@@ -359,59 +370,11 @@
       </select>
     </div> -->
     <div style="padding: 30px">
-      <button
-        type="button"
-        class="startBtn"
-        @click="processStartBtnClick"
-      >
+      <button type="button" class="startBtn" @click="processStartBtnClick">
         <span>GO!</span>
       </button>
     </div>
-<!--    <div v-if="areRulesOpen" class="toggleContent">-->
-<!--      <div class="contentBlock">-->
-<!--        <br>-->
-<!--        <b>Summary</b><br>-->
-<!--        <div class="textBlock">-->
-<!--          🌿 At the start of each turn, every empty tower of your color spawns a new dino with a random speed.<br>-->
-<!--          🌿 At the end of dino's move all adjacent enemy dinos (4 directions) die.<br>-->
-<!--          🌿 If your dino comes to an enemy tower, it becomes yours.<br>-->
-<!--          🌿 You can move any number of your dinos each turn.<br>-->
-<!--          🌿 A dino can move a number of cells up to its speed during a turn.<br>-->
-<!--          🌿 Rocks and other dinos block movement.<br>-->
-<!--          🌿 There are 2 ways to win:<br>-->
-<!--          &emsp;&emsp;🌱 eliminate all other players or<br>-->
-<!--          &emsp;&emsp;🌱 reach specific number of score (set up in settings)<br>-->
-<!--        </div>-->
-<!--        <br>-->
-<!--        <b>Description</b><br>-->
-<!--        <div class="textBlock">-->
-<!--          It is a simple turn-based strategy game, where you can challenge the bots, play with friends, or even mix it-->
-<!--          up-->
-<!--          with both bots and pals.<br>-->
-<!--          <br>-->
-<!--          The gameplay unfolds on a randomly generated grid, punctuated by impassable rock cells. As the game begins,-->
-<!--          you'll have a tower and a dino of the same color (e.g., blue for the first player) staying on it. The dino-->
-<!--          displays its speed as a number in its bottom right corner, representing how many cells it can traverse in a-->
-<!--          single turn. Other dinos, whether they're friend or foe, are obstacles you can't move through as well as-->
-<!--          rocks.-->
-<!--          <br>-->
-<!--          <br>-->
-<!--          To move a dino, simply click or tap on it, then select the cell you want it to go to. When a dino completes-->
-<!--          its-->
-<!--          move, it eliminates opposing dinos in its immediate vicinity (those in the 4 main directions: ⬅️➡️⬇️⬆️). If-->
-<!--          your-->
-<!--          dino lands on an enemy tower, it captures the tower and it becomes yours. With every new turn, each your-->
-<!--          unoccupied towers will produce a new dino with a randomly assigned speed.<br>-->
-<!--          <br>-->
-<!--          You receive 10 score for every enemy you kill and lose 3 score every turn for every tower you control.<br>-->
-<!--          Before you dive in, note that there are a few game settings available. Kindly recommend you to start with the-->
-<!--          "fog of war" option disabled to-->
-<!--          <img class="unitImg" style="float: right" :src="`/images/dino3.png`">-->
-<!--          understand what's going on.<br>-->
-<!--          Enjoy!-->
-<!--        </div>-->
-<!--      </div>-->
-<!--    </div>-->
+    <MenuError v-if="currentError" :error="currentError" :setError="setError" />
   </div>
 </template>
 
@@ -421,41 +384,52 @@ import slider from 'vue3-slider'
 // import Models from '@/game/models';
 import {DEFAULT_BUILDING_RATES, FIELDS_TO_SAVE, GAME_STATES, INITIAL_SETTINGS} from '@/game/const';
 import emitter from "@/game/eventBus";
+import MenuHint from '@/components/MenuHint.vue';
+import MenuError from '@/components/MenuError.vue';
 
 export default {
   name: 'GameSetup',
   components: {
     "vue3-slider": slider,
+    MenuHint,
+    MenuError,
   },
   data() {
     const LIMITS = {
       humanPlayersNum: {
         min: 1,
         max: 8,
+        description: 'Number of human players',
       },
       botPlayersNum: {
         min: 0,
         max: 7,
+        description: 'Number of bot players',
       },
       width: {
         min: 5,
         max: 50,
+        description: 'Width',
       },
       height: {
         min: 5,
         max: 50,
+        description: 'Height',
       },
       minSpeed: {
         min: 1,
         max: 20,
+        description: 'Min speed',
       },
       maxSpeed: {
         min: 1,
         max: 20,
+        description: 'Max speed',
       },
       speedMinVisibility: {
         min: 1,
         max: 20,
+        description: 'Threshold speed',
       },
       scoresToWin: {
         min: 0,
@@ -464,18 +438,27 @@ export default {
       maxUnitsNum: {
         min: 0,
         max: 50,
+        description: 'Max number of units',
       },
       maxBasesNum: {
         min: 0,
         max: 50,
+        description: 'Max number of towers',
+      },
+      fogOfWarRadius: {
+        min: 1,
+        max: 10,
+        description: 'Fog of war radius',
       },
       unitModifier: {
         min: 1,
         max: 20,
+        description: 'Number of additional dinos per habitation',
       },
       baseModifier: {
         min: 1,
         max: 20,
+        description: 'Number of additional towers per storage',
       },
     };
     // const PLAYER_TYPES = Models.PlayerTypes;
@@ -500,6 +483,8 @@ export default {
         4: 'A lot',
         5: 'Very much',
       },
+      currentHint: null,
+      currentError: null,
       // PLAYER_TYPES,
     };
   },
@@ -541,9 +526,17 @@ export default {
         scoresToWin: this.scoresToWin,
         maxUnitsNum: this.maxUnitsNum,
         maxBasesNum: this.maxBasesNum,
+        fogOfWarRadius: this.fogOfWarRadius,
         unitModifier: this.unitModifier,
         baseModifier: this.baseModifier,
       };
+      if (!this.visibilitySpeedRelation) {
+        delete settings.speedMinVisibility;
+      }
+      if (!this.enableFogOfWar) {
+        delete settings.fogOfWarRadius;
+        delete settings.speedMinVisibility;
+      }
       if (!this.isInputValid(settings)) {
         return;
       }
@@ -557,15 +550,12 @@ export default {
         ...settings,
         sectorsNum: this.sectorsNum,
         enableFogOfWar: this.enableFogOfWar,
-        fogOfWarRadius: this.fogOfWarRadius,
         enableScoutMode: this.enableScoutMode,
         visibilitySpeedRelation: this.visibilitySpeedRelation,
         hideEnemySpeed: this.hideEnemySpeed,
         killAtBirth: this.killAtBirth,
         enableUndo: this.enableUndo,
         loadGame: this.loadGame,
-        maxUnitsNum: this.maxUnitsNum,
-        maxBasesNum: this.maxBasesNum,
         buildingRates: this.buildingRates,
       }
       emitter.emit('startGame', settings);
@@ -585,20 +575,20 @@ export default {
           settings[key] < this.LIMITS[key].min ||
           settings[key] > this.LIMITS[key].max
         ) {
-          alert(`Wrong value for ${key}`);
+          this.setError(`${this.LIMITS[key].description} should be between ${this.LIMITS[key].min} and ${this.LIMITS[key].max}`);
           return false;
         }
       }
       if (this.humanPlayersNum + this.botPlayersNum > 8) {
-        alert('Total number of players shouldn\'t be greater than 8');
+        this.setError('Total number of players shouldn\'t be greater than 8');
         return false;
       }
       if (this.maxSpeed < this.minSpeed) {
-        alert('Max speed should be greater than min speed');
+        this.setError('Max speed should be greater than min speed');
         return false;
       }
-      if (this.speedMinVisibility < this.minSpeed) {
-        alert('Blind speed should be greater than min speed');
+      if (this.enableFogOfWar && this.visibilitySpeedRelation && this.speedMinVisibility < this.minSpeed) {
+        this.setError('Threshold speed should be greater than min speed');
         return false;
       }
       return true;
@@ -610,6 +600,18 @@ export default {
         normalizedRates[key] = this.buildingRates[key] / totalRate;
       }
       return normalizedRates;
+    },
+    toggleHint(id) {
+      this.currentHint = this.currentHint === id ? null : id;
+    },
+    clickOutside(event) {
+      // TODO: Might be done better
+      if (['settings-wrapper', 'main-settings'].includes(event.target.id)) {
+        this.toggleHint(null);
+      }
+    },
+    setError(error) {
+      this.currentError = error;
     },
   },
 }
@@ -787,6 +789,21 @@ span.labelForInput {
   color: black;
 }
 
+.hint {
+  width: 25px;
+  height: 25px;
+  background-image: url("/public/images/hint_icon.png");
+  background-size: cover;
+  position: absolute;
+  margin-left: -33px;
+  margin-top: 13px;
+}
+
+.hint.hint-right {
+  margin-left: 0;
+  margin-right: 33px;
+}
+
 .slider {
   display: inline-block;
   width: 250px;
@@ -811,6 +828,10 @@ span.labelForInput {
   #buildings-settings {
     padding-top: 67px;
   }
+}
+
+.vue3-slider .tooltip {
+  z-index: 2;
 }
 
 .startBtn {

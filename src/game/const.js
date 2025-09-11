@@ -24,6 +24,7 @@ export const FIELDS_TO_SAVE = [
   'visibilitySpeedRelation',
   'minSpeed',
   'maxSpeed',
+  'speedMinVisibility',
   'maxUnitsNum',
   'maxBasesNum',
   'unitModifier',
