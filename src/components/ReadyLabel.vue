@@ -26,7 +26,7 @@
           v-if="areAllHumanPlayersEliminated || winner !== null || lastPlayer !== null"
           class="note"
       >
-        Refresh page to start new game
+        Press exit icon on the panel to start new game
       </div>
       <div v-if="lastPlayer === null && areAllHumanPlayersEliminated" class="note">Or you may watch bot fighting</div>
       <div
