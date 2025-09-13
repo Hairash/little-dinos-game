@@ -45,7 +45,7 @@
           Before you dive in, note that there are a few game settings available. Kindly recommend you to start with the
           "fog of war" option disabled to
           understand what's going on.
-          <img class="unitImg" style="float: right" :src="`/images/dino3.png`">
+          <img class="unitImg" style="float: right; transform: scaleX(-1);" :src="`/images/dino2.png`">
           <br>
           Enjoy!
         </div>

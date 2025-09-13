@@ -29,13 +29,21 @@
     :handle-unit-click="findNextUnit"
     :cellSize="cellSize"
     :handle-change-cell-size="changeCellSize"
+    :handle-exit-btn-click="() => this.state = this.STATES.exitDialog"
   />
+  <ExitDialog
+    v-if="state === STATES.exitDialog"
+    :handle-cancel="() => state = STATES.play"
+    :handle-confirm="exitGame"
+  />
+  <!-- Debug: Current state is {{ state }} -->
 </template>
 
 <script>
 import ReadyLabel from '@/components/ReadyLabel.vue';
 import GameGrid from '@/components/GameGrid.vue';
 import InfoPanel from '@/components/InfoPanel.vue';
+import ExitDialog from '@/components/ExitDialog.vue';
 import Models from "@/game/models";
 import { CreateFieldEngine } from "@/game/createFieldEngine";
 import { WaveEngine } from "@/game/waveEngine";
@@ -52,6 +60,7 @@ export default {
     ReadyLabel,
     GameGrid,
     InfoPanel,
+    ExitDialog,
   },
   props: {
     humanPlayersNum: Number,
@@ -82,6 +91,7 @@ export default {
     const STATES = {
       ready: 'ready',  // Show label before start of turn
       play: 'play',  // Turn
+      exitDialog: 'exitDialog',  // Exit dialog
     }
     const WIN_PHASES = {
       progress: 'progress',  // Play
@@ -208,6 +218,11 @@ export default {
   },
   methods: {
     // Main events
+    handleExitClick() {
+      console.log('Setting state to exitDialog');
+      this.state = this.STATES.exitDialog;
+      console.log('State is now:', this.state);
+    },
     startTurn() {
       const killedBefore = this.players[this.currentPlayer].killed;
       const counters = this.fieldEngine.restoreAndProduceUnits(this.currentPlayer);
@@ -611,6 +626,9 @@ export default {
           this.lastPlayerPhase !== this.LAST_PLAYER_PHASES.last_player
         )
       )
+    },
+    exitGame() {
+      window.location.reload();
     },
   },
 }
