@@ -1,28 +1,27 @@
 <template>
   <div id="contentWrapper">
     <div id="buttonWrapper">
-      <button
-        type="button"
-        class="goBackBtn"
-        @click="handleBackBtnClick"
-      >
+      <button type="button" class="goBackBtn" @click="handleBackBtnClick">
         <img :src="`/images/arrow_white.png`">
       </button>
       <div id="contentBlock">
         <h1>Game rules</h1>
         <h3>Summary</h3>
-        <div class="textBlock">
+        <div class="text-block">
           🌿 At the start of each turn, every empty tower of your color spawns a new dino with a random speed.<br>
           🌿 At the end of dino's move all adjacent enemy dinos (4 directions) die.<br>
           🌿 If your dino comes to an enemy tower, it becomes yours.<br>
           🌿 You can move any number of your dinos each turn.<br>
           🌿 A dino can move a number of cells up to its speed during a turn.<br>
           🌿 Rocks and other dinos block movement.<br>
+          🌿 To apply effect of habitations, wells, temples and storages your dino should stay on them at the
+          beginning of the turn.<br>
+          🌿 Effect of obelisk applies when dino ends move on it.<br>
           🌿 You should eliminate all other players to win.<br>
         </div>
         <br>
         <h3>Description</h3>
-        <div class="textBlock">
+        <div class="text-block">
           It is a simple turn-based strategy game, where you can challenge the bots, play with friends, or even mix it
           up
           with both bots and pals.<br>
@@ -41,11 +40,55 @@
           dino lands on an enemy tower, it captures the tower and it becomes yours. With every new turn, each your
           unoccupied towers will produce a new dino with a randomly assigned speed.<br>
           <br>
-          <!-- TODO: Add description of buildings -->
+          Buildings.<br>
+          While tower is a main building in the game, there are others giving bonuses:<br>
+          <div style="height: 10px;"></div>
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/habitation.png`" alt="Habitation">
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Habitation:</span> Increase maximum number of dinos
+            </span>
+          </div>
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/temple.png`" alt="Temple">
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Temple:</span> Increase speed of newly generated dinos by 1
+            </span>
+          </div>
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/well.png`" alt="Well">
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Well:</span> Increase speed of dino staying on it by 1
+            </span>
+          </div>
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/storage.png`" alt="Storage">
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Storage:</span> Increase maximum number of towers
+            </span>
+          </div>
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/obelisk.png`" alt="Obelisk">
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Obelisk:</span> Instantly shows any part of the map
+            </span>
+          </div>
+          To apply effect of first four buildings, your dino should stay on them at the beginning of the turn.
+          Effect of obelisk applies when dino ends move on it.<br>
+          <br>
           Before you dive in, note that there are a few game settings available. Kindly recommend you to start with the
-          "fog of war" option disabled to
-          understand what's going on.
-          <img class="unitImg" style="float: right; transform: scaleX(-1);" :src="`/images/dino2.png`">
+          "fog of war" option disabled and towers only to understand what's going on.
+          <img class="unit-img" style="float: right; transform: scaleX(-1);" :src="`/images/dino2.png`">
           <br>
           Enjoy!
         </div>
@@ -56,7 +99,7 @@
 
 <script>
 import emitter from "@/game/eventBus";
-import {GAME_STATES} from "@/game/const";
+import { GAME_STATES } from "@/game/const";
 
 export default {
   name: 'GameHelp',
@@ -108,14 +151,50 @@ h1 {
   padding: 30px;
 }
 
-.textBlock {
+.text-block {
   text-align: left;
 }
 
-img.unitImg {
+img.unit-img {
   display: inline;
   width: 34px;
   height: 34px;
   margin: 0 10px;
+}
+
+.building-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.icon {
+  background-image: url('/public/images/icon.png');
+  background-size: cover;
+  display: flex;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  justify-content: center;
+  align-items: center;
+}
+
+.building-img {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.building-desc {
+  display: block;
+  line-height: 1.4em;
+  flex: 1 1 0%;
+  word-break: break-word;
+}
+
+.building-desc-title {
+  color: #e08741;
 }
 </style>
