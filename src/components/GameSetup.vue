@@ -341,7 +341,7 @@
           <!--      <label for="obeliskRate" class="labelRange">Rate of obelisks:</label>-->
           <MenuHint
             id="obeliskRate"
-            hint="Instantly shows any part of the map"
+            hint="Instantly show any part of the map"
             :currentHint=currentHint
             @click="toggleHint('obeliskRate')"
             style="margin-left: -5px;"

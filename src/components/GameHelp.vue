@@ -23,22 +23,27 @@
         <h3>Description</h3>
         <div class="text-block">
           It is a simple turn-based strategy game, where you can challenge the bots, play with friends, or even mix it
-          up
-          with both bots and pals.<br>
+          up with both bots and pals.<br>
           <br>
           The gameplay unfolds on a randomly generated grid, punctuated by impassable rock cells. As the game begins,
-          you'll have a tower and a dino of the same color (e.g., blue for the first player) staying on it. The dino
+          you'll have a tower and a dino of the same color (e.g.,
+          <span style="color: #3e6eff;">blue for the first player</span>) staying on it. The dino
           displays its speed as a number in its bottom right corner, representing how many cells it can traverse in a
           single turn. Other dinos, whether they're friend or foe, are obstacles you can't move through as well as
           rocks.
           <br>
           <br>
           To move a dino, simply click or tap on it, then select the cell you want it to go to. When a dino completes
-          its
-          move, it eliminates opposing dinos in its immediate vicinity (those in the 4 main directions: ⬅️➡️⬇️⬆️). If
-          your
-          dino lands on an enemy tower, it captures the tower and it becomes yours. With every new turn, each your
-          unoccupied towers will produce a new dino with a randomly assigned speed.<br>
+          its move, it eliminates opposing dinos in its immediate vicinity (those in the 4 main directions: ⬅️➡️⬇️⬆️).
+          If your dino lands on an enemy tower, it captures the tower and it becomes yours.
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/base.png`" alt="Tower">
+            </div>
+            <span class="building-desc">
+              With every new turn, each your unoccupied tower will produce a new dino with a randomly assigned speed.
+            </span>
+          </div>
           <br>
           Buildings.<br>
           While tower is a main building in the game, there are others giving bonuses:<br>
@@ -80,7 +85,7 @@
               <img class="building-img" :src="`/images/obelisk.png`" alt="Obelisk">
             </div>
             <span class="building-desc">
-              <span class="building-desc-title">Obelisk:</span> Instantly shows any part of the map
+              <span class="building-desc-title">Obelisk:</span> Instantly show any part of the map
             </span>
           </div>
           To apply effect of first four buildings, your dino should stay on them at the beginning of the turn.
