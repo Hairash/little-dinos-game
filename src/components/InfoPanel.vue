@@ -44,6 +44,12 @@
       <!-- Center-left: Units -->
       <span class="infoItem">
         <button type="button" class="infoBtn" @click="handleUnitClick">
+          <img v-if="areAllUnitsOnBuildings && currentStats.units.active > 0"
+            class="curPlayerImage"
+            :src="`/images/habitation.png`"
+            style="position: absolute;"
+            title="Next unit"
+          >
           <img
             class="curPlayerImage"
             :src="`/images/dino${currentPlayer + 1}.png`"
@@ -115,6 +121,7 @@ export default {
     cellSize: Number,
     handleChangeCellSize: Function,
     handleExitBtnClick: Function,
+    areAllUnitsOnBuildings: Boolean,
   },
   data() {
     return {
@@ -222,6 +229,7 @@ button.infoBtn.endTurnBtn {
 }
 
 img.curPlayerImage {
+  position: relative;
   width: 22px;
   height: 22px;
 }

@@ -169,6 +169,23 @@ export class FieldEngine {
     return true;
   }
 
+  areAllUnitsOnBuildings(player) {
+    for (let x = 0; x < this.width; x++) {
+      for (let y = 0; y < this.height; y++) {
+        if (
+          this.field[x][y].unit && this.field[x][y].unit.player === player && !this.field[x][y].unit.hasMoved &&
+          (
+            !this.field[x][y].building ||
+            (this.field[x][y].building._type === Models.BuildingTypes.BASE && this.field[x][y].building.player === player)
+          )
+        ) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   captureBuildingIfNeeded(x, y, player) {
     const buildings = this.getBuildingsOccupied(player);
     // console.log('buildings', buildings);
