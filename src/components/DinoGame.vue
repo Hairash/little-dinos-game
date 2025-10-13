@@ -30,6 +30,7 @@
     :cellSize="cellSize"
     :handle-change-cell-size="changeCellSize"
     :handle-exit-btn-click="() => this.state = this.STATES.exitDialog"
+    :are-all-units-on-buildings="this.fieldEngine.areAllUnitsOnBuildings(this.currentPlayer)"
   />
   <ExitDialog
     v-if="state === STATES.exitDialog"
