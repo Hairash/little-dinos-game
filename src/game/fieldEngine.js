@@ -1,25 +1,25 @@
 // Helpers related to field
 
 import Models from '@/game/models';
-import {calculateUnitVisibility, createNewUnit, getNeighbours} from "@/game/helpers";
-import {ACTIONS, SCORE_MOD} from "@/game/const";
+import { calculateUnitVisibility, createNewUnit, getNeighbours } from "@/game/helpers";
+import { ACTIONS, SCORE_MOD } from "@/game/const";
 
 export class FieldEngine {
   constructor(
-      field,
-      width,
-      height,
-      fogOfWarRadius,
-      players,
-      minSpeed,
-      maxSpeed,
-      speedMinVisibility,
-      maxUnitsNum,
-      maxBasesNum,
-      unitModifier,
-      baseModifier,
-      killAtBirth,
-      visibilitySpeedRelation,
+    field,
+    width,
+    height,
+    fogOfWarRadius,
+    players,
+    minSpeed,
+    maxSpeed,
+    speedMinVisibility,
+    maxUnitsNum,
+    maxBasesNum,
+    unitModifier,
+    baseModifier,
+    killAtBirth,
+    visibilitySpeedRelation,
   ) {
     this.field = field;
     this.width = width;
@@ -68,9 +68,9 @@ export class FieldEngine {
         if (
           (this.field[curX][curY].unit && this.field[curX][curY].unit.player === player) ||
           (
-              this.field[curX][curY].building &&
-              this.field[curX][curY].building._type === Models.BuildingTypes.BASE &&
-              this.field[curX][curY].building.player === player
+            this.field[curX][curY].building &&
+            this.field[curX][curY].building._type === Models.BuildingTypes.BASE &&
+            this.field[curX][curY].building.player === player
           )
         )
           coords.push([curX, curY]);
@@ -87,16 +87,16 @@ export class FieldEngine {
     const vDist = Math.max(Math.abs(x - x0), Math.abs(y - y0));
     let res = 0;
     if (
-        this.field[x][y].building &&
-        this.field[x][y].building.player === currentPlayer &&
-        vDist <= r + this.fogOfWarRadius
+      this.field[x][y].building &&
+      this.field[x][y].building.player === currentPlayer &&
+      vDist <= r + this.fogOfWarRadius
     ) {
       res = this.fogOfWarRadius;
     }
     if (
-        this.field[x][y].unit &&
-        this.field[x][y].unit.player === currentPlayer &&
-        vDist <= r + this.field[x][y].unit.visibility
+      this.field[x][y].unit &&
+      this.field[x][y].unit.player === currentPlayer &&
+      vDist <= r + this.field[x][y].unit.visibility
     ) {
       res = Math.max(res, this.field[x][y].unit.visibility);
     }
@@ -105,11 +105,11 @@ export class FieldEngine {
 
   moveUnit(x0, y0, x1, y1, unit) {
     unit.hasMoved = true;
-    delete(this.field[x0][y0].unit);
+    delete this.field[x0][y0].unit;
     this.field[x1][y1].unit = unit;
   }
 
-  killNeighbours(x, y, curPlayer, countScore=true) {
+  killNeighbours(x, y, curPlayer, countScore = true) {
     const neighbours = getNeighbours(this.field, this.width, this.height, x, y);
     for (const neighbour of neighbours) {
       const [curX, curY] = neighbour;
@@ -117,7 +117,7 @@ export class FieldEngine {
         this.players[curPlayer].killed++;
         if (countScore) this.changeScore(curPlayer, SCORE_MOD.kill);
         this.players[this.field[curX][curY].unit.player].lost++;
-        delete(this.field[curX][curY].unit);
+        delete this.field[curX][curY].unit;
       }
     }
   }
@@ -132,15 +132,15 @@ export class FieldEngine {
       for (let y = 0; y < this.height; y++) {
         if (this.field[x][y].building) {
           if (
-              this.field[x][y].building._type === Models.BuildingTypes.BASE
+            this.field[x][y].building._type === Models.BuildingTypes.BASE
           ) {
             if (this.field[x][y].building.player === curPlayer) {
               buildings[Models.BuildingTypes.BASE]++;
             }
           }
           else if (
-              this.field[x][y].unit &&
-              this.field[x][y].unit.player === curPlayer
+            this.field[x][y].unit &&
+            this.field[x][y].unit.player === curPlayer
           ) {
             buildings[this.field[x][y].building._type]++;
           }
@@ -151,6 +151,24 @@ export class FieldEngine {
     return buildings;
   }
 
+  areAllPlayersOccupied(player) {
+    for (let x = 0; x < this.width; x++) {
+      for (let y = 0; y < this.height; y++) {
+        if (this.field[x][y].unit && this.field[x][y].unit.player !== player) {
+          return false;
+        }
+        if (
+          this.field[x][y].building && (this.field[x][y].building.player) &&
+          (this.field[x][y].building.player !== player) && !this.field[x][y].unit
+        ) {
+          return false;
+        }
+      }
+    }
+    console.log('areAllPlayersOccupied', player, true);
+    return true;
+  }
+
   captureBuildingIfNeeded(x, y, player) {
     const buildings = this.getBuildingsOccupied(player);
     // console.log('buildings', buildings);
@@ -158,8 +176,8 @@ export class FieldEngine {
     // console.log(this.maxBasesNum + buildings[Models.BuildingTypes.STORAGE] * 3);
     // console.log(buildings[Models.BuildingTypes.BASE] < this.maxBasesNum + buildings[Models.BuildingTypes.STORAGE] * 3);
     if (
-        this.field[x][y].building &&
-        this.field[x][y].building._type === Models.BuildingTypes.BASE
+      this.field[x][y].building &&
+      this.field[x][y].building._type === Models.BuildingTypes.BASE
     ) {
       if (
         !this.maxBasesNum ||
@@ -203,8 +221,8 @@ export class FieldEngine {
         }
         if (this.field[x][y].building) {
           if (
-              this.field[x][y].building._type === Models.BuildingTypes.BASE &&
-              this.field[x][y].building.player === curPlayer
+            this.field[x][y].building._type === Models.BuildingTypes.BASE &&
+            this.field[x][y].building.player === curPlayer
           ) {
             buildingsNum++;
             if (!this.field[x][y].unit) {
@@ -213,8 +231,8 @@ export class FieldEngine {
             }
           }
           else if (
-              this.field[x][y].unit &&
-              this.field[x][y].unit.player === curPlayer
+            this.field[x][y].unit &&
+            this.field[x][y].unit.player === curPlayer
           ) {
             if (this.field[x][y].building._type === Models.BuildingTypes.HABITATION) {
               habitationsOccupied++;
@@ -244,13 +262,13 @@ export class FieldEngine {
     ) {
       for (let [x, y] of unitsToCreateCoords) {
         this.field[x][y].unit = createNewUnit(
-            curPlayer,
-            this.minSpeed,
-            this.maxSpeed,
-            this.speedMinVisibility,
-            this.fogOfWarRadius,
-            this.visibilitySpeedRelation,
-            templesOccupied,
+          curPlayer,
+          this.minSpeed,
+          this.maxSpeed,
+          this.speedMinVisibility,
+          this.fogOfWarRadius,
+          this.visibilitySpeedRelation,
+          templesOccupied,
         );
         if (this.killAtBirth) {
           // countScore=false to avoid double score calculation (here only kill)
