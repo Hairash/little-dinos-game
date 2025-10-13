@@ -317,7 +317,8 @@ export default {
       if (this.winPhase !== this.WIN_PHASES.progress) return;
       if (
         this.getLastPlayerIdx() === this.currentPlayer ||
-        this.scoresToWin > 0 && this.players[this.currentPlayer].score >= this.scoresToWin
+        this.scoresToWin > 0 && this.players[this.currentPlayer].score >= this.scoresToWin ||
+        this.fieldEngine.areAllPlayersOccupied(this.currentPlayer)
       ) {
         this.winPhase = this.WIN_PHASES.has_winner;
         this.winner = this.currentPlayer;
