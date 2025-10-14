@@ -130,6 +130,7 @@ export default {
       prevPlayer: 0,
       unitCoordsArr: [],
       cellSize: 30,
+      tempVisibilityCoords: new Set(),  // Set of coord pairs (x, y) of obelisks that will be shown next turn
     }
   },
   created() {
@@ -203,7 +204,7 @@ export default {
     emitter.on('processEndTurn', this.processEndTurn);
     emitter.on('startTurn', this.startTurn);
     emitter.on('moveUnit', this.emitMoveUnit);
-    emitter.on('addVisibilityForCoords', this.emitAddVisibilityForCoords);
+    emitter.on('addTempVisibilityForCoords', this.emitAddTempVisibilityForCoords);
 
     if (!this.loadGame) {
       this.initPlayersScrollCoords();
@@ -215,7 +216,7 @@ export default {
     emitter.off('processEndTurn', this.processEndTurn);
     emitter.off('startTurn', this.startTurn);
     emitter.off('moveUnit', this.moveUnit);
-    emitter.off('addVisibilityForCoords', this.emitAddVisibilityForCoords);
+    emitter.off('addTempVisibilityForCoords', this.emitAddTempVisibilityForCoords);
   },
   methods: {
     // Main events
@@ -367,8 +368,8 @@ export default {
     doesVisibilityMakeSense() {
       return this.enableFogOfWar && this.players[this.currentPlayer].active
     },
-    emitAddVisibilityForCoords(data) {
-      this.addVisibilityForCoords(data.x, data.y, data.fogRadius);
+    emitAddTempVisibilityForCoords(data) {
+      this.addTempVisibilityForCoords(data.x, data.y, data.fogRadius);
     },
     addVisibilityForCoords(x, y, fogRadius) {
       // TODO: Think about common naming (visibility instead of fogRadius)
@@ -379,12 +380,23 @@ export default {
         }
       }
     },
+    addTempVisibilityForCoords(x, y, fogRadius) {
+      for (let curX = x - fogRadius; curX <= x + fogRadius; curX++) {
+        for (let curY = y - fogRadius; curY <= y + fogRadius; curY++) {
+          if (this.fieldEngine.areExistingCoords(curX, curY)) {
+            this.field[curX][curY].isHidden = false;
+            this.tempVisibilityCoords.add([curX, curY]);
+          }
+        }
+      }
+    },
     removeVisibility() {
       for (let curX = 0; curX < this.width; curX++) {
         for (let curY = 0; curY < this.height; curY++) {
           this.field[curX][curY].isHidden = true;
         }
       }
+      this.tempVisibilityCoords = new Set();
     },
     showField() {
       for (let curX = 0; curX < this.width; curX++) {
@@ -406,7 +418,7 @@ export default {
       // Make all area invisible
       for (let curX = x - r; curX <= x + r; curX++) {
         for (let curY = y - r; curY <= y + r; curY++) {
-          if (this.fieldEngine.areExistingCoords(curX, curY)) {
+          if (this.fieldEngine.areExistingCoords(curX, curY) && !this.tempVisibilityCoords.has([curX, curY])) {
             this.field[curX][curY].isHidden = true;
           }
         }
