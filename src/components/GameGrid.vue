@@ -171,7 +171,7 @@ export default {
     },
     processClick(event, x, y) {
       if (this.selectedAction === ACTIONS.scouting) {
-        emitter.emit('addVisibilityForCoords', {x: x, y: y, fogRadius: this.fogOfWarRadius});
+        emitter.emit('addTempVisibilityForCoords', {x: x, y: y, fogRadius: this.fogOfWarRadius});
         this.selectedAction = null;
         return;
       }
