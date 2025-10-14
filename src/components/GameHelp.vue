@@ -93,7 +93,7 @@
           <br>
           Before you dive in, note that there are a few game settings available. Kindly recommend you to start with the
           "fog of war" option disabled and towers only to understand what's going on.
-          <img class="unit-img" style="float: right; transform: scaleX(-1);" :src="`/images/dino2.png`">
+          <img class="unit-img" style="float: right;" :src="`/images/dino2.png`">
           <br>
           Enjoy!
         </div>
