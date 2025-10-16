@@ -51,11 +51,11 @@ export const ACTIONS = {
 
 export const DEFAULT_BUILDING_RATES = {
   base: 3,
-  habitation: 5,
-  temple: 3,
-  well: 2,
-  storage: 3,
-  obelisk: 2,
+  habitation: 4,
+  temple: 2,
+  well: 1,
+  storage: 2,
+  obelisk: 1,
 };
 
 export const GAME_STATES = {
@@ -73,14 +73,14 @@ export const INITIAL_SETTINGS = {
   scoresToWin: 0,
   // TODO: make them changeable ?
   sectorsNum: 4,
-  enableFogOfWar: false,
+  enableFogOfWar: true,
   fogOfWarRadius: 3,
   enableScoutMode: true,
   visibilitySpeedRelation: true,
   minSpeed: 1,
-  maxSpeed: 10,
-  speedMinVisibility: 10,
-  maxUnitsNum: 15,
+  maxSpeed: 5,
+  speedMinVisibility: 7,
+  maxUnitsNum: 5,
   maxBasesNum: 3,
   unitModifier: 3,
   baseModifier: 3,

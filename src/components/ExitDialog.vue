@@ -8,7 +8,6 @@
         </div>
       </div>
     </div>
-    <!-- <div class="menu-error-overlay"></div> -->
   </template>
   
   <script>

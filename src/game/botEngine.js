@@ -14,7 +14,7 @@ export class BotEngine {
   }
 
   makeBotUnitMove(unitCoordsArr, currentPlayer, moveUnit) {
-    console.log('makeBotUnitMove');
+    // console.log('makeBotUnitMove');
     // TODO: Add debug mode
     // Logic needed for debug
     // if (this.players[this.currentPlayer]._type !== Models.PlayerTypes.BOT) return;
@@ -35,31 +35,81 @@ export class BotEngine {
     const reachableCoordsArr = this.waveEngine.getReachableCoordsArr(x, y, unit.movePoints);
     if (reachableCoordsArr.length === 0) return;
 
-    // Check is it occupying building (not base or obelisk)
-    if (
-      this.field[x][y].building &&
-      ![Models.BuildingTypes.BASE, Models.BuildingTypes.OBELISK].includes(this.field[x][y].building._type)
-    ) {
-      if (Math.random() > 0.2) return;
-    }
-
-    // Capture the building
     const reachableVisibleCoordsArr = this.enableFogOfWar ?
       this.getReachableVisibleCoordsArr(reachableCoordsArr) :
       reachableCoordsArr;
 
-    const buildingCoords = this.findFreeBuilding(reachableVisibleCoordsArr, currentPlayer);
+    // Always stay on enemy base
+    // console.log(`${x}, ${y}: ${this.field[x][y].building?._type} ${this.field[x][y].building?.player} ${currentPlayer}`);
+    if (
+      this.field[x][y].building &&
+      this.field[x][y].building._type === Models.BuildingTypes.BASE &&
+      this.field[x][y].building.player !== null &&
+      this.field[x][y].building.player !== currentPlayer
+    ) {
+      // console.log('stay on enemy base');
+      return;
+    }
+    // Check is it occupying building (not own base or obelisk)
+    const isOccupyingBuilding = (
+      this.field[x][y].building &&
+      this.field[x][y].building._type !== Models.BuildingTypes.OBELISK &&
+      !(
+        this.field[x][y].building._type === Models.BuildingTypes.BASE &&
+        (
+          this.field[x][y].building.player === null ||
+          this.field[x][y].building.player === currentPlayer
+        )
+      )
+    );
+    let enemyCoords = this.findEnemy(reachableVisibleCoordsArr, visibilitySet, currentPlayer);
+    // If no enemies arround, just stay there with 80% probability
+    if (isOccupyingBuilding && !enemyCoords && Math.random() > 0.2) {
+      // console.log('stay on occupying building');
+      return;
+    }
+
+    // If occupying building and enemy is around, attack enemy with 50% probability or stay there
+    if (isOccupyingBuilding && enemyCoords) {
+      if (Math.random() > 0.5) {
+        moveUnit(coords, enemyCoords);
+        return;
+      }
+      return;
+    }
+
+    // Capture the base
+    // TODO: Check if the base can be captured
+    const habitationBuildingCoords = this.findFreeBuilding(reachableVisibleCoordsArr, currentPlayer, Models.BuildingTypes.HABITATION);
+    if (habitationBuildingCoords && Math.random() > 0.5) {
+      moveUnit(coords, habitationBuildingCoords);
+      return;
+    }
+    const baseBuildingCoords = this.findFreeBuilding(reachableVisibleCoordsArr, currentPlayer, Models.BuildingTypes.BASE);
+    if (baseBuildingCoords) {
+      moveUnit(coords, baseBuildingCoords);
+      return;
+    }
+
+    // Decide between captring other buildings or attacking enemy
+    // TODO: Add max kill
+    let buildingCoords = this.findFreeBuilding(reachableVisibleCoordsArr, currentPlayer);
+    if (buildingCoords && enemyCoords) {
+      if (Math.random() > 0.5) {
+        buildingCoords = null;
+      } else {
+        enemyCoords = null;
+      }
+    }
     if (buildingCoords) {
       moveUnit(coords, buildingCoords);
       return;
     }
-    // Atack enemy
-    // TODO: Add max kill
-    const enemyCoords = this.findEnemy(reachableVisibleCoordsArr, visibilitySet, currentPlayer);
     if (enemyCoords) {
       moveUnit(coords, enemyCoords);
       return;
     }
+
     // TODO: Move to the building
     // Random move
     // TODO: Random long move, avoid own buildings
@@ -74,10 +124,11 @@ export class BotEngine {
     return reachableCoordsArr.filter(([x, y]) => !this.field[x][y].isHidden);
   }
 
-  findFreeBuilding(coordsArr, currentPlayer) {
+  findFreeBuilding(coordsArr, currentPlayer, buildingType=null) {
     return coordsArr.find(([x, y]) =>
       this.field[x][y].building &&
-      this.field[x][y].building.player !== currentPlayer
+      this.field[x][y].building.player !== currentPlayer &&
+      (!buildingType || this.field[x][y].building._type === buildingType)
     );
   }
 

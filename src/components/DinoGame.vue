@@ -185,12 +185,13 @@ export default {
     console.log(this.players);
     window.addEventListener('keyup', (e) => {
       if (e.key === 'Enter') this.state = this.STATES.play;
+      if (e.key === 'e' && this.state === this.STATES.play) this.processEndTurn();
       // TODO: Add test mode
       // if (e.key === 'Enter') this.makeBotUnitMove();
     });
     window.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      this.processEndTurn();
+      // this.processEndTurn();
     });
     window.addEventListener('mouseup', (e) => {
       e.preventDefault();
@@ -221,19 +222,17 @@ export default {
   methods: {
     // Main events
     handleExitClick() {
-      console.log('Setting state to exitDialog');
       this.state = this.STATES.exitDialog;
-      console.log('State is now:', this.state);
     },
     startTurn() {
-      const killedBefore = this.players[this.currentPlayer].killed;
+      // const killedBefore = this.players[this.currentPlayer].killed;
       const counters = this.fieldEngine.restoreAndProduceUnits(this.currentPlayer);
-      this.updatePlayerScore(
-        killedBefore,
-        counters.buildingsNum,
-        counters.unitsNum,
-        counters.producedNum,
-      );
+      // this.updatePlayerScore(
+      //   killedBefore,
+      //   counters.buildingsNum,
+      //   counters.unitsNum,
+      //   counters.producedNum,
+      // );
 
       if (counters.buildingsNum === 0 && counters.unitsNum === 0) {
         this.players[this.currentPlayer].active = false;
@@ -278,7 +277,7 @@ export default {
         // Add visibility to area unit moved to
         this.addVisibilityForCoords(x1, y1, visibility);
       }
-      console.log('moveUnit finish');
+      // console.log('moveUnit finish');
     },
     processEndTurn() {
       if (this.state === this.STATES.ready) return;
@@ -360,6 +359,7 @@ export default {
     initPlayersScrollCoords() {
       for (let playerNum = 0; playerNum < this.players.length; playerNum++) {
         const coords = this.getCurrentUnitCoords(playerNum)[0];
+        // console.log('coords', coords);
         this.players[playerNum].scrollCoords = this.$refs.gameGridRef.getScrollCoordsByCell(coords);
       }
     },
@@ -385,7 +385,7 @@ export default {
         for (let curY = y - fogRadius; curY <= y + fogRadius; curY++) {
           if (this.fieldEngine.areExistingCoords(curX, curY)) {
             this.field[curX][curY].isHidden = false;
-            this.tempVisibilityCoords.add([curX, curY]);
+            this.tempVisibilityCoords.add(`${curX},${curY}`);
           }
         }
       }
@@ -418,7 +418,10 @@ export default {
       // Make all area invisible
       for (let curX = x - r; curX <= x + r; curX++) {
         for (let curY = y - r; curY <= y + r; curY++) {
-          if (this.fieldEngine.areExistingCoords(curX, curY) && !this.tempVisibilityCoords.has([curX, curY])) {
+          if (
+            this.fieldEngine.areExistingCoords(curX, curY) &&
+            !this.tempVisibilityCoords.has(`${curX},${curY}`)
+          ) {
             this.field[curX][curY].isHidden = true;
           }
         }
@@ -438,14 +441,15 @@ export default {
           }
         }
     },
-    setVisibilityAfterMove(x0, y0, x1, y1) {
-      if (this.doesVisibilityMakeSense()) {
-        // Recalculate visibility in area unit moved from
-        this.setVisibilityForArea(x0, y0, this.fogOfWarRadius);
-        // Add visibility to area unit moved to
-        this.addVisibilityForCoords(x1, y1);
-      }
-    },
+    // TODO: Refactor this to use after move
+    // setVisibilityAfterMove(x0, y0, x1, y1) {
+    //   if (this.doesVisibilityMakeSense()) {
+    //     // Recalculate visibility in area unit moved from
+    //     this.setVisibilityForArea(x0, y0, this.fogOfWarRadius);
+    //     // Add visibility to area unit moved to
+    //     this.addVisibilityForCoords(x1, y1);
+    //   }
+    // },
     setVisibilityStartTurn() {
       if (this.doesVisibilityMakeSense()) {
         this.setVisibility();
@@ -473,7 +477,7 @@ export default {
         const fieldFromStorage = localStorage.getItem('field');
         // TODO: Fix JSON.parse to avoid warning - convert units and buildings to the correct type
         this.field = JSON.parse(fieldFromStorage);
-        console.log(this.field);
+        // console.log(this.field);
       }
       else {
         this.field = this.engine.generateField();
@@ -538,7 +542,7 @@ export default {
     // Bot move high level logic
     makeBotMove() {
       this.state = this.STATES.play;
-      console.log(`Player ${this.currentPlayer + 1} turn start`);
+      console.log(`Bot player ${this.currentPlayer + 1} turn`);
       this.unitCoordsArr = this.getCurrentUnitCoords();
       // TODO: Choose order of moves (calculate, which move is more profitable) - ideal algorithm
       // TODO: Get visibility here and add visibility get from obelisks on each unit's move
