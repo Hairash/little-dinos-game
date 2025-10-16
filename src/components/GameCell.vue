@@ -101,6 +101,11 @@ export default {
 div.cell {
   position: relative;
   display: inline-block;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
   /*border: solid 1px;*/
   /*transition: v-bind('cssProps.transitionBorder');*/
 }

@@ -152,13 +152,14 @@ export class FieldEngine {
   }
 
   areAllPlayersOccupied(player) {
+    // console.log('areAllPlayersOccupied', player);
     for (let x = 0; x < this.width; x++) {
       for (let y = 0; y < this.height; y++) {
-        if (this.field[x][y].unit && this.field[x][y].unit.player !== player) {
+        if (this.field[x][y].unit && (this.field[x][y].unit.player !== player)) {
           return false;
         }
         if (
-          this.field[x][y].building && (this.field[x][y].building.player) &&
+          this.field[x][y].building && (this.field[x][y].building.player !== null) &&
           (this.field[x][y].building.player !== player) && !this.field[x][y].unit
         ) {
           return false;

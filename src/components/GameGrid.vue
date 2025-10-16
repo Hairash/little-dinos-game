@@ -143,7 +143,7 @@ export default {
   },
   methods: {
     initTurn(scrollCoords) {
-      console.log(scrollCoords);
+      // console.log(scrollCoords);
       this.selectedCoords = null;
       this.selectedAction = null;
       this.removeHighlights();
@@ -199,9 +199,7 @@ export default {
     },
     saveCoords(player) {
       const container = this.$refs.gameGridContainer;
-      console.log(player.scrollCoords);
       player.scrollCoords = [container.scrollLeft, container.scrollTop];
-      console.log(player.scrollCoords);
     },
     getScrollCoordsByCell(coords) {
       const [x, y] = coords;
