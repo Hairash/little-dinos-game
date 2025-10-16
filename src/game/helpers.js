@@ -38,17 +38,17 @@ export function createNewUnit(
   visibilitySpeedRelation,
   speedModifier=0,
 ) {
-  console.log(
-    `Creating new unit for player ${player} with minSpeed: ${minSpeed}, maxSpeed: ${maxSpeed},
-     speedMinVisibility: ${speedMinVisibility}, avgVisibility: ${avgVisibility},
-     visibilitySpeedRelation: ${visibilitySpeedRelation}, speedModifier: ${speedModifier}`,
-  );
+  // console.log(
+  //   `Creating new unit for player ${player} with minSpeed: ${minSpeed}, maxSpeed: ${maxSpeed},
+  //    speedMinVisibility: ${speedMinVisibility}, avgVisibility: ${avgVisibility},
+  //    visibilitySpeedRelation: ${visibilitySpeedRelation}, speedModifier: ${speedModifier}`,
+  // );
   const movePoints = minSpeed + Math.floor(Math.random() * (maxSpeed - minSpeed + 1)) + speedModifier;
   let visibility = avgVisibility;
   if (visibilitySpeedRelation) {
     visibility = calculateUnitVisibility(movePoints, minSpeed, speedMinVisibility, avgVisibility);
   }
-  console.log(`Speed: ${movePoints}, visibility: ${visibility}`);
+  // console.log(`Speed: ${movePoints}, visibility: ${visibility}`);
   return new Models.Unit(
     player,
     // TODO: make fair dict with images
@@ -59,7 +59,7 @@ export function createNewUnit(
 }
 
 export function calculateUnitVisibility(movePoints, minSpeed, maxSpeed, avgVisibility) {
-  console.log(`Speed: ${movePoints}, minSpeed: ${minSpeed}, maxSpeed: ${maxSpeed}, avgVisibility: ${avgVisibility}`);
+  // console.log(`Speed: ${movePoints}, minSpeed: ${minSpeed}, maxSpeed: ${maxSpeed}, avgVisibility: ${avgVisibility}`);
   if (movePoints > maxSpeed) {
     return 1;
   }
@@ -68,14 +68,10 @@ export function calculateUnitVisibility(movePoints, minSpeed, maxSpeed, avgVisib
   }
   const minVisibility = 1;
   const maxVisibility = 2 * avgVisibility - minVisibility;
-  console.log(`minVisibility: ${minVisibility}, maxVisibility: ${maxVisibility}`);
 
   const normalizedSpeed = (movePoints - minSpeed) / (maxSpeed - minSpeed);
-  console.log(`normalizedSpeed: ${normalizedSpeed}`);
   const adjustedSpeed = adjustSpeed(normalizedSpeed);
-  console.log(`adjustedSpeed: ${adjustedSpeed}`);
   const visibility = minVisibility + Math.round((maxVisibility - minVisibility) * adjustedSpeed);
-  console.log(`Speed: ${movePoints}, visibility: ${visibility}`);
   return visibility;
 }
 

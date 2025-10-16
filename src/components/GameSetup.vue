@@ -16,21 +16,14 @@
           <div class="icon">
             <img :src="`/images/field_icon.png`">
           </div>
-          <!--      <label for="width">Width:</label>-->
 
           <input type="number" id="width" class="inputNumber digits2" v-model.number="width" min="5" max="50" />
-          <!--    </div>-->
-          <!--    <div>-->
-          <!--      <label for="height">Height:</label>-->
           <span class="labelForInput">✘</span>
           <input type="number" id="height" class="inputNumber digits2" v-model.number="height" min="5" max="50" />
         </div>
-        <!-- <h2>Players</h2> -->
 
         <div class="upperGrid">
           <div class="plate">
-            
-            <!--      <label for="humanPlayersNum">Number of human players:</label>-->
             <MenuHint 
               id="humanPlayersNum"
               hint="Number of human players"
@@ -48,7 +41,6 @@
             <input type="text" :id="'player' + index" v-model="humanPlayerNames[index]" />
           </div> -->
           <div class="botBlock plate" style="width: 112px;">
-            <!--      <label for="botPlayersNum">Number of bot players:</label>-->
             <MenuHint
               id="botPlayersNum"
               hint="Number of bot players"
@@ -70,7 +62,6 @@
               :currentHint=currentHint
               @click="toggleHint('maxUnitsNum')"
             />
-            <!--      <label for="maxUnitsNum">Max units number:</label>-->
             <div class="icon">
               <img :src="`/images/dino_icon.png`">
             </div>
@@ -86,7 +77,6 @@
               style="margin-left: 122px;"
               hint-orientation="right"
             />
-            <!--      <label for="maxUnitsNum">Max units number:</label>-->
             <div class="icon">
               <img :src="`/images/dino_icon_plus.png`">
             </div>
@@ -100,7 +90,6 @@
               :currentHint=currentHint
               @click="toggleHint('maxBasesNum')"
             />
-            <!--      <label for="maxBasesNum">Max towers number:</label>-->
             <div class="icon">
               <img :src="`/images/tower_icon.png`">
             </div>
@@ -116,7 +105,6 @@
               hint-orientation="right"
               style="margin-left: 122px;"
             />
-            <!--      <label for="maxBasesNum">Max towers number:</label>-->
             <div class="icon">
               <img :src="`/images/tower_icon_plus.png`">
             </div>
@@ -126,7 +114,6 @@
         </div>
 
         <div>
-          <!--      <label for="unitSpeedRange">Dinos speed range:</label>-->
           <!-- Common plate: 114 x 57 px -->
           <div class="plate" style="display: inline-block; width: 182px;">
             <MenuHint
@@ -146,7 +133,6 @@
 
 
         <div style="height: 60px; margin: 4px auto;">
-          <!--      <label for="fogOfWar">Enable fog of war:</label>-->
           <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar" class="hidden-checkbox" />
           <div style="display: inline-block;">
             <MenuHint
@@ -161,7 +147,6 @@
               <img v-if="enableFogOfWar" :src="`images/closed_eye.png`">
             </label>
           </div>
-          <!--      <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar"/>-->
           <div v-if="enableFogOfWar" class="plate"
             style="position: relative; display: inline-block; top: -5px; margin: 0 4px;">
             <MenuHint
@@ -172,7 +157,6 @@
               hint-orientation="right"
               style="margin-left: 122px;"
             />
-            <!--      <label for="fogOfWarRadius">Fog of war radius:</label>-->
             <span class="icon">
               <img :src="`/images/radius_icon.png`">
             </span>
@@ -183,7 +167,6 @@
 
         <div v-if="enableFogOfWar" style="height: 60px; margin: 4px auto;">
           <div style="display: inline-block;">
-            <!--      <label for="visibilitySpeedRelation">Visibility-speed relation:</label>-->
             <MenuHint
               id="visibilitySpeedRelation"
               hint="Link / unlink dinos' speed and visibility"
@@ -258,7 +241,6 @@
 
       <div id="buildings-settings">
         <div>
-          <!--      <label for="baseRate" class="labelRange">Rate of bases:</label>-->
           <MenuHint
             id="baseRate"
             hint="Main building - generate dinos each turn"
@@ -274,7 +256,6 @@
             :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
         </div>
         <div>
-          <!--      <label for="habitationRate" class="labelRange">Rate of habitations:</label>-->
           <MenuHint
             id="habitationRate"
             hint="Increase maximum number of dinos"
@@ -290,7 +271,6 @@
             :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
         </div>
         <div>
-          <!--      <label for="templeRate" class="labelRange">Rate of temples:</label>-->
           <MenuHint
             id="templeRate"
             hint="Increase speed of newly generated dinos by 1"
@@ -306,7 +286,6 @@
             :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
         </div>
         <div>
-          <!--      <label for="wellRate" class="labelRange">Rate of wells:</label>-->
           <MenuHint
             id="wellRate"
             hint="Increase speed of dino staying on it by 1"
@@ -322,7 +301,6 @@
             :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
         </div>
         <div>
-          <!--      <label for="storageRate" class="labelRange">Rate of storages:</label>-->
           <MenuHint
             id="storageRate"
             hint="Increase maximum number of towers"
@@ -338,7 +316,6 @@
             :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
         </div>
         <div>
-          <!--      <label for="obeliskRate" class="labelRange">Rate of obelisks:</label>-->
           <MenuHint
             id="obeliskRate"
             hint="Instantly show any part of the map"
@@ -850,6 +827,7 @@ span.labelForInput {
   position: relative;
   top: -2px;
   font-weight: bold;
+  color: black;
 }
 
 /* div.botBlock {
