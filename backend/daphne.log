@@ -1,0 +1,4 @@
+2025-10-28 23:26:42,651 INFO     Starting server at tcp:port=8001:interface=0.0.0.0
+2025-10-28 23:26:42,651 INFO     HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+2025-10-28 23:26:42,651 INFO     Configuring endpoint tcp:port=8001:interface=0.0.0.0
+2025-10-28 23:26:42,652 INFO     Listening on TCP address 0.0.0.0:8001
