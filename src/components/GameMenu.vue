@@ -47,7 +47,7 @@ export default {
 
 <style>
 #menu {
-  background-image: url('/public/images/menu_background.png');
+  background-image: url('/images/menu_background.png');
   width: 100vw;
   height: 100vh;
   overflow: auto;
@@ -80,7 +80,7 @@ export default {
   margin: 30px auto 0 auto;
   width: 260px;
   height: 70px;
-  background: url('/public/images/long_menu_button.png') no-repeat center center;
+  background: url('/images/long_menu_button.png') no-repeat center center;
   background-size: 100% 100%;
   border: none;
   color: #fff;

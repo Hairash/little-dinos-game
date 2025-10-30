@@ -30,7 +30,7 @@ export default {
   height: 25px;
   margin-left: -33px;
   margin-top: 13px;
-  background-image: url("/public/images/hint_icon.png");
+  background-image: url("/images/hint_icon.png");
   background-size: cover;
   cursor: pointer;
   user-select: none;

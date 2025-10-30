@@ -90,7 +90,7 @@ img.curPlayerImage {
 
 button {
   background-color: transparent;
-  background-image: url("/public/images/long_setup_btn_clean.png");
+  background-image: url("/images/long_setup_btn_clean.png");
   background-size: 100% 100%;
   border: 0;
   padding: 8px 20px;

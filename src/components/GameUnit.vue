@@ -17,7 +17,7 @@
 </template>
 
 <script>
-import { TRANSITION_DELAY } from '@/game/const'
+import { TRANSITION_DELAY } from '@/game/const.js'
 
 export default {
   name: "GameUnit",

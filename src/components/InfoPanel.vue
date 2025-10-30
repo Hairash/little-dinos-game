@@ -160,7 +160,7 @@ div.infoPanel {
   max-width: 400px;
   height: 40px;
   padding: 2px 0 4px;
-  background-image: url('/public/images/panel.png');
+  background-image: url('/images/panel.png');
   background-size: 100% 100%;
 }
 
@@ -214,7 +214,7 @@ span.infoLabel {
 button.infoBtn {
   padding: 0;
   user-select: none;
-  background-image: url('/public/images/small_button.png');
+  background-image: url('/images/small_button.png');
   background-color: transparent;
   background-size: 100% 100%;
   border: none;

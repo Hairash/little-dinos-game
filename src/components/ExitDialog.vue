@@ -52,7 +52,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
     text-align: center;
-    background-image: url('/public/images/error_plate.png');
+    background-image: url('/images/error_plate.png');
     background-size: 100% 100%;
     padding: 15px;
     color: black;
