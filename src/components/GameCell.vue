@@ -34,10 +34,10 @@
 </template>
 
 <script>
-import GameUnit from '@/components/GameUnit'
-import GameBuilding from '@/components/GameBuilding'
-import Models from '@/game/models'
-import { TRANSITION_DELAY } from '@/game/const'
+import GameUnit from '@/components/GameUnit.vue'
+import GameBuilding from '@/components/GameBuilding.vue'
+import Models from '@/game/models.js'
+import { TRANSITION_DELAY } from '@/game/const.js'
 
 export default {
   name: "GameCell",

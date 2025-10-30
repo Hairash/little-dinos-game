@@ -598,7 +598,7 @@ export default {
 /* TODO: Unify font style for all labels - add font style to the App */
 div.gameSetup {
   position: relative;
-  background-image: url('/public/images/background.png');
+  background-image: url('/images/background.png');
   background-size: cover;
   overflow: auto;
   height: 100vh;
@@ -696,7 +696,7 @@ input.inputRange {
 }
 
 .icon {
-  background-image: url('/public/images/icon.png');
+  background-image: url('/images/icon.png');
   width: 50px;
   height: 50px;
   display: inline-block;
@@ -720,7 +720,7 @@ input.inputRange {
   display: inline-block;
   width: 60px;
   height: 60px;
-  background-image: url('/public/images/big_button.png');
+  background-image: url('/images/big_button.png');
   background-size: cover;
   cursor: pointer;
   user-select: none;
@@ -769,7 +769,7 @@ span.labelForInput {
 .hint {
   width: 25px;
   height: 25px;
-  background-image: url("/public/images/hint_icon.png");
+  background-image: url("/images/hint_icon.png");
   background-size: cover;
   position: absolute;
   margin-left: -33px;
@@ -789,7 +789,7 @@ span.labelForInput {
 }
 
 .plate {
-  background: url('/public/images/plate_no_border.png') no-repeat center center;
+  background: url('/images/plate_no_border.png') no-repeat center center;
   background-size: 100% 100%;
   width: 112px;
   margin: auto;
@@ -815,7 +815,7 @@ span.labelForInput {
   width: 200px;
   height: 60px;
   border: 0;
-  background-image: url("/public/images/long_setup_btn.png");
+  background-image: url("/images/long_setup_btn.png");
   background-size: 100% 100%;
   background-color: transparent;
   font-size: 36px;

@@ -255,7 +255,7 @@ export default {
   /* Hide scrollbars but keep scrolling */
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
-  background-image: url('/public/images/background.png');
+  background-image: url('/images/background.png');
   background-size: cover;
 }
 

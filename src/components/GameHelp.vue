@@ -121,7 +121,7 @@ export default {
   height: 100vh;
   width: 100vw;
   overflow: auto;
-  background-image: url('/public/images/background.png');
+  background-image: url('/images/background.png');
   background-size: cover;
   text-align: center;
 }
@@ -175,7 +175,7 @@ img.unit-img {
 }
 
 .icon {
-  background-image: url('/public/images/icon.png');
+  background-image: url('/images/icon.png');
   background-size: cover;
   display: flex;
   flex-shrink: 0;
