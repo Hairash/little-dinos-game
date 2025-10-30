@@ -427,8 +427,10 @@ export default {
         }
       }
       // Set visibility
-      for (let curX = x - r - this.maxSpeed; curX <= x + r + this.maxSpeed; curX++) {
-          for (let curY = y - r - this.maxSpeed; curY <= y + r + this.maxSpeed; curY++) {
+      const maxVisibility = 2 * this.fogOfWarRadius - 1;
+      // console.log(`maxVisibility: ${maxVisibility}`);
+      for (let curX = x - r - maxVisibility; curX <= x + r + maxVisibility; curX++) {
+          for (let curY = y - r - maxVisibility; curY <= y + r + maxVisibility; curY++) {
             let curR = 0;
             // console.log(`Current check: (${curX}, ${curY})`)
             if (
