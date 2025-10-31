@@ -6,7 +6,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "lint": "eslint src tests --ext .js,.jsx,.vue",
+    "lint:fix": "eslint src tests --ext .js,.jsx,.vue --fix"
   },
   "dependencies": {
     "mitt": "^3.0.1",
@@ -22,23 +24,6 @@
     "happy-dom": "^20.0.10",
     "vite": "^7.1.12",
     "vitest": "^3.2.4"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true,
-      "browser": true,
-      "es2021": true
-    },
-    "extends": [
-      "plugin:vue/vue3-essential",
-      "eslint:recommended"
-    ],
-    "parserOptions": {
-      "ecmaVersion": "latest",
-      "sourceType": "module"
-    },
-    "rules": {}
   },
   "browserslist": [
     "> 1%",
