@@ -92,6 +92,56 @@ function adjustSpeed(x) {
 // }
 
 
+// Convert plain objects from backend/JSON to model instances
+export function normalizeField(field) {
+  if (!field || !Array.isArray(field)) {
+    return field;
+  }
+  
+  return field.map(col => {
+    if (!Array.isArray(col)) {
+      return col;
+    }
+    return col.map(cellData => {
+      if (!cellData) {
+        return cellData;
+      }
+      
+      // Create a new cell-like object with normalized data
+      const cell = {
+        terrain: cellData.terrain || { kind: Models.TerrainTypes.EMPTY, idx: 1 },
+        building: null,
+        unit: null,
+        isHidden: cellData.isHidden !== undefined ? cellData.isHidden : true,
+      };
+      
+      // Convert building if present
+      if (cellData.building) {
+        cell.building = new Models.Building(
+          cellData.building.player,
+          cellData.building._type
+        );
+      }
+      
+      // Convert unit if present
+      if (cellData.unit) {
+        cell.unit = new Models.Unit(
+          cellData.unit.player,
+          cellData.unit._type,
+          cellData.unit.movePoints,
+          cellData.unit.visibility
+        );
+        // Preserve hasMoved state
+        if (cellData.unit.hasMoved !== undefined) {
+          cell.unit.hasMoved = cellData.unit.hasMoved;
+        }
+      }
+      
+      return cell;
+    });
+  });
+}
+
 // Needed for scale in future
 // calculateCellSize() {
 //   const windowWidth = window.innerWidth;

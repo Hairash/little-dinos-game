@@ -86,6 +86,8 @@ export default {
     killAtBirth: Boolean,
     enableUndo: Boolean,
     loadGame: Boolean,
+    // TODO: Check is it fine to have field as prop and as data at the same time
+    field: Array,  // Optional: pre-generated field from backend (for multiplayer)
   },
   data() {
     // Game states
@@ -475,6 +477,11 @@ export default {
       }
     },
     loadFieldOrGenerateNewField() {
+      if (this.field) {
+        // Field provided as prop (from backend in multiplayer mode)
+        // Use it directly, no need to generate
+        return;
+      }
       if (this.loadGame) {
         const fieldFromStorage = localStorage.getItem('field');
         // TODO: Fix JSON.parse to avoid warning - convert units and buildings to the correct type
