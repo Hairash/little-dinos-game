@@ -83,7 +83,7 @@
         type="button"
         class="infoBtn endTurnBtn right-group"
         @click="handleEndTurnBtnClick"
-        :disabled="player.type === botType"
+        :disabled="player && player.type === botType"
       >
         <img
           style="margin-left: 4px; margin-top: 1px;"
@@ -130,6 +130,13 @@ export default {
   },
   computed: {
     player() {
+      // Guard: return null if players array is empty or currentPlayer is out of bounds
+      if (!this.players || !Array.isArray(this.players) || this.players.length === 0) {
+        return null;
+      }
+      if (this.currentPlayer < 0 || this.currentPlayer >= this.players.length) {
+        return null;
+      }
       return this.players[this.currentPlayer];
     },
     maxUnitsNum() {

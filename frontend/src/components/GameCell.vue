@@ -49,8 +49,14 @@ export default {
     width: Number,
     height: Number,
     terrain: Object,
-    unit: Models.Unit,
-    building: Models.Building,
+    unit: {
+      type: Object,
+      validator: (value) => value === null || value instanceof Models.Unit,
+    },
+    building: {
+      type: Object,
+      validator: (value) => value === null || value instanceof Models.Building,
+    },
     selected: Boolean,
     highlighted: Boolean,
     hidden: Boolean,

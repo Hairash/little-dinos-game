@@ -59,6 +59,8 @@ export const DEFAULT_BUILDING_RATES = {
 };
 
 export const GAME_STATES = {
+  login: 'login',
+  lobby: 'lobby',
   menu: 'menu',
   setup: 'setup',
   game: 'game',
@@ -94,4 +96,16 @@ export const INITIAL_SETTINGS = {
   },
   hideEnemySpeed: false,
   killAtBirth: true,
+};
+
+export const MULTIPLAYER_INITIAL_SETTINGS = {
+  ...INITIAL_SETTINGS,
+  // width: 5,
+  // height: 5,
+  humanPlayersNum: 2,
+  botPlayersNum: 0,
+  // minSpeed: 5,
+  // minVisibilitySpeed: 5,
+  // fogOfWarRadius: 2,
+  buildingRates: DEFAULT_BUILDING_RATES,
 };

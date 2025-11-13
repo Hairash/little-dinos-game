@@ -350,6 +350,10 @@
       <button type="button" class="startBtn" @click="processStartBtnClick">
         <span>GO!</span>
       </button>
+      <!-- <br>
+      <button type="button" class="startBtn" @click="() => processStartBtnClick(() => emitter.emit('callStartMultiplayerGame'))">
+        <span>Go Multiplayer!</span>
+      </button> -->
     </div>
     <MenuError v-if="currentError" :error="currentError" :setError="setError" />
   </div>
@@ -535,7 +539,11 @@ export default {
         loadGame: this.loadGame,
         buildingRates: this.buildingRates,
       }
+      // if (callback) {
+      //   callback(settings);
+      // } else {
       emitter.emit('startGame', settings);
+      // }
     },
     processLoadBtnClick() {
       if (this.loadGamePossible) {

@@ -63,36 +63,34 @@ export default {
     field: Array[Array[Models.Cell]],
     currentPlayer: Number,
     cellSize: Number,
+    isMyTurn: {
+      type: Boolean,
+      default: true, // Default to true for single-player mode compatibility
+    },
   },
   data() {
-    const width = this.field.length;
-    const height = this.field[0].length;
-    const fieldT = (m => m[0].map((x, i) => m.map(x => x[i])))(this.field);
-    const fieldOutput = Array.from({ length: width }, () =>
-      Array.from({ length: height }, () => ({ isHidden: false, isHighlighted: false }))
-    );
-    // console.log((cellWidth + 2) * width);
-    // console.log((cellHeight + 2) * height + 35);
     return {
-      width,
-      height,
-      fieldT,
       selectedCoords: null,
       selectedAction: null,
       waveEngine: null,
       fieldEngine: null,
-      fieldOutput,
-      // cssProps: {
-      //   lineHeight: `${this.cellSize}px`,
-      //   lineWidth: `${this.cellSize * width}px`,
-      //   boardHeight: `${this.cellSize * height}px`,
-      //   boardWidth: `${this.cellSize * width}px`,
-      //   boardWrapperHeight: `${this.cellSize * height + 35}px`,
-      //   boardWrapperWidth: `${this.cellSize * width}px`,
-      // },
+      fieldOutput: null,  // Will be initialized in created()
     }
   },
   computed: {
+    width() {
+      return this.field && this.field.length > 0 ? this.field.length : 0;
+    },
+    height() {
+      return this.field && this.field.length > 0 && this.field[0] ? this.field[0].length : 0;
+    },
+    fieldT() {
+      // Transpose field for rendering (convert from [x][y] to [y][x])
+      if (!this.field || this.field.length === 0 || !this.field[0]) {
+        return [];
+      }
+      return this.field[0].map((x, i) => this.field.map(x => x[i]));
+    },
     lineHeight() {
       return `${this.cellSize}px`;
     },
@@ -113,6 +111,15 @@ export default {
     },
   },
   created() {
+    // Initialize fieldOutput
+    if (this.field && this.field.length > 0 && this.field[0]) {
+      const width = this.field.length;
+      const height = this.field[0].length;
+      this.fieldOutput = Array.from({ length: width }, () =>
+        Array.from({ length: height }, () => ({ isHidden: false, isHighlighted: false }))
+      );
+    }
+    
     this.waveEngine = new WaveEngine(
       this.field,
       this.width,
@@ -126,6 +133,42 @@ export default {
       this.height,
       this.fogOfWarRadius,
     );
+  },
+  watch: {
+    field: {
+      handler(newField) {
+        // Update engines when field prop changes
+        if (newField && newField.length > 0 && newField[0]) {
+          const width = newField.length;
+          const height = newField[0].length;
+          
+          // Update fieldOutput dimensions if needed
+          if (!this.fieldOutput || this.fieldOutput.length !== width || 
+              (this.fieldOutput[0] && this.fieldOutput[0].length !== height)) {
+            this.fieldOutput = Array.from({ length: width }, () =>
+              Array.from({ length: height }, () => ({ isHidden: false, isHighlighted: false }))
+            );
+          }
+          
+          // Update engines with new field reference
+          this.waveEngine = new WaveEngine(
+            newField,
+            width,
+            height,
+            this.fogOfWarRadius,
+            this.enableScoutMode,
+          );
+          this.fieldEngine = new FieldEngine(
+            newField,
+            width,
+            height,
+            this.fogOfWarRadius,
+          );
+        }
+      },
+      deep: true,
+      immediate: false,
+    },
   },
   mounted() {
     emitter.on('initTurn', this.initTurn);
@@ -170,18 +213,28 @@ export default {
       this.setHighlights(x, y, movePoints);
     },
     processClick(event, x, y) {
+      // In multiplayer mode, only process clicks if it's the player's turn
+      if (!this.isMyTurn) {
+        console.log('Not my turn');
+        return;
+      }
+      
       if (this.selectedAction === ACTIONS.scouting) {
-        emitter.emit('addTempVisibilityForCoords', {x: x, y: y, fogRadius: this.fogOfWarRadius});
+        // In multiplayer, send scout message to server
+        emitter.emit('scoutArea', {x: x, y: y, fogRadius: this.fogOfWarRadius});
         this.selectedAction = null;
         return;
       }
       const unit = this.field[x][y].unit;
       if (unit) {
+        // Select unit if it belongs to current player and hasn't moved
         if (unit.player === this.currentPlayer && !unit.hasMoved) {
           this.selectUnit(x, y, unit.movePoints);
         }
       }
       else if (this.selectedCoords && this.waveEngine.canMove(this.selectedCoords, [x, y])) {
+        // Move unit to clicked cell - this will emit 'moveUnit' event
+        // which will be handled by MultiplayerDinoGame to send to server
         this.moveUnit(this.selectedCoords, [x, y]);
       }
     },
