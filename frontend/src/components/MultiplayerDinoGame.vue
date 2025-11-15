@@ -317,6 +317,10 @@ export default {
             console.log('Joined game, received state:', gameState);
             // Initialize game state from server
             this.initializeFromServerState(gameState);
+            // Initialize scrollCoords once at the beginning of the game
+            this.$nextTick(() => {
+              this.initScrollCoordsOnce();
+            });
           },
           onStateUpdate: (patch, serverTick) => {
             console.log('State update received:', patch, serverTick);
@@ -325,6 +329,7 @@ export default {
           onGameStarted: (gameState) => {
             console.log('Game started event:', gameState);
             // Update field and state from server, normalize to model instances
+            // Note: This callback is never called for Game WebSocket (only for Lobby WebSocket)
             if (gameState.field) {
               this.localField = normalizeField(JSON.parse(JSON.stringify(gameState.field)));
             }
@@ -383,6 +388,11 @@ export default {
           const normalizedField = normalizeField(patch.field);
           console.log('[DEBUG] Normalized field, length:', normalizedField.length);
           this.localField = normalizedField;
+          
+          // IMPORTANT: After full field replacement, the server may have set isHidden
+          // based on normal visibility, but we need to preserve scout-revealed cells
+          // Restore them immediately after field update
+          this.ensureScoutRevealedVisible();
         }
         
         // Update engines immediately with new field reference
@@ -415,7 +425,20 @@ export default {
         console.log('[DEBUG] Engines updated with new field');
         
         // Ensure scout-revealed cells remain visible after field updates
+        // (Called again here in case engines modified the field)
         this.ensureScoutRevealedVisible();
+        
+        // Check if the last move was to an obelisk and trigger scouting action
+        if (patch.lastMove && patch.lastMove.toCoords && this.fieldEngine) {
+          const [x, y] = patch.lastMove.toCoords;
+          if (this.localField[x] && this.localField[x][y] && this.localField[x][y].building) {
+            const action = this.fieldEngine.getActionTriggered(x, y);
+            if (action) {
+              console.log('[DEBUG] Obelisk detected at', x, y, '- triggering scouting action');
+              emitter.emit('setAction', action);
+            }
+          }
+        }
       }
       // Check if game ended first - if so, skip visibility recalculation and reveal everything
       const gameEnded = patch.gameEnded === true;
@@ -433,8 +456,8 @@ export default {
           this.scoutRevealedCoords.clear();
           // Recalculate visibility based on current player's units and buildings only (no scout-revealed coords)
           this.recalculateVisibilityForClient();
-          // Clear selected unit and highlighted cells
-          emitter.emit('initTurn', this.players[this.currentPlayer]?.scrollCoords || [0, 0]);
+          // Clear selected unit and highlighted cells (but don't change scrollCoords)
+          emitter.emit('initTurn');
         }
       }
       if (patch.players) {
@@ -456,7 +479,7 @@ export default {
           }
         }
         // Clear selected unit and highlighted cells
-        emitter.emit('initTurn', [0, 0]);
+        emitter.emit('initTurn');
       }
     },
     
@@ -514,7 +537,7 @@ export default {
       this.sendMoveToServer(payload);
       
     //   this.state = this.STATES.ready;
-      emitter.emit('saveCoords', this.players[this.currentPlayer]);
+      // Don't save scrollCoords - they should remain fixed after initial setup
     },
     
     startTurn() {
@@ -522,8 +545,10 @@ export default {
         this.state = this.STATES.play;
       }
       
+      // Don't change scrollCoords on turn change - they remain fixed after initial setup
+      // Just clear selected unit and highlighted cells
       if (this.isMyTurn) {
-        emitter.emit('initTurn', this.players[this.currentPlayer].scrollCoords || [0, 0]);
+        emitter.emit('initTurn');
       }
     },
     
@@ -631,6 +656,50 @@ export default {
       return coords;
     },
     
+    initScrollCoordsOnce() {
+      // Initialize scrollCoords once at the beginning of the game
+      // Find the first unit for the current player (or my player if it's my turn)
+      const playerOrder = this.myPlayerOrder;
+      
+      if (playerOrder === null || playerOrder === undefined) {
+        console.warn('[DEBUG] Cannot init scrollCoords - playerOrder not set');
+        return;
+      }
+      
+      // Find first unit for this player
+      let firstUnitCoords = null;
+      for (let x = 0; x < this.width; x++) {
+        if (!this.localField[x]) continue;
+        for (let y = 0; y < this.height; y++) {
+          const cell = this.localField[x] && this.localField[x][y];
+          if (cell && cell.unit && cell.unit.player === playerOrder) {
+            firstUnitCoords = [x, y];
+            break;
+          }
+        }
+        if (firstUnitCoords) break;
+      }
+      
+      if (firstUnitCoords && this.$refs.gameGridRef) {
+        // Get scroll coordinates for this cell from GameGrid component
+        const scrollCoords = this.$refs.gameGridRef.getScrollCoordsByCell(firstUnitCoords);
+        // Set scrollCoords for the current player
+        if (this.players[playerOrder]) {
+          this.players[playerOrder].scrollCoords = scrollCoords;
+        }
+        // Scroll to this position once
+        console.log('[DEBUG] initScrollCoordsOnce: Scrolling to', scrollCoords);
+        emitter.emit('initTurn', scrollCoords);
+      } else {
+        // No units found or GameGrid not mounted, use default
+        if (this.players[playerOrder]) {
+          this.players[playerOrder].scrollCoords = [0, 0];
+        }
+        console.log('[DEBUG] initScrollCoordsOnce: No units found, scrolling to [0, 0]');
+        emitter.emit('initTurn', [0, 0]);
+      }
+    },
+    
     changeCellSize(delta) {
       this.cellSize = Math.min(Math.max(10, this.cellSize + delta), 70);
     },
@@ -682,6 +751,7 @@ export default {
     },
     
     ensureScoutRevealedVisible() {
+      console.log('[DEBUG] ensureScoutRevealedVisible called', this.scoutRevealedCoords);
       // Keep scout-revealed cells visible even after visibility recalculations
       if (!this.localField || this.scoutRevealedCoords.size === 0) return;
       
@@ -706,6 +776,9 @@ export default {
           this.localField[curX][curY].isHidden = false;
         }
       }
+      
+      // Ensure scout-revealed cells remain visible after setting visibility for area
+      this.ensureScoutRevealedVisible();
     },
     
     addTempVisibilityForCoords(x, y, fogRadius) {
@@ -799,6 +872,10 @@ export default {
           }
         }
       }
+      
+      // IMPORTANT: Always restore scout-revealed cells after recalculating visibility
+      // Scout-revealed cells should remain visible regardless of unit positions
+      this.ensureScoutRevealedVisible();
     },
   },
 };

@@ -368,6 +368,7 @@ def apply_scout_txn(game_code: str, user_id: int, payload: dict, client_seq: int
         if not field or len(field) == 0:
             return False, {"code": "GAME_NOT_STARTED", "msg": "Game field not initialized"}
         
+        # TODO: Make the check more precise
         # Validate that player has a unit on an obelisk
         has_unit_on_obelisk = False
         for x in range(width):
@@ -414,16 +415,15 @@ def apply_scout_txn(game_code: str, user_id: int, payload: dict, client_seq: int
         newly_revealed_coords = revealed_coords - normal_visibility
         
         # Save revealed coordinates to GamePlayer (persist until turn ends)
-        if newly_revealed_coords:
-            # Get current scout-revealed coordinates
-            current_scout_coords = game_player.scout_revealed_coords if game_player.scout_revealed_coords else []
-            # Convert to list of lists for JSON storage
-            current_scout_set = {tuple(coord) for coord in current_scout_coords}
-            # Add newly revealed coordinates
-            updated_scout_set = current_scout_set | newly_revealed_coords
-            # Convert back to list of lists
-            game_player.scout_revealed_coords = [list(coord) for coord in updated_scout_set]
-            game_player.save(update_fields=['scout_revealed_coords'])
+        # Get current scout-revealed coordinates
+        current_scout_coords = game_player.scout_revealed_coords if game_player.scout_revealed_coords else []
+        # Convert to list of lists for JSON storage
+        current_scout_set = {tuple(coord) for coord in current_scout_coords}
+        # Add newly revealed coordinates
+        updated_scout_set = current_scout_set | revealed_coords
+        # Convert back to list of lists
+        game_player.scout_revealed_coords = [list(coord) for coord in updated_scout_set]
+        game_player.save(update_fields=['scout_revealed_coords'])
         
         # Create a partial field patch - only update newly revealed cells
         # Use None for cells that shouldn't be updated (client keeps existing values)
