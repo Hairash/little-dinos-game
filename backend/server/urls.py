@@ -28,6 +28,7 @@ urlpatterns = [
     path("auth/signout/", auth.signout, name="signout"),                 # POST
     path("auth/whoami/", auth.whoami, name="whoami"),                     # GET
     path("games/", views.create_game, name="create-game"),                   # POST
+    path("games/active/", views.get_active_games, name="get-active-games"),    # GET
     path("games/<str:game_code>/join/", views.join_game, name="join-game"),        # POST
     path("games/<str:game_code>/start/", views.start_game, name="start-game"),     # POST
     path("games/<str:game_code>/", views.get_game, name="get-game"),               # GET

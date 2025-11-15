@@ -31,12 +31,15 @@ def apply_move_txn(game_code: str, user_id: int, payload: dict, client_seq: int)
         # Note: Can't use select_related with select_for_update on nullable FK
         # This ensures row-level locking works correctly
         game = Game.objects.select_for_update().get(game_code=game_code)
+        # print(f"[DEBUG] apply_move_txn: game={game}")
+        # print(f"[DEBUG] apply_move_txn: game.field={game.field}")
+        # print(f"[DEBUG] apply_move_txn: game.settings={game.settings}")
+        # print(f"[DEBUG] apply_move_txn: game.turn_player_id={game.turn_player_id}")
+        # print(f"[DEBUG] apply_move_txn: game.turn_player={game.turn_player}")
+        # print(f"[DEBUG] apply_move_txn: game.turn_player_id={game.turn_player_id}")
+        # print(f"[DEBUG] apply_move_txn: game.status={game.status}")
+        # print(f"[DEBUG] apply_move_txn: game.players={game.players}")
 
-        print(f'user_id: {user_id}')
-        print(f'game: {game}')
-        print(f'game.turn_player_id: {game.turn_player_id}')
-        print(f'game.turn_player: {game.turn_player}')
-        print(f'game.turn_player_id: {game.turn_player_id}')
         # membership guard
         if not GamePlayer.objects.filter(game=game, player_id=user_id).exists():
             return False, {"code": "NOT_IN_GAME", "msg": "Join first"}
@@ -47,6 +50,7 @@ def apply_move_txn(game_code: str, user_id: int, payload: dict, client_seq: int)
 
         # idempotency: if we already processed this client_seq, return the last tick/patch
         if Move.objects.filter(game=game, player_id=user_id, client_seq=client_seq).exists():
+            # print(f"[DEBUG] apply_move_txn: idempotency: move already processed")
             return True, {"patch": {}, "server_tick": now_ms()}  # or return cached patch
 
         # ---- your game rules here ----
@@ -74,10 +78,10 @@ def apply_move_txn(game_code: str, user_id: int, payload: dict, client_seq: int)
         # If fog of war is disabled, all cells are visible (isHidden=False), so they can move anywhere
         enable_scout_mode = True
         
-        print(f"[DEBUG] apply_move_txn: user_id={user_id}, player_order={player_order}")
-        print(f"[DEBUG] Field dimensions: width={width}, height={height}, field structure: {len(field)} columns")
-        if len(field) > 0:
-            print(f"[DEBUG] First column has {len(field[0])} rows")
+        # print(f"[DEBUG] apply_move_txn: user_id={user_id}, player_order={player_order}")
+        # print(f"[DEBUG] Field dimensions: width={width}, height={height}, field structure: {len(field)} columns")
+        # if len(field) > 0:
+            # print(f"[DEBUG] First column has {len(field[0])} rows")
         
         # Calculate visibility for the player making the move
         # This ensures we validate moves based on what the player can actually see

@@ -104,6 +104,8 @@ export default {
       cellSize: 30,
       gameWs: null,
       clientSeq: 0,
+      reconnectAttempts: 0,  // Track reconnect attempts for UI
+      isInitialConnect: true,  // Track if this is the first connection
       // Settings from props
       width: 20,
       height: 20,
@@ -313,14 +315,42 @@ export default {
           onOpen: () => {
             console.log('Game WebSocket connected');
           },
+          onReconnected: () => {
+            console.log('[WS] Successfully reconnected to game');
+            this.reconnectAttempts = 0;
+            this.isInitialConnect = false;  // Mark that we've reconnected
+            // State will be synced via onJoined callback when server sends full state
+          },
+          onReconnecting: (attempt, delay) => {
+            console.warn(`[WS] Reconnecting... (attempt ${attempt}, next try in ${delay}ms)`);
+            this.reconnectAttempts = attempt;
+            // Could show a UI notification here if needed
+          },
+          onMaxReconnectAttempts: () => {
+            console.error('[WS] Failed to reconnect after maximum attempts');
+            // Could show an error message to user here
+          },
           onJoined: (gameState) => {
             console.log('Joined game, received state:', gameState);
+            // Update clientSeq from server if provided (for reconnection)
+            // The server sends the last clientSeq that was processed for this player
+            // We set it to that value, and sendMoveToServer will increment it before sending
+            // So the next move will be lastClientSeq + 1, which is correct
+            if (gameState.lastClientSeq !== undefined) {
+              console.log(`[WS] Setting clientSeq to ${gameState.lastClientSeq} (next move will be ${gameState.lastClientSeq + 1})`);
+              this.clientSeq = gameState.lastClientSeq;
+            }
             // Initialize game state from server
+            // This is called both on initial connect and on reconnect
             this.initializeFromServerState(gameState);
             // Initialize scrollCoords once at the beginning of the game
-            this.$nextTick(() => {
-              this.initScrollCoordsOnce();
-            });
+            // Only do this on initial connect, not on reconnect
+            if (this.isInitialConnect) {
+              this.isInitialConnect = false;
+              this.$nextTick(() => {
+                this.initScrollCoordsOnce();
+              });
+            }
           },
           onStateUpdate: (patch, serverTick) => {
             console.log('State update received:', patch, serverTick);

@@ -1,7 +1,7 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
-from .models import Game, GamePlayer
+from .models import Game, GamePlayer, Move
 from .services.general import apply_move_txn, apply_end_turn_txn, apply_scout_txn
 from .services.visibility import filter_field_for_player
 
@@ -30,11 +30,11 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         )
 
     async def receive_json(self, msg, **_):
+        print(f"[DEBUG] receive_json: msg={msg}")
         if msg.get("t") != "move":
             return await self.send_json({"t": "err", "code": "UNKNOWN"})
         payload = msg.get("payload", {})
         client_seq = msg.get("clientSeq", 0)
-        print(f"self.user: {self.user.__dict__}")
         user_id = getattr(self.user, "id", None)
 
         # Check message type
@@ -64,12 +64,17 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             )
         
         if not ok:
+            print(f"[DEBUG] receive_json: error applying move: {res}")
             return await self.send_json({"t": "err", **res})
 
-        await self.channel_layer.group_send(
-            room(self.game_code),
-            {"type": "patch", "patch": res["patch"], "serverTick": res["server_tick"]},
-        )
+        print(f"[DEBUG] receive_json: sending patch")
+        try:
+            await self.channel_layer.group_send(
+                room(self.game_code),
+                {"type": "patch", "patch": res["patch"], "serverTick": res["server_tick"]},
+            )
+        except Exception as e:
+            print(f"[DEBUG] receive_json: error sending patch: {e}")
 
     async def patch(self, event):
         # Filter patch field based on player's visibility if field is included
@@ -112,8 +117,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 player_order = game_player.order
                 # Debug: List all players in this game
                 all_players = list(GamePlayer.objects.filter(game=g).order_by('order').values('player_id', 'player__username', 'order'))
-                print(f"[DEBUG] _get_full_state: user_id={user_id}, player_order={player_order}, username={game_player.player.username}")
-                print(f"[DEBUG] All players in game: {all_players}")
+                # print(f"[DEBUG] _get_full_state: user_id={user_id}, player_order={player_order}, username={game_player.player.username}")
+                # print(f"[DEBUG] All players in game: {all_players}")
             except GamePlayer.DoesNotExist:
                 print(f"[DEBUG] _get_full_state: user_id={user_id}, GamePlayer not found")
         else:
@@ -136,7 +141,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         effective_fog_of_war = enable_fog_of_war and not game_ended
         
         if player_order is not None and field:
-            print(f"[DEBUG] Filtering field for player_order={player_order}, enable_fog_of_war={enable_fog_of_war}, game_ended={game_ended}")
+            # print(f"[DEBUG] Filtering field for player_order={player_order}, enable_fog_of_war={enable_fog_of_war}, game_ended={game_ended}")
             # Get scout-revealed coordinates for this player (only relevant when fog of war is enabled)
             if effective_fog_of_war:
                 try:
@@ -159,6 +164,13 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             except GamePlayer.DoesNotExist:
                 pass
         
+        # Get last clientSeq for this player (for reconnection)
+        last_client_seq = 0
+        if user_id:
+            last_move = Move.objects.filter(game=g, player_id=user_id).order_by('-client_seq').first()
+            if last_move:
+                last_client_seq = last_move.client_seq
+        
         # Return exactly the shape your client expects
         return {
             "gameCode": g.game_code,
@@ -175,6 +187,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 }
                 for gp in g.players.select_related("player").order_by("order")
             ],
+            "lastClientSeq": last_client_seq,  # Last clientSeq for this player (for reconnection)
         }
     
     @database_sync_to_async
@@ -218,7 +231,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 try:
                     game_player = GamePlayer.objects.get(game=g, player_id=user_id)
                     scout_revealed_coords = game_player.scout_revealed_coords if game_player.scout_revealed_coords else None
-                    print(f"[DEBUG] _filter_patch_for_player: user_id={user_id}, player_order={player_order}, scout_revealed_coords={scout_revealed_coords}, game_ended={game_ended}")
+                    # print(f"[DEBUG] _filter_patch_for_player: user_id={user_id}, player_order={player_order}, scout_revealed_coords={scout_revealed_coords}, game_ended={game_ended}")
                 except GamePlayer.DoesNotExist:
                     pass
             field = filter_field_for_player(

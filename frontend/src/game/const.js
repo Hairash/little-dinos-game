@@ -55,7 +55,7 @@ export const DEFAULT_BUILDING_RATES = {
   temple: 2,
   well: 1,
   storage: 2,
-  obelisk: 1,
+  obelisk: 5,
 };
 
 export const GAME_STATES = {
@@ -100,8 +100,8 @@ export const INITIAL_SETTINGS = {
 
 export const MULTIPLAYER_INITIAL_SETTINGS = {
   ...INITIAL_SETTINGS,
-  // width: 5,
-  // height: 5,
+  width: 16,
+  height: 16,
   humanPlayersNum: 2,
   botPlayersNum: 0,
   // minSpeed: 5,
