@@ -494,46 +494,14 @@ export default {
         return;
       }
       
-      console.log('[DEBUG] moveUnit: Moving unit from', fromCoords, 'to', toCoords);
+      console.log('[DEBUG] moveUnit: Sending move to server from', fromCoords, 'to', toCoords);
       
-      // Send move to server
+      // Send move to server - wait for server response to update the field
       const payload = {
         fromCoords: fromCoords,
         toCoords: toCoords,
       };
       this.sendMoveToServer(payload);
-      
-      // Optimistically update local state (will be confirmed by server)
-      // Note: fieldEngine.moveUnit modifies the field in place
-      // Since fieldEngine.field is the same reference as localField, this should work
-      this.fieldEngine.moveUnit(x0, y0, x1, y1, unit);
-      
-      // Also explicitly update localField to ensure Vue reactivity
-      // The fieldEngine.field reference should be the same, but let's be explicit
-      if (this.localField[x0] && this.localField[x0][y0]) {
-        this.localField[x0][y0].unit = null;
-      }
-      if (this.localField[x1] && this.localField[x1][y1]) {
-        this.localField[x1][y1].unit = unit;
-      }
-      
-      const buildingCaptured = this.fieldEngine.captureBuildingIfNeeded(x1, y1, unit.player);
-      const action = this.fieldEngine.getActionTriggered(x1, y1);
-      if (action) {
-        emitter.emit('setAction', action);
-      }
-      this.fieldEngine.killNeighbours(x1, y1, unit.player);
-      
-      if (this.doesVisibilityMakeSense()) {
-        this.setVisibilityForArea(x0, y0, unit.visibility);
-        const visibility = buildingCaptured ? Math.max(unit.visibility, this.fogOfWarRadius) : unit.visibility;
-        this.addVisibilityForCoords(x1, y1, visibility);
-      }
-      
-      // Ensure scout-revealed cells remain visible after unit moves
-      this.ensureScoutRevealedVisible();
-      
-      console.log('[DEBUG] moveUnit: Optimistic update complete');
     },
     
     processEndTurn() {
