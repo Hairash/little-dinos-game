@@ -163,3 +163,59 @@ def get_game(request, game_code):
     """Get a game."""
     game = Game.objects.get(game_code=game_code)
     return JsonResponse(game.to_dict())
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_active_games(request):
+    """Get active (unfinished) games the user has joined."""
+    # Find all games where:
+    # 1. User is a player
+    # 2. Game status is 'playing' (not 'ready' or 'ended')
+    try:
+        # Get limit parameter (default 10, 'all' means no limit)
+        limit_param = request.GET.get('limit')
+        
+        game_players_query = GamePlayer.objects.filter(
+            player=request.user,
+            game__status='playing'
+        ).select_related('game').order_by('-game__created_at')
+        
+        # Get total count before limiting
+        total_count = game_players_query.count()
+        
+        # Apply limit: default to 10, or use 'all' to get everything
+        if limit_param == 'all' or limit_param == 'null':
+            # Load all games (no limit)
+            game_players = game_players_query
+        else:
+            # Use provided limit or default to 10
+            limit = int(limit_param) if limit_param else 10
+            game_players = game_players_query[:limit]
+        
+        games = []
+        for game_player in game_players:
+            game = game_player.game
+            games.append({
+                "gameCode": game.game_code,
+                "status": game.status,
+                "settings": game.settings,
+                "turnPlayer": game.turn_player.username if game.turn_player else None,
+                "players": [
+                    {
+                        "id": gp.player.id,
+                        "username": gp.player.username,
+                        "order": gp.order,
+                    }
+                    for gp in game.players.select_related("player").order_by("order")
+                ],
+            })
+        
+        return JsonResponse({
+            "games": games,
+            "total": total_count,
+            "hasMore": total_count > len(games)
+        })
+    except Exception as e:
+        print(f"Error getting active games: {e}")
+        return JsonResponse({"games": [], "total": 0, "hasMore": False})

@@ -36,3 +36,17 @@ export async function startMultiplayerGame(gameCode) {
   }
   return response.json();
 }
+
+export async function getActiveGames(limit = 10) {
+  const url = limit === null || limit === undefined
+    ? `${API_URL}/games/active/?limit=all`
+    : `${API_URL}/games/active/?limit=${limit}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error((await response.json()).detail || 'Get active games failed');
+  }
+  return response.json();
+}

@@ -82,14 +82,14 @@ def can_reach(field, width, height, x0, y0, x1, y1, move_points, enable_scout_mo
     Check if destination (x1, y1) is reachable from (x0, y0) within move_points.
     Uses wave algorithm (BFS) to find shortest path.
     """
-    print(f"[DEBUG] can_reach: from=({x0},{y0}), to=({x1},{y1}), move_points={move_points}")
+    # print(f"[DEBUG] can_reach: from=({x0},{y0}), to=({x1},{y1}), move_points={move_points}")
     wave_field = get_wave_field(field, width, height, enable_scout_mode)
     
     # Debug: check source and destination in wave field
-    if x0 < len(wave_field) and y0 < len(wave_field[x0]):
-        print(f"[DEBUG] wave_field[{x0}][{y0}] = {wave_field[x0][y0]}")
-    if x1 < len(wave_field) and y1 < len(wave_field[x1]):
-        print(f"[DEBUG] wave_field[{x1}][{y1}] = {wave_field[x1][y1]}")
+    # if x0 < len(wave_field) and y0 < len(wave_field[x0]):
+    #     print(f"[DEBUG] wave_field[{x0}][{y0}] = {wave_field[x0][y0]}")
+    # if x1 < len(wave_field) and y1 < len(wave_field[x1]):
+    #     print(f"[DEBUG] wave_field[{x1}][{y1}] = {wave_field[x1][y1]}")
     
     wave_field[x0][y0] = 0
     wave = [[x0, y0]]
@@ -102,23 +102,23 @@ def can_reach(field, width, height, x0, y0, x1, y1, move_points, enable_scout_mo
         s = wave_field[x][y] + 1
         
         if s > move_points:
-            print(f"[DEBUG] can_reach: exceeded move_points at step {s}")
+            # print(f"[DEBUG] can_reach: exceeded move_points at step {s}")
             return False
         
         neighbours = get_neighbours(wave_field, x, y, width, height)
-        print(f"[DEBUG] can_reach: at ({x},{y}), step={s-1}, found {len(neighbours)} neighbours")
+        # print(f"[DEBUG] can_reach: at ({x},{y}), step={s-1}, found {len(neighbours)} neighbours")
         
         for neighbour in neighbours:
             cur_x, cur_y = neighbour
             if cur_x == x1 and cur_y == y1:
-                print(f"[DEBUG] can_reach: found destination at step {s}")
+                # print(f"[DEBUG] can_reach: found destination at step {s}")
                 return True
             if (cur_x, cur_y) not in visited and (wave_field[cur_x][cur_y] is None or wave_field[cur_x][cur_y] > s):
                 wave_field[cur_x][cur_y] = s
                 wave.append([cur_x, cur_y])
                 visited.add((cur_x, cur_y))
     
-    print(f"[DEBUG] can_reach: exhausted all possibilities, destination not reached")
+    # print(f"[DEBUG] can_reach: exhausted all possibilities, destination not reached")
     return False
 
 
@@ -131,7 +131,7 @@ def validate_move(field, width, height, from_coords, to_coords, player_order, en
     x0, y0 = from_coords
     x1, y1 = to_coords
     
-    print(f"[DEBUG] validate_move: from=({x0},{y0}), to=({x1},{y1}), player_order={player_order}, enable_scout_mode={enable_scout_mode}")
+    # print(f"[DEBUG] validate_move: from=({x0},{y0}), to=({x1},{y1}), player_order={player_order}, enable_scout_mode={enable_scout_mode}")
     
     # Check bounds
     if x0 < 0 or x0 >= width or y0 < 0 or y0 >= height:
@@ -148,15 +148,15 @@ def validate_move(field, width, height, from_coords, to_coords, player_order, en
     source_cell = field[x0][y0]
     dest_cell = field[x1][y1]
     
-    print(f"[DEBUG] source_cell: {source_cell}")
-    print(f"[DEBUG] dest_cell: {dest_cell}")
+    # print(f"[DEBUG] source_cell: {source_cell}")
+    # print(f"[DEBUG] dest_cell: {dest_cell}")
     
     # Check source has a unit
     unit = source_cell.get('unit')
     if not unit:
         return False, "No unit at source cell"
     
-    print(f"[DEBUG] unit found: player={unit.get('player')}, movePoints={unit.get('movePoints')}, hasMoved={unit.get('hasMoved')}")
+    # print(f"[DEBUG] unit found: player={unit.get('player')}, movePoints={unit.get('movePoints')}, hasMoved={unit.get('hasMoved')}")
     
     # Check unit belongs to player
     if unit.get('player') != player_order:
@@ -177,7 +177,7 @@ def validate_move(field, width, height, from_coords, to_coords, player_order, en
     
     # Check reachability
     move_points = unit.get('movePoints', 0)
-    print(f"[DEBUG] Checking reachability: move_points={move_points}, distance={abs(x1-x0) + abs(y1-y0)}")
+    # print(f"[DEBUG] Checking reachability: move_points={move_points}, distance={abs(x1-x0) + abs(y1-y0)}")
     if not can_reach(field, width, height, x0, y0, x1, y1, move_points, enable_scout_mode):
         return False, "Destination is not reachable within unit's move points"
     

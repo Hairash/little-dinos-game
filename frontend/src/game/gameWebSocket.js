@@ -13,6 +13,11 @@ export class GameWebSocket {
     this.getAppState = getAppState;  // Function to get current app state: () => { state, gameCode }
     this.ws = null;
     this.reconnectTimeout = null;  // Store timeout ID to clear it if needed
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 10;  // Maximum number of reconnect attempts
+    this.reconnectDelay = 1000;  // Initial delay in ms (will increase exponentially)
+    this.isReconnecting = false;
+    this.isConnected = false;
   }
 
   connect() {
@@ -20,13 +25,29 @@ export class GameWebSocket {
       return; // Already connected
     }
 
+    // Clear any existing reconnect timeout
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
     const url = WS_URL + '/ws/game/' + this.gameCode + '/';
+    console.log(`[WS] Connecting to ${url} (attempt ${this.reconnectAttempts + 1})`);
     this.ws = new WebSocket(url);
+    this.isReconnecting = this.reconnectAttempts > 0;
 
     this.ws.onopen = () => {
-      console.log('Game WebSocket connected');
+      const wasReconnecting = this.reconnectAttempts > 0;
+      console.log('Game WebSocket connected', wasReconnecting ? '(reconnected)' : '');
+      this.isConnected = true;
+      this.isReconnecting = false;
+      this.reconnectAttempts = 0;  // Reset on successful connection
+      this.reconnectDelay = 1000;  // Reset delay
       if (this.callbacks.onOpen) {
         this.callbacks.onOpen();
+      }
+      if (wasReconnecting && this.callbacks.onReconnected) {
+        this.callbacks.onReconnected();
       }
     };
 
@@ -72,18 +93,42 @@ export class GameWebSocket {
       }
     };
 
-    this.ws.onclose = () => {
-      console.log('Game WebSocket disconnected');
+    this.ws.onclose = (event) => {
+      console.log('Game WebSocket disconnected', { code: event.code, reason: event.reason, wasClean: event.wasClean });
+      this.isConnected = false;
+      
       if (this.callbacks.onClose) {
         this.callbacks.onClose();
       }
-      // Check if we should reconnect based on current app state
-      this.reconnectTimeout = setTimeout(() => {
-        if (this.shouldReconnect()) {
-          this.connect();
+      
+      // Don't reconnect if it was a clean close (intentional disconnect)
+      // or if we've exceeded max attempts
+      if (event.wasClean || this.reconnectAttempts >= this.maxReconnectAttempts) {
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+          console.error(`[WS] Max reconnect attempts (${this.maxReconnectAttempts}) reached. Stopping reconnection.`);
+          if (this.callbacks.onMaxReconnectAttempts) {
+            this.callbacks.onMaxReconnectAttempts();
+          }
         }
-        this.reconnectTimeout = null;
-      }, 3000);
+        return;
+      }
+      
+      // Check if we should reconnect based on current app state
+      if (this.shouldReconnect()) {
+        this.reconnectAttempts++;
+        // Exponential backoff: 1s, 2s, 4s, 8s, 16s, max 30s
+        const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), 30000);
+        console.log(`[WS] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+        
+        if (this.callbacks.onReconnecting) {
+          this.callbacks.onReconnecting(this.reconnectAttempts, delay);
+        }
+        
+        this.reconnectTimeout = setTimeout(() => {
+          this.reconnectTimeout = null;
+          this.connect();
+        }, delay);
+      }
     };
   }
 
@@ -94,9 +139,16 @@ export class GameWebSocket {
         payload,
         clientSeq,
       }));
+      return true;
     } else {
-      console.error('WebSocket is not connected');
+      console.warn('[WS] Cannot send move - WebSocket not connected. State:', this.ws?.readyState);
+      // If reconnecting, the move will be lost, but server will sync state on reconnect
+      return false;
     }
+  }
+  
+  isReady() {
+    return this.ws && this.ws.readyState === WebSocket.OPEN;
   }
 
   shouldReconnect() {
@@ -118,8 +170,15 @@ export class GameWebSocket {
       this.reconnectTimeout = null;
     }
     
+    // Reset reconnect state
+    this.reconnectAttempts = 0;
+    this.reconnectDelay = 1000;
+    this.isReconnecting = false;
+    this.isConnected = false;
+    
     if (this.ws) {
-      this.ws.close();
+      // Close with code 1000 (normal closure) to prevent reconnection
+      this.ws.close(1000, 'Intentional disconnect');
       this.ws = null;
     }
   }

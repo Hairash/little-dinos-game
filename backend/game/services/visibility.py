@@ -98,7 +98,7 @@ def calculate_visibility(field, width, height, player_order, fog_of_war_radius, 
                 if 0 <= x < width and 0 <= y < height:
                     visible_coords.add((x, y))
     
-    print(f"[DEBUG] calculate_visibility: player_order={player_order}, found {len(player_units_found)} units at {player_units_found}, {len(player_buildings_found)} buildings at {player_buildings_found}, scout_revealed={len(scout_revealed_coords) if scout_revealed_coords else 0}, visible_cells={len(visible_coords)}")
+    # print(f"[DEBUG] calculate_visibility: player_order={player_order}, found {len(player_units_found)} units at {player_units_found}, {len(player_buildings_found)} buildings at {player_buildings_found}, scout_revealed={len(scout_revealed_coords) if scout_revealed_coords else 0}, visible_cells={len(visible_coords)}")
     
     return visible_coords
 

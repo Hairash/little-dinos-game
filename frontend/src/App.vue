@@ -9,6 +9,7 @@
     :gameCode="currentGameCode"
     :getAppState="getAppState"
     @gameStarted="handleGameStarted"
+    @connectToGame="connectToGame"
   />
   <GameMenu
     v-if="state === GAME_STATES.menu"
@@ -210,6 +211,20 @@ export default {
     },
     setError(error) {
       this.currentError = error;
+    },
+    connectToGame(game) {
+      console.log('Connecting to game:', game.gameCode);
+      // Set game code and state
+      this.currentGameCode = game.gameCode;
+      // Store game state
+      if (game.settings) {
+        this.settings = typeof game.settings === 'string' 
+          ? JSON.parse(game.settings) 
+          : game.settings;
+      }
+      this.currentGameState = game;
+      // Navigate to game
+      this.state = GAME_STATES.game;
     },
   },
   beforeUnmount() {
