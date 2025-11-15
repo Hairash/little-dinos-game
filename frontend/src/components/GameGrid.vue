@@ -185,12 +185,14 @@ export default {
     emitter.off('getScrollCoordsByCell', this.getScrollCoordsByCell);
   },
   methods: {
-    initTurn(scrollCoords) {
+    initTurn(scrollCoords=null) {
       // console.log(scrollCoords);
       this.selectedCoords = null;
       this.selectedAction = null;
       this.removeHighlights();
-      this.$refs.gameGridContainer.scrollTo(...scrollCoords);
+      if (scrollCoords) {
+        this.$refs.gameGridContainer.scrollTo(...scrollCoords);
+      }
     },
     selectNextUnit(unitCoordsArr) {
       let coords = unitCoordsArr[0];
