@@ -60,6 +60,7 @@ def signout(request):
     return JsonResponse({"ok": True})
 
 
+@csrf_exempt  # GET requests with credentials from different origin may need this
 def whoami(request):
     if request.user.is_authenticated:
         return JsonResponse(

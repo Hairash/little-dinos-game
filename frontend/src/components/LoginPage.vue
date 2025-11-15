@@ -47,7 +47,7 @@ export default {
 
 <style>
 #login-page {
-  background-image: url('/images/login_background.png');
+  /* background-image: url('/images/login_background.png'); */
   width: 100vw;
   height: 100vh;
   overflow: auto;

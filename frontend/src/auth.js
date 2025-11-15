@@ -1,7 +1,7 @@
-const API = (p) => 'http://localhost:8008' + p;
+import { API_URL } from '@/config';
 
 export async function signup(username, password) {
-  const r = await fetch(API('/auth/signup/'), {
+  const r = await fetch(API_URL + '/auth/signup/', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -12,7 +12,7 @@ export async function signup(username, password) {
 }
 
 export async function signin(username, password) {
-  const r = await fetch(API('/auth/signin/'), {
+  const r = await fetch(API_URL + '/auth/signin/', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -23,10 +23,14 @@ export async function signin(username, password) {
 }
 
 export async function whoami() {
-  const r = await fetch(API('/auth/whoami/'), { credentials: 'include' });
+  const r = await fetch(API_URL + '/auth/whoami/', { credentials: 'include' });
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`whoami failed: ${r.status} ${text}`);
+  }
   return r.json();
 }
 
 export async function signout() {
-  await fetch(API('/auth/signout/'), { method: 'POST', credentials: 'include' });
+  await fetch(API_URL + '/auth/signout/', { method: 'POST', credentials: 'include' });
 }

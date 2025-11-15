@@ -1,8 +1,8 @@
 import { MULTIPLAYER_INITIAL_SETTINGS } from '@/game/const';
-const API = (p) => 'http://localhost:8008' + p;
+import { API_URL } from '@/config';
 
 export async function createGame() {
-  const response = await fetch(API('/games/'), {
+  const response = await fetch(API_URL + '/games/', {
     method: 'POST',
     credentials: 'include',
   });
@@ -14,7 +14,7 @@ export async function createGame() {
 
 export async function joinGame(gameCode) {
   console.log('Joining game call', gameCode);
-  const response = await fetch(API(`/games/${gameCode}/join/`), {
+  const response = await fetch(API_URL + `/games/${gameCode}/join/`, {
     method: 'POST',
     credentials: 'include',
   });
@@ -26,7 +26,7 @@ export async function joinGame(gameCode) {
 
 export async function startMultiplayerGame(gameCode) {
   console.log('Starting multiplayer game call', gameCode);
-  const response = await fetch(API(`/games/${gameCode}/start/`), {
+  const response = await fetch(API_URL + `/games/${gameCode}/start/`, {
     method: 'POST',
     credentials: 'include',
     body: JSON.stringify(MULTIPLAYER_INITIAL_SETTINGS),
