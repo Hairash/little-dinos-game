@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,17 +22,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-=m!dtx2tnzu5ol!r)t@&#kki*u+x!s54ny24msfj_#w5=-6md9"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-=m!dtx2tnzu5ol!r)t@&#kki*u+x!s54ny24msfj_#w5=-6md9")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ["*"]  # dev
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
+print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
 
 # CORS
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
+cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "")
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(",") if origin.strip()] if cors_origins else []
+csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins.split(",") if origin.strip()] if csrf_origins else []
+print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
+print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     "accept",
@@ -45,8 +50,10 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
 ]
 CSRF_COOKIE_HTTPONLY = False  # so SPA can read cookie (or keep True and echo via meta tag)
-CSRF_TRUSTED_ORIGINS = ["http://localhost:5173", "https://your.site"]
-SESSION_COOKIE_SAMESITE = "Lax"  # or "None" with HTTPS
+CSRF_COOKIE_SAMESITE = "None" if not DEBUG else "Lax"  # "None" required for cross-origin with credentials
+CSRF_COOKIE_SECURE = not DEBUG  # Required when SameSite=None
+SESSION_COOKIE_SAMESITE = "None" if not DEBUG else "Lax"  # "None" required for cross-origin with credentials
+SESSION_COOKIE_SECURE = not DEBUG  # Required when SameSite=None
 
 
 # Application definition
@@ -99,25 +106,42 @@ ASGI_APPLICATION = "server.asgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("PGDATABASE", "dinos"),
-        "USER": os.getenv("PGUSER", "postgres"),
-        "PASSWORD": os.getenv("PGPASSWORD", "postgres"),
-        "HOST": os.getenv("PGHOST", "127.0.0.1"),
-        "PORT": os.getenv("PGPORT", "5432"),
-        "CONN_MAX_AGE": 60,  # keep-alive
-        "OPTIONS": { "sslmode": os.getenv("PGSSLMODE", "disable") },
+db_url = os.environ.get("DATABASE_URL")
+if db_url:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            db_url,
+            conn_max_age=600,
+            ssl_require=not DEBUG,  # SSL required in production, optional in dev
+        )
     }
-}
+else:
+    # Fallback for build-time / dev without DATABASE_URL
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {"hosts": [("127.0.0.1", 6379)]},
+redis_url = os.environ.get("REDIS_URL")
+if redis_url:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [redis_url],
+            },
+        }
     }
-}
+else:
+    # In-memory layer for build / local dev without Redis
+    from channels.layers import InMemoryChannelLayer
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        }
+    }
 
 
 # Password validation

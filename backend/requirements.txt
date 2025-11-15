@@ -6,3 +6,4 @@ redis
 psycopg[binary]>=3.1
 whitenoise
 django-cors-headers
+dj-database-url

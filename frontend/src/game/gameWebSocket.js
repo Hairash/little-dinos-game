@@ -4,11 +4,7 @@
 
 import { shouldGameReconnect } from './connectionState';
 
-const WS_URL = (gameCode) => {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = 'localhost:8008';
-  return `${protocol}//${host}/ws/game/${gameCode}/`;
-};
+import { WS_URL } from '@/config';
 
 export class GameWebSocket {
   constructor(gameCode, callbacks = {}, getAppState = null) {
@@ -24,7 +20,7 @@ export class GameWebSocket {
       return; // Already connected
     }
 
-    const url = WS_URL(this.gameCode);
+    const url = WS_URL + '/ws/game/' + this.gameCode + '/';
     this.ws = new WebSocket(url);
 
     this.ws.onopen = () => {

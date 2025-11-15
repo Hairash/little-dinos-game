@@ -3,12 +3,8 @@
  */
 
 import { shouldLobbyReconnect } from './connectionState';
+import { WS_URL } from '@/config';
 
-const WS_URL = (gameCode) => {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = 'localhost:8008';
-  return `${protocol}//${host}/ws/lobby/${gameCode}/`;
-};
 
 export class LobbyWebSocket {
   constructor(gameCode, callbacks = {}, getAppState = null) {
@@ -24,7 +20,7 @@ export class LobbyWebSocket {
       return; // Already connected
     }
 
-    const url = WS_URL(this.gameCode);
+    const url = WS_URL + '/ws/lobby/' + this.gameCode + '/';
     this.ws = new WebSocket(url);
 
     this.ws.onopen = () => {
