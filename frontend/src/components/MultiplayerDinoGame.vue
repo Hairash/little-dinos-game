@@ -39,6 +39,17 @@
     :handle-cancel="() => state = STATES.play"
     :handle-confirm="exitGame"
   />
+  <!-- Notifications -->
+  <div id="notifications-container">
+    <div
+      v-for="notification in notifications"
+      :key="notification.id"
+      :class="['notification', `notification-${notification.type}`]"
+      @click="dismissNotification(notification.id)"
+    >
+      {{ notification.message }}
+    </div>
+  </div>
 </template>
 
 <script>
@@ -106,6 +117,7 @@ export default {
       clientSeq: 0,
       reconnectAttempts: 0,  // Track reconnect attempts for UI
       isInitialConnect: true,  // Track if this is the first connection
+      notifications: [],  // Array of notification objects: { id, message, type }
       // Settings from props
       width: 20,
       height: 20,
@@ -319,6 +331,8 @@ export default {
             console.log('[WS] Successfully reconnected to game');
             this.reconnectAttempts = 0;
             this.isInitialConnect = false;  // Mark that we've reconnected
+            // Show notification for reconnection
+            this.showNotification('You are reconnected', 'reconnect');
             // State will be synced via onJoined callback when server sends full state
           },
           onReconnecting: (attempt, delay) => {
@@ -369,6 +383,18 @@ export default {
           },
           onClose: () => {
             console.log('Game WebSocket disconnected');
+            // Show notification for own disconnection
+            this.showNotification('You are disconnected', 'disconnect');
+          },
+          onPlayerDisconnected: (player) => {
+            console.log('Player disconnected:', player);
+            // Show notification for other player's disconnection
+            this.showNotification(`Player ${player.username} disconnected`, 'disconnect');
+          },
+          onPlayerReconnected: (player) => {
+            console.log('Player reconnected:', player);
+            // Show notification for other player's reconnection
+            this.showNotification(`Player ${player.username} reconnected`, 'reconnect');
           },
         },
         this.getAppState  // Pass state getter for reconnect logic
@@ -491,6 +517,18 @@ export default {
         }
       }
       if (patch.players) {
+        // Detect if any players disconnected
+        const previousPlayerIds = new Set(this.players.map(p => p.id));
+        const newPlayerIds = new Set(patch.players.map(p => p.id));
+        
+        // Find players who were in the previous list but not in the new list
+        const disconnectedPlayers = this.players.filter(p => !newPlayerIds.has(p.id));
+        
+        // Show notifications for disconnected players
+        disconnectedPlayers.forEach(player => {
+          this.showNotification(`Player ${player.username} disconnected`, 'disconnect');
+        });
+        
         this.players = patch.players;
       }
       if (gameEnded) {
@@ -907,7 +945,91 @@ export default {
       // Scout-revealed cells should remain visible regardless of unit positions
       this.ensureScoutRevealedVisible();
     },
+    
+    showNotification(message, type = 'info') {
+      const id = Date.now() + Math.random();
+      this.notifications.push({ id, message, type });
+      
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        this.dismissNotification(id);
+      }, 5000);
+    },
+    
+    dismissNotification(id) {
+      const index = this.notifications.findIndex(n => n.id === id);
+      if (index !== -1) {
+        this.notifications.splice(index, 1);
+      }
+    },
   },
 };
 </script>
+
+<style scoped>
+#notifications-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.notification {
+  padding: 12px 20px;
+  background-color: #222222;
+  border: 2px solid #d8a67e;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  pointer-events: auto;
+  min-width: 200px;
+  max-width: 300px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.3s, transform 0.3s;
+  animation: slideIn 0.3s ease-out;
+}
+
+.notification:hover {
+  background-color: #333333;
+  border-color: #ae7b62;
+}
+
+.notification-disconnect {
+  border-color: #ff6b6b;
+  background-color: #3a2019;
+}
+
+.notification-disconnect:hover {
+  border-color: #ff8787;
+  background-color: #4a3029;
+}
+
+.notification-reconnect {
+  border-color: #4CAF50;
+  background-color: #1a3a1a;
+}
+
+.notification-reconnect:hover {
+  border-color: #66bb6a;
+  background-color: #2a4a2a;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+</style>
 

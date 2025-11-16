@@ -19,9 +19,28 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         self.game_code = self.scope["url_route"]["kwargs"]["game_code"]
         self.user = self.scope.get("user", AnonymousUser())
         self.user_id = getattr(self.user, "id", None)
-        print(f"[DEBUG] GameConsumer.connect: game_code={self.game_code}, user_id={self.user_id}, user={self.user}, is_authenticated={getattr(self.user, 'is_authenticated', False)}")
+        # Store player info for disconnect notification
+        self.player_info = None
+        if self.user_id:
+            self.player_info = await self._get_player_info(self.user_id)
+        print(f"[DEBUG] GameConsumer.connect: game_code={self.game_code}, user_id={self.user_id}, player_info={self.player_info}, is_authenticated={getattr(self.user, 'is_authenticated', False)}")
         await self.accept()
         await self.channel_layer.group_add(room(self.game_code), self.channel_name)
+
+        # Check if this is a reconnection (game is already started and player is in the game)
+        # We only broadcast reconnection if the game is in 'playing' status
+        # (to avoid false positives on initial connection)
+        if self.player_info:
+            is_reconnection = await self._is_reconnection(self.user_id)
+            if is_reconnection:
+                print(f"[DEBUG] Player {self.player_info['username']} reconnected, broadcasting to others")
+                await self.channel_layer.group_send(
+                    room(self.game_code),
+                    {
+                        "type": "player_reconnected",
+                        "player": self.player_info,
+                    }
+                )
 
         # Send full initial state (field, settings, players, current turn)
         state = await self._get_full_state(self.user_id)  # async helper below
@@ -100,8 +119,66 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     "serverTick": event["serverTick"],
                 }
             )
+    
+    async def player_disconnected(self, event):
+        """Handle player disconnection broadcast - send to all connected clients."""
+        print(f"[DEBUG] player_disconnected handler: user_id={self.user_id}, event player={event.get('player')}")
+        # Don't send to the player who disconnected (they're already gone)
+        # Only send to other players
+        if self.user_id and event.get("player") and event["player"]["id"] != self.user_id:
+            print(f"[DEBUG] Sending player_disconnected message to user_id={self.user_id}")
+            await self.send_json({
+                "t": "player_disconnected",
+                "player": event["player"],
+            })
+        else:
+            print(f"[DEBUG] Skipping player_disconnected (same player or no player info)")
+    
+    async def player_reconnected(self, event):
+        """Handle player reconnection broadcast - send to all connected clients."""
+        print(f"[DEBUG] player_reconnected handler: user_id={self.user_id}, event player={event.get('player')}")
+        # Don't send to the player who reconnected (they already know)
+        # Only send to other players
+        if self.user_id and event.get("player") and event["player"]["id"] != self.user_id:
+            print(f"[DEBUG] Sending player_reconnected message to user_id={self.user_id}")
+            await self.send_json({
+                "t": "player_reconnected",
+                "player": event["player"],
+            })
+        else:
+            print(f"[DEBUG] Skipping player_reconnected (same player or no player info)")
 
     async def disconnect(self, code):
+        print(f"[DEBUG] GameConsumer.disconnect: game_code={self.game_code}, user_id={self.user_id}, code={code}, player_info={self.player_info}")
+        # Broadcast player disconnection to other players
+        # Use stored player_info if available, otherwise try to get it
+        player_info = self.player_info
+        if not player_info and self.user_id:
+            try:
+                player_info = await self._get_player_info(self.user_id)
+                print(f"[DEBUG] Player info retrieved in disconnect: {player_info}")
+            except Exception as e:
+                print(f"[DEBUG] Error getting player info in disconnect: {e}")
+        
+        if player_info:
+            try:
+                # Broadcast to all other players in the game
+                print(f"[DEBUG] Broadcasting player_disconnected for {player_info['username']} to room {room(self.game_code)}")
+                await self.channel_layer.group_send(
+                    room(self.game_code),
+                    {
+                        "type": "player_disconnected",
+                        "player": player_info,
+                    }
+                )
+                print(f"[DEBUG] Broadcast sent successfully")
+            except Exception as e:
+                print(f"[DEBUG] Error in disconnect broadcast: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print(f"[DEBUG] No player_info available for disconnect broadcast")
+        
         await self.channel_layer.group_discard(room(self.game_code), self.channel_name)
 
     # ---- async read helper ----
@@ -189,6 +266,35 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             ],
             "lastClientSeq": last_client_seq,  # Last clientSeq for this player (for reconnection)
         }
+    
+    @database_sync_to_async
+    def _get_player_info(self, user_id):
+        """Get player info (username, id) for disconnection notification."""
+        try:
+            game = Game.objects.get(game_code=self.game_code)
+            game_player = GamePlayer.objects.filter(game=game, player_id=user_id).first()
+            if game_player:
+                return {
+                    "id": game_player.player.id,
+                    "username": game_player.player.username,
+                }
+        except Exception as e:
+            print(f"Error getting player info: {e}")
+        return None
+    
+    @database_sync_to_async
+    def _is_reconnection(self, user_id):
+        """Check if this is a reconnection (game is playing and player is in the game)."""
+        try:
+            game = Game.objects.get(game_code=self.game_code)
+            # Only consider it a reconnection if:
+            # 1. Game is already started (status='playing')
+            # 2. Player is in the game
+            if game.status == 'playing':
+                return GamePlayer.objects.filter(game=game, player_id=user_id).exists()
+        except Exception as e:
+            print(f"Error checking if reconnection: {e}")
+        return False
     
     @database_sync_to_async
     def _filter_patch_for_player(self, patch, user_id):

@@ -1,6 +1,11 @@
 <template>
     <div id="lobby-page">
-        <h1 id="lobby-page-title">Welcome, {{ username || 'Player' }}!</h1>
+        <div id="lobby-page-header">
+            <h1 id="lobby-page-title">Welcome, {{ username || 'Player' }}!</h1>
+            <button id="lobby-page-signout-button" @click="handleSignOut" title="Sign Out">
+                Sign Out
+            </button>
+        </div>
         
         <!-- Current Game Section (Top) -->
         <div id="lobby-page-current-game">
@@ -106,7 +111,7 @@
 import emitter from "@/game/eventBus";
 import { LobbyWebSocket } from "@/game/lobbyWebSocket";
 import { getActiveGames } from "@/game/service";
-import { whoami } from "@/auth";
+import { whoami, signout } from "@/auth";
 
 export default {
     name: 'LobbyPage',
@@ -245,6 +250,17 @@ export default {
             } catch (error) {
                 console.error('Error loading username:', error);
             }
+        },
+        async handleSignOut() {
+            try {
+                await signout();
+                // Emit event to parent to change state to login
+                this.$emit('signOut');
+            } catch (error) {
+                console.error('Error signing out:', error);
+                // Even if there's an error, try to redirect to login
+                this.$emit('signOut');
+            }
         }
     }
 }
@@ -253,18 +269,49 @@ export default {
 <style>
 #lobby-page {
     min-height: 100vh;
+    overflow: hidden;
     background-color: #001111;
     padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 15px;
+    box-sizing: border-box;
+}
+
+#lobby-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 0 10px;
 }
 
 #lobby-page-title {
     text-align: center;
     color: #ffffff;
-    margin: 0 0 10px 0;
+    margin: 0;
     font-size: 24px;
+    flex: 1;
+}
+
+#lobby-page-signout-button {
+    padding: 6px 12px;
+    background-color: #926846;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+#lobby-page-signout-button:hover {
+    background-color: #ae7b62;
+}
+
+#lobby-page-signout-button:active {
+    background-color: #3a2019;
 }
 
 /* Current Game Section */

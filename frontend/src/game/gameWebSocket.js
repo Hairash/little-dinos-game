@@ -78,6 +78,22 @@ export class GameWebSocket {
               this.callbacks.onError(data);
             }
             break;
+          case 'player_disconnected':
+            console.log('[WS] Received player_disconnected message:', data);
+            if (this.callbacks.onPlayerDisconnected) {
+              this.callbacks.onPlayerDisconnected(data.player);
+            } else {
+              console.warn('[WS] No onPlayerDisconnected callback registered');
+            }
+            break;
+          case 'player_reconnected':
+            console.log('[WS] Received player_reconnected message:', data);
+            if (this.callbacks.onPlayerReconnected) {
+              this.callbacks.onPlayerReconnected(data.player);
+            } else {
+              console.warn('[WS] No onPlayerReconnected callback registered');
+            }
+            break;
           default:
             console.log('Unknown message type:', data);
         }
