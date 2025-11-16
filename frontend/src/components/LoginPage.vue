@@ -74,8 +74,9 @@ export default {
 #login-page {
   /* background-image: url('/images/login_background.png'); */
   width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
   background-size: cover;
   background-position: center;
   background-color: #001111;

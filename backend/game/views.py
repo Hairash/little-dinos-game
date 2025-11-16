@@ -118,6 +118,9 @@ def start_game(request, game_code):
         return JsonResponse({"error": "Game is not ready"}, status=400)
     game.status = "playing"
     settings_dict = json.loads(initial_settings)
+    settings_dict['humanPlayersNum'] = GamePlayer.objects.filter(game=game).count()
+    # TODO: Get bot players number
+    settings_dict['botPlayersNum'] = 0
     game.settings = settings_dict
     game.field = generate_field(settings_dict)
     game.save(update_fields=["status", "settings", "field"])

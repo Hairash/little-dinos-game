@@ -24,12 +24,15 @@ export async function joinGame(gameCode) {
   return response.json();
 }
 
-export async function startMultiplayerGame(gameCode) {
-  console.log('Starting multiplayer game call', gameCode);
+export async function startMultiplayerGame(gameCode, customSettings = null) {
+  console.log('Starting multiplayer game call', gameCode, 'with settings:', customSettings);
+  // Use custom settings if provided, otherwise use default
+  const settings = customSettings || MULTIPLAYER_INITIAL_SETTINGS;
   const response = await fetch(API_URL + `/games/${gameCode}/start/`, {
     method: 'POST',
     credentials: 'include',
-    body: JSON.stringify(MULTIPLAYER_INITIAL_SETTINGS),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
   });
   if (!response.ok) {
     throw new Error((await response.json()).detail || 'Start game failed');

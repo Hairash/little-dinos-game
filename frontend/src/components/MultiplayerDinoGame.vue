@@ -19,6 +19,7 @@
     :hide-enemy-speed="hideEnemySpeed"
     :field="localField"
     :current-player="currentPlayer"
+    :my-player-order="myPlayerOrder"
     :cellSize="cellSize"
     :is-my-turn="isMyTurn"
   />

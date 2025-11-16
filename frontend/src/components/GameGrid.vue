@@ -27,6 +27,7 @@
                 :selected="(selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y)"
                 :highlighted="fieldOutput[x][y].isHighlighted"
                 :currentPlayer="currentPlayer"
+                :myPlayerOrder="myPlayerOrder"
                 :hideEnemySpeed="hideEnemySpeed"
                 @click="processClick($event, x, y)"
               />
@@ -62,6 +63,10 @@ export default {
     hideEnemySpeed: Boolean,
     field: Array[Array[Models.Cell]],
     currentPlayer: Number,
+    myPlayerOrder: {
+      type: Number,
+      default: null, // null for single-player mode
+    },
     cellSize: Number,
     isMyTurn: {
       type: Boolean,
