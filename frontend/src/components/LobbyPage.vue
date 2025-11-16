@@ -24,6 +24,7 @@
                                 id="lobby-page-current-game-players-player" 
                                 v-for="player in players" 
                                 :key="player.id"
+                                :style="{ color: getPlayerColor(player.order) }"
                             >
                                 {{ player.username }}
                             </div>
@@ -48,13 +49,22 @@
                         />
                         <button id="lobby-page-button" @click="joinGame">Join Game</button>
                     </div>
-                    <button 
-                        v-if="gameCode" 
-                        id="lobby-page-button" 
-                        @click="startMultiplayerGame"
-                    >
-                        Start Game
-                    </button>
+                    <div v-if="gameCode && isGameCreator" id="lobby-page-setup-start-section">
+                        <button 
+                            id="lobby-page-button" 
+                            @click="setupGame"
+                        >
+                            Setup Game
+                        </button>
+                        <button 
+                            id="lobby-page-button" 
+                            @click="startMultiplayerGame"
+                            :disabled="players.length < 2"
+                            :title="players.length < 2 ? 'At least 2 players are required to start the game' : ''"
+                        >
+                            Start Game
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -135,6 +145,7 @@ export default {
             username: null,
             hasMoreGames: false,
             loadingAllGames: false,
+            currentUserId: null,  // Store current user ID to check if creator
         }
     },
     mounted() {
@@ -165,6 +176,16 @@ export default {
                 this.lobbyWs = null;
             }
         }
+    },
+    computed: {
+        isGameCreator() {
+            // Creator is the player with order=0
+            if (!this.currentUserId || !this.players || this.players.length === 0) {
+                return false;
+            }
+            const creatorPlayer = this.players.find(p => p.order === 0);
+            return creatorPlayer && creatorPlayer.id === this.currentUserId;
+        },
     },
     methods: {
         connectWebSocket(gameCode) {
@@ -206,6 +227,11 @@ export default {
             emitter.emit('joinGame', code);
         },
         startMultiplayerGame() {
+            // Prevent starting if there are less than 2 players
+            if (this.players.length < 2) {
+                console.warn('Cannot start game: At least 2 players are required');
+                return;
+            }
             console.log('Starting game');
             emitter.emit('callStartMultiplayerGame');
         },
@@ -246,10 +272,29 @@ export default {
                 const userInfo = await whoami();
                 if (userInfo.auth && userInfo.user) {
                     this.username = userInfo.user.username;
+                    this.currentUserId = userInfo.user.id;
                 }
             } catch (error) {
                 console.error('Error loading username:', error);
             }
+        },
+        setupGame() {
+            console.log('Setting up game');
+            this.$emit('setupGame');
+        },
+        getPlayerColor(order) {
+            // Color mapping based on player order (0-indexed, but we'll treat as 1-indexed for colors)
+            const colorMap = {
+                0: '#4A90E2',      // 1 - blue
+                1: '#32cc67',      // 2 - mint
+                2: '#FF4444',      // 3 - red
+                3: '#FFD700',      // 4 - yellow
+                4: '#8B5CF6',      // 5 - violet
+                5: '#00FFFF',      // 6 - cyan
+                6: '#9B59B6',      // 7 - purple
+                7: '#2E7D32',      // 8 - dark green
+            };
+            return colorMap[order] || '#ffffff'; // Default to white if order is out of range
         },
         async handleSignOut() {
             try {
@@ -422,6 +467,23 @@ export default {
     padding: 8px 16px;
 }
 
+#lobby-page-setup-start-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+    max-width: 400px;
+    justify-content: center;
+    align-items: center;
+}
+
+#lobby-page-setup-start-section #lobby-page-button {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: none;
+    padding: 8px 16px;
+}
+
 #lobby-page-button {
     padding: 8px 16px;
     background-color: #d8a67e;
@@ -442,6 +504,17 @@ export default {
 
 #lobby-page-button:active {
     background-color: #926846;
+}
+
+#lobby-page-button:disabled {
+    background-color: #555555;
+    color: #888888;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+#lobby-page-button:disabled:hover {
+    background-color: #555555;
 }
 
 #lobby-page-input {

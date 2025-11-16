@@ -11,6 +11,7 @@
     @gameStarted="handleGameStarted"
     @connectToGame="connectToGame"
     @signOut="handleSignOut"
+    @setupGame="handleSetupGame"
   />
   <GameMenu
     v-if="state === GAME_STATES.menu"
@@ -19,6 +20,8 @@
   />
   <GameSetup
     v-if="state === GAME_STATES.setup"
+    :isMultiplayerMode="!!currentGameCode"
+    :savedMultiplayerSettings="multiplayerSettings"
   />
   <DinoGame
     v-if="state === GAME_STATES.game && !currentGameCode"
@@ -93,6 +96,7 @@ export default {
       currentError: null,
       currentGameCode: null,
       currentGameState: null,
+      multiplayerSettings: null,  // Store custom settings for multiplayer game
     }
   },
   mounted() {
@@ -103,6 +107,7 @@ export default {
     emitter.on('joinGame', this.callJoinGame);
     emitter.on('createGame', this.callCreateGame);
     emitter.on('callStartMultiplayerGame', this.callStartMultiplayerGame);
+    emitter.on('multiplayerSettingsConfigured', this.handleMultiplayerSettingsConfigured);
 
     whoami().then(data => {
       this.state = data.auth ? GAME_STATES.lobby : GAME_STATES.login;
@@ -148,8 +153,12 @@ export default {
     },
     callStartMultiplayerGame() {
       console.log('Starting multiplayer game');
-      startMultiplayerGame(this.currentGameCode).then(response => {
+      // Use custom settings if available, otherwise use default
+      const settings = this.multiplayerSettings || null;
+      startMultiplayerGame(this.currentGameCode, settings).then(response => {
         console.log(response);
+        // Clear settings after starting
+        this.multiplayerSettings = null;
         // Don't change state here - wait for game_started WebSocket message
         // The state will change in handleGameStarted
       }).catch(error => {
@@ -231,14 +240,25 @@ export default {
       // Clear game state
       this.currentGameCode = null;
       this.currentGameState = null;
+      this.multiplayerSettings = null;
       // Redirect to login page
       this.state = GAME_STATES.login;
+    },
+    handleSetupGame() {
+      // Navigate to GameSetup page for multiplayer game configuration
+      this.state = GAME_STATES.setup;
+    },
+    handleMultiplayerSettingsConfigured(settings) {
+      // Store settings and return to lobby
+      this.multiplayerSettings = settings;
+      this.state = GAME_STATES.lobby;
     },
   },
   beforeUnmount() {
     emitter.off('startGame', this.startGame);
     emitter.off('loadGame', this.loadGame);
     emitter.off('goToPage', this.goToPage);
+    emitter.off('multiplayerSettingsConfigured', this.handleMultiplayerSettingsConfigured);
     // TODO: Check we didn't forget smth
   }
 }

@@ -61,6 +61,10 @@ export default {
     highlighted: Boolean,
     hidden: Boolean,
     currentPlayer: Number,
+    myPlayerOrder: {
+      type: Number,
+      default: null, // null for single-player mode
+    },
     hideEnemySpeed: Boolean,
   },
   computed: {
@@ -96,7 +100,10 @@ export default {
     },
     showMovePoints() {
       if (!this.hideEnemySpeed) return true;
-      if (this.unit && this.unit.player === this.currentPlayer) return true;
+      // In multiplayer mode, use myPlayerOrder to show speed only for own units
+      // In single-player mode (myPlayerOrder is null), use currentPlayer
+      const playerToCheck = this.myPlayerOrder !== null ? this.myPlayerOrder : this.currentPlayer;
+      if (this.unit && this.unit.player === playerToCheck) return true;
       return false;
     },
   }
