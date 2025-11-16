@@ -1,18 +1,14 @@
 <template>
-  <ReadyLabel
-    v-if="state === STATES.ready"
-    :on-click-action="readyBtnClick"
-    :current-player="currentPlayer"
-    :is-active-player="isMyTurn"
-    :is-player-informed-lose="false"
-    :are-all-human-players-eliminated="false"
+  <MultiplayerReadyLabel
+    v-if="state === STATES.ready && showReadyLabel"
     :winner="winner"
-    :last-player="null"
+    :winner-username="winnerUsername"
+    @close="handleReadyLabelClose"
   />
   <GameGrid
     v-if="localField && localField.length > 0"
     ref="gameGridRef"
-    :is-hidden="state === STATES.ready"
+    :is-hidden="false"
     :fog-of-war-radius="fogOfWarRadius"
     :enable-fog-of-war="enableFogOfWar"
     :enable-scout-mode="enableScoutMode"
@@ -24,7 +20,7 @@
     :is-my-turn="isMyTurn"
   />
   <InfoPanel
-    v-if="state === STATES.play"
+    v-if="state === STATES.play || (state === STATES.ready && !showReadyLabel)"
     :current-player="currentPlayer"
     :players="players"
     :current-stats="getCurrentStats()"
@@ -55,10 +51,10 @@
 </template>
 
 <script>
-import ReadyLabel from '@/components/ReadyLabel.vue';
 import GameGrid from '@/components/GameGrid.vue';
 import InfoPanel from '@/components/InfoPanel.vue';
 import ExitDialog from '@/components/ExitDialog.vue';
+import MultiplayerReadyLabel from '@/components/MultiplayerReadyLabel.vue';
 import Models from "@/game/models";
 import { WaveEngine } from "@/game/waveEngine";
 import { FieldEngine } from "@/game/fieldEngine";
@@ -70,7 +66,7 @@ import emitter from '@/game/eventBus';
 export default {
   name: 'MultiplayerDinoGame',
   components: {
-    ReadyLabel,
+    MultiplayerReadyLabel,
     GameGrid,
     InfoPanel,
     ExitDialog,
@@ -134,6 +130,8 @@ export default {
       scoutRevealedCoords: new Set(), // Set of strings like "x,y"
       // Game end state
       winner: null, // Player order (0, 1, 2, ...) of the winner, or null if game not ended
+      winnerUsername: null, // Username of the winner, or null if game not ended
+      showReadyLabel: false, // Whether to show the ready label (can be closed while keeping game visible)
     };
   },
   computed: {
@@ -553,8 +551,10 @@ export default {
       if (gameEnded) {
         console.log('[DEBUG] Game ended! Winner:', patch.winner, patch.winnerUsername);
         this.winner = patch.winner;
+        this.winnerUsername = patch.winnerUsername || null;
         // Show ready label with winner
         this.state = this.STATES.ready;
+        this.showReadyLabel = true;
         // Reveal the whole field to all players when game ends
         if (this.localField && this.localField.length > 0) {
           for (let x = 0; x < this.width; x++) {
@@ -1027,6 +1027,10 @@ export default {
         clearTimeout(this.inactivityTimer);
         this.inactivityTimer = null;
       }
+    },
+    handleReadyLabelClose() {
+      // Close the ready label but keep the game field visible
+      this.showReadyLabel = false;
     },
   },
 };

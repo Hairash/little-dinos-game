@@ -416,8 +416,8 @@ export default {
         // Start with MULTIPLAYER_INITIAL_SETTINGS defaults
         const multiplayerDefaults = { ...MULTIPLAYER_INITIAL_SETTINGS };
         // Override with localStorage values if they exist (user's previous preferences)
-        // BUT keep buildingRates from MULTIPLAYER_INITIAL_SETTINGS to match what's used when starting without setup
-        const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field' && item !== 'buildingRates');
+        // This includes buildingRates if they were saved previously
+        const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field');
         for (const field of fieldsToLoad) {
           const value = localStorage.getItem(field);
           if (value) {
@@ -448,6 +448,7 @@ export default {
         this.buildingRates = { ...DEFAULT_BUILDING_RATES };
       }
     },
+    // TODO: Only buildingRates are loaded, all the other settings are default
     loadMultiplayerSettings(settings) {
       // Load settings from saved multiplayer settings
       // Map all the settings fields to component data
@@ -524,6 +525,13 @@ export default {
       // Check if we're in multiplayer mode (came from lobby)
       // If so, store settings and return to lobby instead of starting single player game
       if (this.isMultiplayerMode) {
+        // Save settings to localStorage so they persist for new games
+        const fieldsToSave = FIELDS_TO_SAVE.filter(item => item !== 'field');
+        for (const field of fieldsToSave) {
+          if (settings[field] !== undefined) {
+            localStorage.setItem(field, JSON.stringify(settings[field]));
+          }
+        }
         emitter.emit('multiplayerSettingsConfigured', settings);
       } else {
         emitter.emit('startGame', settings);
