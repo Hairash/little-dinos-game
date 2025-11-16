@@ -10,6 +10,7 @@
     :getAppState="getAppState"
     @gameStarted="handleGameStarted"
     @connectToGame="connectToGame"
+    @signOut="handleSignOut"
   />
   <GameMenu
     v-if="state === GAME_STATES.menu"
@@ -225,6 +226,13 @@ export default {
       this.currentGameState = game;
       // Navigate to game
       this.state = GAME_STATES.game;
+    },
+    handleSignOut() {
+      // Clear game state
+      this.currentGameCode = null;
+      this.currentGameState = null;
+      // Redirect to login page
+      this.state = GAME_STATES.login;
     },
   },
   beforeUnmount() {
