@@ -77,20 +77,24 @@
 
       <!-- Spacer -->
       <!-- <div class="spacer"></div> -->
-
       <!-- Right group: End turn button -->
-      <button
-        type="button"
-        class="infoBtn endTurnBtn right-group"
-        @click="handleEndTurnBtnClick"
-        :disabled="player && player.type === botType"
-      >
-        <img
-          style="margin-left: 4px; margin-top: 1px;"
-          class="curPlayerImage"
-          :src="`/images/arrow.png`"
+      <span class="endTurnBtnWrapper right-group">
+        <div v-if="showEndTurnTip" class="endTurnTip">
+          <span class="endTurnTipArrow">DONE?<br>⬇</span>  
+        </div>
+        <button
+          type="button"
+          class="infoBtn endTurnBtn"
+          @click="handleEndTurnBtnClick"
+          :disabled="player && player.type === botType"
         >
-      </button>
+          <img
+            style="margin-left: 4px; margin-top: 1px;"
+            class="curPlayerImage"
+            :src="`/images/arrow.png`"
+          >
+        </button>
+      </span>
 
 <!--    <span class="infoTextLabel">Killed: {{ player.killed }} Lost: {{ player.lost }}</span>-->
 <!--    <span class="infoTextLabel" @click="showScore = !showScore">-->
@@ -122,6 +126,10 @@ export default {
     handleChangeCellSize: Function,
     handleExitBtnClick: Function,
     areAllUnitsOnBuildings: Boolean,
+    showEndTurnTip: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -169,6 +177,8 @@ div.infoPanel {
   padding: 2px 0 4px;
   background-image: url('/images/panel.png');
   background-size: 100% 100%;
+  overflow: visible; /* Allow tip to be visible above panel */
+  z-index: 1; /* Ensure panel is above game content */
 }
 
 /* Flex row with elastic spacers */
@@ -180,7 +190,7 @@ div.infoPanel {
   /* column-gap: 8px; */
   /* width: 100%; */
   min-width: 0;
-  overflow: hidden;
+  overflow: visible; /* Changed from hidden to allow tip to be visible */
   padding: 7px 9px;
 }
 
@@ -266,6 +276,49 @@ div.tooltip {
   border: solid 2px;
   min-width: 52px;
   padding: 4px;
+}
+
+.endTurnBtnWrapper {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.endTurnTip {
+  position: absolute;
+  bottom: 100%;
+  margin-bottom: 8px;
+  background-color: rgba(139, 0, 0, 0.85);
+  color: white;
+  padding: 6px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+  animation: bounceDown 1s ease-in-out infinite;
+  /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); */
+  right: -40px;
+  /* left: 50%; */
+  /* transform: translateX(-50%); */
+}
+
+.endTurnTipArrow {
+  display: block;
+  font-size: 14px;
+  line-height: 1;
+  text-align: center;
+}
+
+@keyframes bounceDown {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-5px);
+  }
 }
 </style>
 

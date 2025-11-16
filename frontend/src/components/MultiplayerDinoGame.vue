@@ -33,6 +33,7 @@
     :handle-change-cell-size="changeCellSize"
     :handle-exit-btn-click="() => this.state = this.STATES.exitDialog"
     :are-all-units-on-buildings="false"
+    :show-end-turn-tip="showEndTurnTip && isMyTurn"
   />
   <ExitDialog
     v-if="state === STATES.exitDialog"
@@ -118,6 +119,9 @@ export default {
       reconnectAttempts: 0,  // Track reconnect attempts for UI
       isInitialConnect: true,  // Track if this is the first connection
       notifications: [],  // Array of notification objects: { id, message, type }
+      inactivityTimer: null,  // Timer for inactivity detection
+      showEndTurnTip: false,  // Show tip above end turn button
+      activityEventHandlers: [],  // Store event handlers for cleanup
       // Settings from props
       width: 20,
       height: 20,
@@ -165,6 +169,9 @@ export default {
     emitter.on('processEndTurn', this.processEndTurn);
     emitter.on('startTurn', this.startTurn);
     
+    // Track user activity for inactivity tip
+    this.setupActivityTracking();
+    
     this.startTurn();
   },
   beforeUnmount() {
@@ -173,6 +180,15 @@ export default {
     emitter.off('scoutArea', this.emitScoutArea);
     emitter.off('processEndTurn', this.processEndTurn);
     emitter.off('startTurn', this.startTurn);
+    
+    // Clean up inactivity timer and event listeners
+    this.clearInactivityTimer();
+    if (this.activityEventHandlers) {
+      this.activityEventHandlers.forEach(({ event, handler }) => {
+        document.removeEventListener(event, handler);
+      });
+      this.activityEventHandlers = [];
+    }
     
     if (this.gameWs) {
       this.gameWs.disconnect();
@@ -514,6 +530,8 @@ export default {
           this.recalculateVisibilityForClient();
           // Clear selected unit and highlighted cells (but don't change scrollCoords)
           emitter.emit('initTurn');
+          // Reset inactivity timer on turn change
+          this.resetInactivityTimer();
         }
       }
       if (patch.players) {
@@ -566,6 +584,7 @@ export default {
         console.warn('Not your turn');
         return;
       }
+      this.resetInactivityTimer(); // Reset on move
       this.moveUnit(coordsDict.fromCoords, coordsDict.toCoords);
     },
     
@@ -597,6 +616,8 @@ export default {
     
     processEndTurn() {
       if (this.state === this.STATES.ready || !this.isMyTurn || this.winner !== null) return;
+      
+      this.resetInactivityTimer(); // Reset on end turn
       
       // Send end turn to server
       const payload = {
@@ -793,6 +814,7 @@ export default {
         console.warn('Not your turn');
         return;
       }
+      this.resetInactivityTimer(); // Reset on scout action
       // Send scout message to server
       const payload = {
         type: 'scout',
@@ -960,6 +982,49 @@ export default {
       const index = this.notifications.findIndex(n => n.id === id);
       if (index !== -1) {
         this.notifications.splice(index, 1);
+      }
+    },
+    
+    setupActivityTracking() {
+      // Track mouse movement, clicks, and keyboard input
+      const activityEvents = ['mousedown', 'mousemove', 'keydown', 'click', 'touchstart'];
+      this.activityEventHandlers = activityEvents.map(event => {
+        const handler = this.resetInactivityTimer;
+        document.addEventListener(event, handler, { passive: true });
+        return { event, handler };
+      });
+      
+      // Start the timer
+      this.resetInactivityTimer();
+    },
+    
+    resetInactivityTimer() {
+      // Only track inactivity when it's the player's turn
+      if (!this.isMyTurn) {
+        this.showEndTurnTip = false;
+        this.clearInactivityTimer();
+        return;
+      }
+      
+      // Clear existing timer
+      this.clearInactivityTimer();
+      
+      // Hide tip immediately on activity
+      this.showEndTurnTip = false;
+      
+      // Set new timer for 5 seconds
+      this.inactivityTimer = setTimeout(() => {
+        // Only show tip if it's still the player's turn
+        if (this.isMyTurn) {
+          this.showEndTurnTip = true;
+        }
+      }, 5000);
+    },
+    
+    clearInactivityTimer() {
+      if (this.inactivityTimer) {
+        clearTimeout(this.inactivityTimer);
+        this.inactivityTimer = null;
       }
     },
   },
