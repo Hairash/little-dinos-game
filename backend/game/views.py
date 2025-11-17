@@ -108,6 +108,49 @@ def join_game(request, game_code):
 @csrf_exempt  # DEV ONLY; replace with proper CSRF handling in prod
 @login_required
 @require_http_methods(["POST"])
+def leave_game(request, game_code):
+    """Leave a game."""
+    try:
+        game = Game.objects.get(game_code=game_code)
+        
+        # Check if player is in the game
+        game_player = GamePlayer.objects.filter(game=game, player=request.user).first()
+        if not game_player:
+            return JsonResponse({"message": "Not in game"}, status=400)
+        
+        # Only allow leaving if game is in 'ready' status (not started)
+        if game.status != "ready":
+            return JsonResponse({"error": "Cannot leave game that has started"}, status=400)
+        
+        # Remove player from game
+        game_player.delete()
+        
+        # Reload game to get fresh players list
+        game.refresh_from_db()
+        
+        # Broadcast player update to all connected clients
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            game_dict = game.to_dict()
+            async_to_sync(channel_layer.group_send)(
+                f"lobby_{game_code}",
+                {
+                    "type": "player_update",
+                    "players": game_dict["players"],
+                }
+            )
+        
+        return JsonResponse({"message": "Left game"})
+    except Game.DoesNotExist:
+        return JsonResponse({"error": "Game not found"}, status=404)
+    except Exception as e:
+        print(f"Error leaving game: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt  # DEV ONLY; replace with proper CSRF handling in prod
+@login_required
+@require_http_methods(["POST"])
 def start_game(request, game_code):
     """Start a game."""
     print(f"Starting game {game_code}")

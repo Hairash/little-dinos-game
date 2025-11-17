@@ -13,6 +13,7 @@ export class LobbyWebSocket {
     this.getAppState = getAppState;  // Function to get current app state: () => { state, gameCode }
     this.ws = null;
     this.reconnectTimeout = null;  // Store timeout ID to clear it if needed
+    this.shouldReconnectFlag = true;  // Flag to control reconnection (can be set to false to prevent reconnection)
   }
 
   connect() {
@@ -50,9 +51,14 @@ export class LobbyWebSocket {
 
     this.ws.onclose = () => {
       console.log('Lobby WebSocket disconnected');
+      // Only try to reconnect if the flag allows it
+      if (!this.shouldReconnectFlag) {
+        console.log('Reconnection prevented by flag');
+        return;
+      }
       // Check if we should reconnect based on current app state
       this.reconnectTimeout = setTimeout(() => {
-        if (this.shouldReconnect()) {
+        if (this.shouldReconnect() && this.shouldReconnectFlag) {
           this.connect();
         }
         this.reconnectTimeout = null;
@@ -73,6 +79,9 @@ export class LobbyWebSocket {
   disconnect() {
     console.log('Lobby WebSocket disconnecting');
     
+    // Prevent reconnection when intentionally disconnecting
+    this.shouldReconnectFlag = false;
+    
     // Clear any pending reconnect timeout
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
@@ -80,6 +89,8 @@ export class LobbyWebSocket {
     }
     
     if (this.ws) {
+      // Remove onclose handler to prevent it from firing after we've set shouldReconnectFlag
+      this.ws.onclose = null;
       this.ws.close();
       this.ws = null;
     }

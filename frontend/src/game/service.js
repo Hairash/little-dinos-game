@@ -12,6 +12,21 @@ export async function createGame() {
   return response.json();
 }
 
+export async function leaveGame(gameCode) {
+  console.log('Leaving game call', gameCode);
+  const response = await fetch(API_URL + `/games/${gameCode}/leave/`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    // Don't throw error if game not found or not in game - just log it
+    const errorData = await response.json().catch(() => ({}));
+    console.warn('Leave game warning:', errorData.error || errorData.message || 'Leave game failed');
+    return { success: false, message: errorData.error || errorData.message };
+  }
+  return response.json();
+}
+
 export async function joinGame(gameCode) {
   console.log('Joining game call', gameCode);
   const response = await fetch(API_URL + `/games/${gameCode}/join/`, {
