@@ -502,7 +502,10 @@ export default {
         // Check if the last move was to an obelisk and trigger scouting action
         if (patch.lastMove && patch.lastMove.toCoords && this.fieldEngine) {
           const [x, y] = patch.lastMove.toCoords;
-          if (this.localField[x] && this.localField[x][y] && this.localField[x][y].building) {
+          if (
+            this.localField[x] && this.localField[x][y] && this.localField[x][y].building
+            && this.localField[x][y].unit && this.localField[x][y].unit.player === this.myPlayerOrder
+          ) {
             const action = this.fieldEngine.getActionTriggered(x, y);
             if (action) {
               console.log('[DEBUG] Obelisk detected at', x, y, '- triggering scouting action');
