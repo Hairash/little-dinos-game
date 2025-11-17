@@ -30,6 +30,7 @@ urlpatterns = [
     path("games/", views.create_game, name="create-game"),                   # POST
     path("games/active/", views.get_active_games, name="get-active-games"),    # GET
     path("games/<str:game_code>/join/", views.join_game, name="join-game"),        # POST
+    path("games/<str:game_code>/leave/", views.leave_game, name="leave-game"),      # POST
     path("games/<str:game_code>/start/", views.start_game, name="start-game"),     # POST
     path("games/<str:game_code>/", views.get_game, name="get-game"),               # GET
 ]

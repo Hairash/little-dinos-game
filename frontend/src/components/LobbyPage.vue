@@ -6,7 +6,7 @@
                 Sign Out
             </button>
         </div>
-        
+
         <!-- Current Game Section (Top) -->
         <div id="lobby-page-current-game">
             <div id="lobby-page-current-game-header">
@@ -15,17 +15,13 @@
             <div id="lobby-page-current-game-content">
                 <div v-if="gameCode" id="lobby-page-current-game-info">
                     <div id="lobby-page-current-game-code">
-            <p>Game Code: <strong>{{ gameCode }}</strong></p>
+                        <p>Game Code: <strong>{{ gameCode }}</strong></p>
                     </div>
                     <div id="lobby-page-current-game-players">
                         <h3>Players</h3>
                         <div id="lobby-page-current-game-players-list">
-                            <div 
-                                id="lobby-page-current-game-players-player" 
-                                v-for="player in players" 
-                                :key="player.id"
-                                :style="{ color: getPlayerColor(player.order) }"
-                            >
+                            <div id="lobby-page-current-game-players-player" v-for="player in players" :key="player.id"
+                                :style="{ color: getPlayerColor(player.order) }">
                                 {{ player.username }}
                             </div>
                             <div v-if="players.length === 0" id="lobby-page-current-game-players-empty">
@@ -40,28 +36,16 @@
                 <div id="lobby-page-current-game-actions">
                     <button id="lobby-page-button" @click="createGame">Create Game</button>
                     <div id="lobby-page-join-section">
-                        <input 
-                            type="text" 
-                            id="lobby-page-input" 
-                            placeholder="Game Code" 
-                            v-model="inputGameCode" 
-                            required 
-                        />
+                        <input type="text" id="lobby-page-input" placeholder="Game Code" v-model="inputGameCode"
+                            required />
                         <button id="lobby-page-button" @click="joinGame">Join Game</button>
                     </div>
                     <div v-if="gameCode && isGameCreator" id="lobby-page-setup-start-section">
-                        <button 
-                            id="lobby-page-button" 
-                            @click="setupGame"
-                        >
+                        <button id="lobby-page-button" @click="setupGame">
                             Setup Game
                         </button>
-                        <button 
-                            id="lobby-page-button" 
-                            @click="startMultiplayerGame"
-                            :disabled="players.length < 2"
-                            :title="players.length < 2 ? 'At least 2 players are required to start the game' : ''"
-                        >
+                        <button id="lobby-page-button" @click="startMultiplayerGame" :disabled="players.length < 2"
+                            :title="players.length < 2 ? 'At least 2 players are required to start the game' : ''">
                             Start Game
                         </button>
                     </div>
@@ -85,29 +69,18 @@
                     <p>No active games. Create or join a game to start.</p>
                 </div>
                 <div v-else id="lobby-page-active-games-list">
-                    <div 
-                        v-for="game in activeGames" 
-                        :key="game.gameCode" 
-                        id="lobby-page-active-games-game"
-                    >
+                    <div v-for="game in activeGames" :key="game.gameCode" id="lobby-page-active-games-game">
                         <div id="lobby-page-active-games-game-info">
                             <h3>Game: <strong>{{ game.gameCode }}</strong></h3>
                             <p>Turn: {{ game.turnPlayer || 'N/A' }}</p>
-                            <p>Players: {{ game.players.map(p => p.username).join(', ') }}</p>
+                            <p>Players: {{game.players.map(p => p.username).join(', ')}}</p>
                         </div>
-                        <button 
-                            id="lobby-page-active-games-game-connect" 
-                            @click="connectToGame(game)"
-                        >
+                        <button id="lobby-page-active-games-game-connect" @click="connectToGame(game)">
                             Connect
                         </button>
                     </div>
                     <div v-if="hasMoreGames" id="lobby-page-active-games-load-more">
-                        <button 
-                            id="lobby-page-load-more-button" 
-                            @click="loadAllGames"
-                            :disabled="loadingAllGames"
-                        >
+                        <button id="lobby-page-load-more-button" @click="loadAllGames" :disabled="loadingAllGames">
                             {{ loadingAllGames ? 'Loading...' : 'Load More' }}
                         </button>
                     </div>
@@ -125,16 +98,16 @@ import { whoami, signout } from "@/auth";
 
 export default {
     name: 'LobbyPage',
-  props: {
-    gameCode: {
-      type: String,
-      default: null,
+    props: {
+        gameCode: {
+            type: String,
+            default: null,
+        },
+        getAppState: {
+            type: Function,
+            default: null,
+        },
     },
-    getAppState: {
-      type: Function,
-      default: null,
-    },
-  },
     data() {
         return {
             players: [],
@@ -146,6 +119,7 @@ export default {
             hasMoreGames: false,
             loadingAllGames: false,
             currentUserId: null,  // Store current user ID to check if creator
+            preventReconnect: false,  // Flag to prevent automatic reconnection during transitions
         }
     },
     mounted() {
@@ -165,6 +139,10 @@ export default {
     },
     watch: {
         gameCode(newCode, oldCode) {
+            // Don't reconnect if we're preventing reconnection (during intentional disconnection)
+            if (this.preventReconnect) {
+                return;
+            }
             if (newCode && newCode !== oldCode) {
                 // Disconnect from old game if switching
                 if (this.lobbyWs) {
@@ -191,7 +169,9 @@ export default {
         connectWebSocket(gameCode) {
             if (this.lobbyWs) {
                 this.lobbyWs.disconnect();
+                this.lobbyWs = null;  // Ensure old instance is cleared
             }
+            // Create new WebSocket instance with reconnection enabled
             this.lobbyWs = new LobbyWebSocket(
                 gameCode,
                 {
