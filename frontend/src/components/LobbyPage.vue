@@ -1,11 +1,12 @@
 <template>
     <div id="lobby-page">
-        <div id="lobby-page-header">
-            <h1 id="lobby-page-title">Welcome, {{ username || 'Player' }}!</h1>
-            <button id="lobby-page-signout-button" @click="handleSignOut" title="Sign Out">
-                Sign Out
-            </button>
-        </div>
+        <button type="button" class="goBackBtn" @click="handleBackToMenu" title="Back to Menu">
+            <img :src="`/images/arrow_white.png`">
+        </button>        
+        <h1>Welcome, {{ username || 'Player' }}!</h1>
+        <button id="lobby-page-signout-button" @click="handleSignOut" title="Sign Out">
+            Sign Out
+        </button>
 
         <!-- Current Game Section (Top) -->
         <div id="lobby-page-current-game">
@@ -95,6 +96,7 @@ import emitter from "@/game/eventBus";
 import { LobbyWebSocket } from "@/game/lobbyWebSocket";
 import { getActiveGames } from "@/game/service";
 import { whoami, signout } from "@/auth";
+import { GAME_STATES } from "@/game/const";
 
 export default {
     name: 'LobbyPage',
@@ -286,6 +288,15 @@ export default {
                 // Even if there's an error, try to redirect to login
                 this.$emit('signOut');
             }
+        },
+        handleBackToMenu() {
+            // Close WebSocket connection if active
+            if (this.lobbyWs) {
+                this.lobbyWs.disconnect();
+                this.lobbyWs = null;
+            }
+            // Emit event to go back to menu
+            emitter.emit('goToPage', GAME_STATES.menu);
         }
     }
 }
@@ -293,33 +304,43 @@ export default {
 
 <style>
 #lobby-page {
-    min-height: 100vh;
-    overflow: hidden;
-    background-color: #001111;
-    padding: 10px;
+    position: relative;
+    background-image: url('/images/background.png');
+    background-size: cover;
+    overflow: auto;
+    height: 100vh;
+    width: 100vw;
+    
     display: flex;
     flex-direction: column;
     gap: 15px;
-    box-sizing: border-box;
 }
 
-#lobby-page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    padding: 0 10px;
+.goBackBtn {
+    position: absolute;
+    top: 34px;
+    left: 16px;
+    border: none;
+    background-color: rgba(0, 0, 0, 0);
+    z-index: 10;
 }
 
-#lobby-page-title {
-    text-align: center;
-    color: #ffffff;
+.goBackBtn img {
+    width: 40px;
+    height: 40px;
+    user-select: none;
+    cursor: pointer;
+}
+
+h1 {
     margin: 0;
-    font-size: 24px;
-    flex: 1;
+    padding: 30px 90px 30px 70px;
 }
 
 #lobby-page-signout-button {
+    position: absolute;
+    top: 42px;
+    right: 16px;
     padding: 6px 12px;
     background-color: #926846;
     color: #ffffff;

@@ -105,18 +105,14 @@ export default {
     emitter.on('startGame', this.startGame);
     emitter.on('loadGame', this.loadGame);
     emitter.on('goToPage', this.goToPage);
+    emitter.on('startMultiplayer', this.startMultiplayer);
 
     emitter.on('joinGame', this.callJoinGame);
     emitter.on('createGame', this.callCreateGame);
     emitter.on('callStartMultiplayerGame', this.callStartMultiplayerGame);
     emitter.on('multiplayerSettingsConfigured', this.handleMultiplayerSettingsConfigured);
-
-    whoami().then(data => {
-      this.state = data.auth ? GAME_STATES.lobby : GAME_STATES.login;
-    }).catch(error => {
-      this.state = GAME_STATES.login;
-      console.error(error);
-    });
+    
+    this.state = GAME_STATES.menu;
   },
   methods: {
     // State getter function for WebSocket reconnect logic
@@ -128,6 +124,7 @@ export default {
     },
     loginSuccess(response) {
       console.log(response);
+      // After login, go to lobby (user came from multiplayer menu option)
       this.state = this.GAME_STATES.lobby;
     },
     loginError(error) {
@@ -354,8 +351,8 @@ export default {
       this.currentGameCode = null;
       this.currentGameState = null;
       this.multiplayerSettings = null;
-      // Redirect to login page
-      this.state = GAME_STATES.login;
+      // Redirect to menu (user can still play singleplayer)
+      this.state = GAME_STATES.menu;
     },
     handleSetupGame() {
       // Navigate to GameSetup page for multiplayer game configuration
@@ -366,11 +363,28 @@ export default {
       this.multiplayerSettings = settings;
       this.state = GAME_STATES.lobby;
     },
+    startMultiplayer() {
+      // Check if user is authenticated before going to lobby
+      whoami().then(data => {
+        if (data.auth) {
+          // User is authenticated, go directly to lobby
+          this.state = GAME_STATES.lobby;
+        } else {
+          // User needs to login first
+          this.state = GAME_STATES.login;
+        }
+      }).catch(error => {
+        // On error, go to login
+        console.error(error);
+        this.state = GAME_STATES.login;
+      });
+    },
   },
   beforeUnmount() {
     emitter.off('startGame', this.startGame);
     emitter.off('loadGame', this.loadGame);
     emitter.off('goToPage', this.goToPage);
+    emitter.off('startMultiplayer', this.startMultiplayer);
     emitter.off('multiplayerSettingsConfigured', this.handleMultiplayerSettingsConfigured);
     // TODO: Check we didn't forget smth
   }

@@ -207,7 +207,7 @@ export default {
     emitter.on('processEndTurn', this.processEndTurn);
     emitter.on('startTurn', this.startTurn);
     emitter.on('moveUnit', this.emitMoveUnit);
-    emitter.on('addTempVisibilityForCoords', this.emitAddTempVisibilityForCoords);
+    emitter.on('scoutArea', this.handleScoutArea);
 
     if (!this.loadGame) {
       this.initPlayersScrollCoords();
@@ -219,7 +219,7 @@ export default {
     emitter.off('processEndTurn', this.processEndTurn);
     emitter.off('startTurn', this.startTurn);
     emitter.off('moveUnit', this.moveUnit);
-    emitter.off('addTempVisibilityForCoords', this.emitAddTempVisibilityForCoords);
+    emitter.off('scoutArea', this.handleScoutArea);
   },
   methods: {
     // Main events
@@ -370,7 +370,7 @@ export default {
     doesVisibilityMakeSense() {
       return this.enableFogOfWar && this.players[this.currentPlayer].active
     },
-    emitAddTempVisibilityForCoords(data) {
+    handleScoutArea(data) {
       this.addTempVisibilityForCoords(data.x, data.y, data.fogRadius);
     },
     addVisibilityForCoords(x, y, fogRadius) {
