@@ -1,10 +1,21 @@
 import { MULTIPLAYER_INITIAL_SETTINGS } from '@/game/const';
 import { API_URL } from '@/config';
 
+// Helper to get auth headers with JWT token
+function getAuthHeaders() {
+  const headers = {};
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 export async function createGame() {
   const response = await fetch(API_URL + '/games/', {
     method: 'POST',
     credentials: 'include',
+    headers: getAuthHeaders(),
   });
   if (!response.ok) {
     throw new Error((await response.json()).detail || 'Create game failed');
@@ -17,6 +28,7 @@ export async function leaveGame(gameCode) {
   const response = await fetch(API_URL + `/games/${gameCode}/leave/`, {
     method: 'POST',
     credentials: 'include',
+    headers: getAuthHeaders(),
   });
   if (!response.ok) {
     // Don't throw error if game not found or not in game - just log it
@@ -32,6 +44,7 @@ export async function joinGame(gameCode) {
   const response = await fetch(API_URL + `/games/${gameCode}/join/`, {
     method: 'POST',
     credentials: 'include',
+    headers: getAuthHeaders(),
   });
   if (!response.ok) {
     throw new Error((await response.json()).detail || 'Join game failed');
@@ -43,10 +56,11 @@ export async function startMultiplayerGame(gameCode, customSettings = null) {
   console.log('Starting multiplayer game call', gameCode, 'with settings:', customSettings);
   // Use custom settings if provided, otherwise use default
   const settings = customSettings || MULTIPLAYER_INITIAL_SETTINGS;
+  const headers = { 'Content-Type': 'application/json', ...getAuthHeaders() };
   const response = await fetch(API_URL + `/games/${gameCode}/start/`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: headers,
     body: JSON.stringify(settings),
   });
   if (!response.ok) {
@@ -62,6 +76,7 @@ export async function getActiveGames(limit = 10) {
   const response = await fetch(url, {
     method: 'GET',
     credentials: 'include',
+    headers: getAuthHeaders(),
   });
   if (!response.ok) {
     throw new Error((await response.json()).detail || 'Get active games failed');

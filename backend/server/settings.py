@@ -23,6 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-=m!dtx2tnzu5ol!r)t@&#kki*u+x!s54ny24msfj_#w5=-6md9")
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
@@ -64,8 +65,20 @@ CORS_ALLOW_HEADERS = [
 CSRF_COOKIE_HTTPONLY = False  # so SPA can read cookie (or keep True and echo via meta tag)
 CSRF_COOKIE_SAMESITE = "None" if not DEBUG else "Lax"  # "None" required for cross-origin with credentials
 CSRF_COOKIE_SECURE = not DEBUG  # Required when SameSite=None
+CSRF_COOKIE_DOMAIN = None  # Let Django set domain automatically
+
+# Session cookie settings - critical for iOS WebKit compatibility
 SESSION_COOKIE_SAMESITE = "None" if not DEBUG else "Lax"  # "None" required for cross-origin with credentials
-SESSION_COOKIE_SECURE = not DEBUG  # Required when SameSite=None
+SESSION_COOKIE_SECURE = not DEBUG  # Required when SameSite=None (MUST be True in production)
+SESSION_COOKIE_DOMAIN = None  # Let Django set domain automatically (don't set explicit domain for cross-origin)
+SESSION_COOKIE_HTTPONLY = True  # Security: prevent JavaScript access
+SESSION_COOKIE_AGE = 86400 * 7  # 7 days (default is 2 weeks, but be explicit)
+SESSION_SAVE_EVERY_REQUEST = True  # Save session on every request (helps with Safari cookie persistence)
+SESSION_COOKIE_PATH = '/'  # Explicitly set cookie path
+SESSION_COOKIE_NAME = 'sessionid'  # Explicit cookie name (default, but be explicit)
+
+# Ensure session is saved on login
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Keep session alive across browser sessions
 
 
 # Application definition

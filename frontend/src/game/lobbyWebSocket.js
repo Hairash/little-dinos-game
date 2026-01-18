@@ -23,15 +23,32 @@ export class LobbyWebSocket {
 
     const url = WS_URL + '/ws/lobby/' + this.gameCode + '/';
     this.ws = new WebSocket(url);
+    this.authenticated = false;
 
     this.ws.onopen = () => {
       console.log('Lobby WebSocket connected');
+      // Send authentication token in first message (more secure than query string)
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        this.ws.send(JSON.stringify({ type: 'auth', token: token }));
+      }
     };
 
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'players') {
+        if (data.type === 'auth_required') {
+          // Server is requesting authentication - send token if we have it
+          const token = localStorage.getItem('auth_token');
+          if (token) {
+            this.ws.send(JSON.stringify({ type: 'auth', token: token }));
+          } else {
+            console.error('[WS] Auth required but no token available');
+            this.ws.close();
+          }
+        } else if (data.type === 'players') {
+          // Mark as authenticated after receiving players list
+          this.authenticated = true;
           if (this.callbacks.onPlayersUpdate) {
             this.callbacks.onPlayersUpdate(data.players);
           }
@@ -39,6 +56,8 @@ export class LobbyWebSocket {
           if (this.callbacks.onGameStarted) {
             this.callbacks.onGameStarted(data.gameState);
           }
+        } else if (data.type === 'error') {
+          console.error('[WS] Lobby error:', data.message);
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);

@@ -8,7 +8,11 @@ export async function signup(username, password) {
     body: JSON.stringify({ username, password }),
   });
   if (!r.ok) throw new Error((await r.json()).detail || 'Signup failed');
-  return r.json();
+  const data = await r.json();
+  if (data.token) {
+    localStorage.setItem('auth_token', data.token);
+  }
+  return data;
 }
 
 export async function signin(username, password) {
@@ -19,11 +23,23 @@ export async function signin(username, password) {
     body: JSON.stringify({ username, password }),
   });
   if (!r.ok) throw new Error((await r.json()).detail || 'Signin failed');
-  return r.json();
+  const data = await r.json();
+  if (data.token) {
+    localStorage.setItem('auth_token', data.token);
+  }
+  return data;
 }
 
 export async function whoami() {
-  const r = await fetch(API_URL + '/auth/whoami/', { credentials: 'include' });
+  const token = localStorage.getItem('auth_token');
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const r = await fetch(API_URL + '/auth/whoami/', { 
+    credentials: 'include',
+    headers: headers,
+  });
   if (!r.ok) {
     const text = await r.text();
     throw new Error(`whoami failed: ${r.status} ${text}`);
@@ -33,4 +49,6 @@ export async function whoami() {
 
 export async function signout() {
   await fetch(API_URL + '/auth/signout/', { method: 'POST', credentials: 'include' });
+  // Clear JWT token on signout
+  localStorage.removeItem('auth_token');
 }
