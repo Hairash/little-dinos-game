@@ -351,8 +351,8 @@ export default {
       this.currentGameCode = null;
       this.currentGameState = null;
       this.multiplayerSettings = null;
-      // Redirect to menu (user can still play singleplayer)
-      this.state = GAME_STATES.menu;
+      // Redirect to login page
+      this.state = GAME_STATES.login;
     },
     handleSetupGame() {
       // Navigate to GameSetup page for multiplayer game configuration
