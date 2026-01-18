@@ -19,12 +19,21 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         self.game_code = self.scope["url_route"]["kwargs"]["game_code"]
         self.user = self.scope.get("user", AnonymousUser())
         self.user_id = getattr(self.user, "id", None)
+        self.authenticated = False  # Track if authenticated via first message
         # Store player info for disconnect notification
         self.player_info = None
         if self.user_id:
             self.player_info = await self._get_player_info(self.user_id)
+            self.authenticated = True
         print(f"[DEBUG] GameConsumer.connect: game_code={self.game_code}, user_id={self.user_id}, player_info={self.player_info}, is_authenticated={getattr(self.user, 'is_authenticated', False)}")
         await self.accept()
+        
+        # If not authenticated, wait for auth message
+        if not self.user_id:
+            # Send message requesting authentication
+            await self.send_json({"t": "auth_required"})
+            return
+        
         await self.channel_layer.group_add(room(self.game_code), self.channel_name)
 
         # Check if this is a reconnection (game is already started and player is in the game)
@@ -49,9 +58,64 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         )
 
     async def receive_json(self, msg, **_):
-        print(f"[DEBUG] receive_json: msg={msg}")
+        print(f"[DEBUG] receive_json: msg={msg}, authenticated={self.authenticated}")
+        
+        # Handle authentication message (more secure than query string)
+        if msg.get("t") == "auth":
+            if self.authenticated:
+                # Already authenticated, ignore duplicate auth message
+                print(f"[DEBUG] Already authenticated, ignoring auth message")
+                return
+            
+            token = msg.get("token")
+            if token:
+                from .jwt_utils import get_user_from_token
+                user = await database_sync_to_async(get_user_from_token)(token)
+                if user:
+                    self.user = user
+                    self.user_id = user.id
+                    self.authenticated = True
+                    self.player_info = await self._get_player_info(self.user_id)
+                    await self.channel_layer.group_add(room(self.game_code), self.channel_name)
+                    
+                    # Check if this is a reconnection
+                    if self.player_info:
+                        is_reconnection = await self._is_reconnection(self.user_id)
+                        if is_reconnection:
+                            print(f"[DEBUG] Player {self.player_info['username']} reconnected, broadcasting to others")
+                            await self.channel_layer.group_send(
+                                room(self.game_code),
+                                {
+                                    "type": "player_reconnected",
+                                    "player": self.player_info,
+                                }
+                            )
+                    
+                    # Send initial state after authentication
+                    state = await self._get_full_state(self.user_id)
+                    await self.send_json(
+                        {"t": "joined", "gameCode": self.game_code, "gameState": state}
+                    )
+                    return
+                else:
+                    await self.send_json({"t": "err", "code": "AUTH_FAILED", "message": "Invalid token"})
+                    await self.close()
+                    return
+            else:
+                await self.send_json({"t": "err", "code": "AUTH_REQUIRED", "message": "Token required"})
+                await self.close()
+                return
+        
+        # Require authentication for all other messages
+        if not self.authenticated:
+            print(f"[DEBUG] Message received but not authenticated, sending auth_required")
+            await self.send_json({"t": "err", "code": "AUTH_REQUIRED", "message": "Authentication required"})
+            return
+        
+        # Handle game move messages
         if msg.get("t") != "move":
-            return await self.send_json({"t": "err", "code": "UNKNOWN"})
+            print(f"[DEBUG] Unknown message type: {msg.get('t')}")
+            return await self.send_json({"t": "err", "code": "UNKNOWN", "message": f"Unknown message type: {msg.get('t')}"})
         payload = msg.get("payload", {})
         client_seq = msg.get("clientSeq", 0)
         user_id = getattr(self.user, "id", None)
@@ -356,7 +420,14 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         self.game_code = self.scope["url_route"]["kwargs"]["game_code"]
         self.user = self.scope.get("user", AnonymousUser())
+        self.authenticated = getattr(self.user, "id", None) is not None
         await self.accept()
+        
+        # If not authenticated, wait for auth message
+        if not self.authenticated:
+            await self.send_json({"type": "auth_required"})
+            return
+        
         await self.channel_layer.group_add(
             lobby_room(self.game_code), self.channel_name
         )
@@ -364,6 +435,37 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         # Send initial players list
         players = await self._get_players()
         await self.send_json({"type": "players", "players": players})
+    
+    async def receive_json(self, content, **_):
+        # Handle authentication message (more secure than query string)
+        if content.get("type") == "auth" and not self.authenticated:
+            token = content.get("token")
+            if token:
+                from .jwt_utils import get_user_from_token
+                user = await database_sync_to_async(get_user_from_token)(token)
+                if user:
+                    self.user = user
+                    self.authenticated = True
+                    await self.channel_layer.group_add(
+                        lobby_room(self.game_code), self.channel_name
+                    )
+                    # Send initial players list after authentication
+                    players = await self._get_players()
+                    await self.send_json({"type": "players", "players": players})
+                    return
+                else:
+                    await self.send_json({"type": "error", "message": "Invalid token"})
+                    await self.close()
+                    return
+            else:
+                await self.send_json({"type": "error", "message": "Token required"})
+                await self.close()
+                return
+        
+        # Require authentication for all other messages
+        if not self.authenticated:
+            await self.send_json({"type": "error", "message": "Authentication required"})
+            return
 
     async def player_update(self, event):
         """Handle player list updates broadcast from views."""

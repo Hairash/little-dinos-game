@@ -35,6 +35,7 @@ export class GameWebSocket {
     console.log(`[WS] Connecting to ${url} (attempt ${this.reconnectAttempts + 1})`);
     this.ws = new WebSocket(url);
     this.isReconnecting = this.reconnectAttempts > 0;
+    this.authenticated = false;  // Track authentication state
 
     this.ws.onopen = () => {
       const wasReconnecting = this.reconnectAttempts > 0;
@@ -43,6 +44,20 @@ export class GameWebSocket {
       this.isReconnecting = false;
       this.reconnectAttempts = 0;  // Reset on successful connection
       this.reconnectDelay = 1000;  // Reset delay
+      
+      // Wait for server to send auth_required or send auth immediately
+      // The server will send auth_required if not authenticated, or we can send auth proactively
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        // Send auth proactively - server will handle it
+        console.log('[WS] Sending auth token');
+        this.ws.send(JSON.stringify({ t: 'auth', token: token }));
+      } else {
+        console.error('[WS] No auth token found in localStorage');
+        this.ws.close();
+        return;
+      }
+      
       if (this.callbacks.onOpen) {
         this.callbacks.onOpen();
       }
@@ -57,7 +72,19 @@ export class GameWebSocket {
         
         // Handle different message types
         switch (data.t) {
+          case 'auth_required':
+            // Server is requesting authentication - send token if we have it
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+              this.ws.send(JSON.stringify({ t: 'auth', token: token }));
+            } else {
+              console.error('[WS] Auth required but no token available');
+              this.ws.close();
+            }
+            break;
           case 'joined':
+            // Mark as authenticated after successful join
+            this.authenticated = true;
             if (this.callbacks.onJoined) {
               // Backend sends gameState, not state
               this.callbacks.onJoined(data.gameState || data.state);

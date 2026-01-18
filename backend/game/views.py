@@ -3,7 +3,6 @@ import secrets
 from django.http import JsonResponse
 from django.db.models import Max
 from django.db import transaction
-from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render
@@ -12,6 +11,7 @@ from asgiref.sync import async_to_sync
 
 from .models import Game, GamePlayer
 from .services.field import generate_field
+from .decorators import login_required_json
 
 
 @require_http_methods(["GET"])
@@ -23,7 +23,7 @@ def index(request):
 
 
 @csrf_exempt  # DEV ONLY; replace with proper CSRF handling in prod
-@login_required
+@login_required_json
 @require_http_methods(["POST"])
 def create_game(request):
     """Create a new game."""
@@ -52,7 +52,7 @@ def create_game(request):
 
 
 @csrf_exempt  # DEV ONLY; replace with proper CSRF handling in prod
-@login_required
+@login_required_json
 @require_http_methods(["POST"])
 def join_game(request, game_code):
     """Join a game."""
@@ -106,7 +106,7 @@ def join_game(request, game_code):
 
 
 @csrf_exempt  # DEV ONLY; replace with proper CSRF handling in prod
-@login_required
+@login_required_json
 @require_http_methods(["POST"])
 def leave_game(request, game_code):
     """Leave a game."""
@@ -149,7 +149,7 @@ def leave_game(request, game_code):
 
 
 @csrf_exempt  # DEV ONLY; replace with proper CSRF handling in prod
-@login_required
+@login_required_json
 @require_http_methods(["POST"])
 def start_game(request, game_code):
     """Start a game."""
@@ -203,7 +203,7 @@ def start_game(request, game_code):
     return JsonResponse({"message": "Started game", "game": game_state})
 
 
-@login_required
+@login_required_json
 @require_http_methods(["GET"])
 def get_game(request, game_code):
     """Get a game."""
@@ -211,7 +211,7 @@ def get_game(request, game_code):
     return JsonResponse(game.to_dict())
 
 
-@login_required
+@login_required_json
 @require_http_methods(["GET"])
 def get_active_games(request):
     """Get active (unfinished) games the user has joined."""
