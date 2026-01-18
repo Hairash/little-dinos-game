@@ -1,6 +1,9 @@
 <!-- Component for login page -->
 <template>
   <div id="login-page">
+    <button type="button" class="goBackBtn" @click="handleBackBtnClick" title="Back to Menu">
+      <img :src="`/images/arrow_white.png`">
+    </button>
     <h1 id="login-page-title">{{ isSignUp ? 'Sign Up' : 'Login' }}</h1>
     <div id="login-page-toggle">
       <button 
@@ -37,6 +40,8 @@
 
 <script>
 import { signin, signup } from '@/auth';
+import emitter from "@/game/eventBus";
+import { GAME_STATES } from "@/game/const";
 
 export default {
   name: 'LoginPage',
@@ -65,6 +70,9 @@ export default {
         this.error = error.message;
         this.$emit('loginError', error.message);
       }
+    },
+    handleBackBtnClick() {
+      emitter.emit('goToPage', GAME_STATES.menu);
     }
   }
 }
@@ -72,20 +80,35 @@ export default {
 
 <style>
 #login-page {
-  /* background-image: url('/images/login_background.png'); */
+  position: relative;
+  background-image: url('/images/background.png');
+  background-size: cover;
   width: 100vw;
   min-height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
-  background-size: cover;
-  background-position: center;
-  background-color: #001111;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 20px;
   box-sizing: border-box;
+}
+
+.goBackBtn {
+  position: absolute;
+  top: 34px;
+  left: 16px;
+  border: none;
+  background-color: rgba(0, 0, 0, 0);
+  z-index: 10;
+}
+
+.goBackBtn img {
+  width: 40px;
+  height: 40px;
+  user-select: none;
+  cursor: pointer;
 }
 
 #login-page-title {
