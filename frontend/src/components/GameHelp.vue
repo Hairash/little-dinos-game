@@ -35,7 +35,11 @@
           <br>
           To move a dino, simply click or tap on it, then select the cell you want it to go to. When a dino completes
           its move, it eliminates opposing dinos in its immediate vicinity (those in the 4 main directions: ⬅️➡️⬇️⬆️).
-          If your dino lands on an enemy tower, it captures the tower and it becomes yours.
+          If your dino lands on an empty or enemy tower, it captures the tower and it becomes yours.
+          <br>
+          <div class="context-help-example">
+            Any time in the game you may get help by pressing right mouse button on any cell. You will see a tooltip with information about the building.
+          </div>
           <div class="building-row">
             <div class="icon">
               <img class="building-img" :src="`/images/base.png`" alt="Tower">
@@ -201,5 +205,22 @@ img.unit-img {
 
 .building-desc-title {
   color: #e08741;
+}
+
+.context-help-example {
+  /* position: relative; */
+  /* left: 50px; */
+  display: inline-block;
+  background-color: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  max-width: 400px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.4;
+  margin: 8px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 </style>

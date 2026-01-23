@@ -177,7 +177,9 @@ export class FieldEngine {
           this.field[x][y].unit && this.field[x][y].unit.player === player && !this.field[x][y].unit.hasMoved &&
           (
             !this.field[x][y].building ||
-            (this.field[x][y].building._type === Models.BuildingTypes.BASE && this.field[x][y].building.player === player)
+            (this.field[x][y].building._type === Models.BuildingTypes.BASE && this.field[x][y].building.player === player) ||
+            (this.field[x][y].building._type === Models.BuildingTypes.BASE && this.field[x][y].building.player === null) ||
+            this.field[x][y].building._type === Models.BuildingTypes.OBELISK
           )
         ) {
           return false;

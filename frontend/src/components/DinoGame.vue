@@ -19,6 +19,9 @@
     :field="field"
     :current-player="currentPlayer"
     :cellSize="cellSize"
+    :unitModifier="unitModifier"
+    :baseModifier="baseModifier"
+    :current-stats="getCurrentStats()"
   />
   <InfoPanel
     v-if="state === STATES.play"
@@ -590,8 +593,12 @@ export default {
         towers: {
           total: 0,
           max: this.maxBasesNum,
+          empty: 0,
         },
       };
+      const unitsNotOnBuildings = [];
+      const unitsOnBuildings = [];
+      
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
           const unit = this.field[x][y].unit;
@@ -599,7 +606,18 @@ export default {
           if (unit && unit.player === this.currentPlayer) {
             stats.units.total++;
             if (!unit.hasMoved) {
-              stats.units.coordsArr.push([x, y]);
+              // Check if unit is on a building that should be excluded from priority
+              const isOnExcludedBuilding = building && (
+                (building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) ||
+                (building._type === Models.BuildingTypes.BASE && building.player === null) ||
+                building._type === Models.BuildingTypes.OBELISK
+              );
+              
+              if (!building || isOnExcludedBuilding) {
+                unitsNotOnBuildings.push([x, y]);
+              } else {
+                unitsOnBuildings.push([x, y]);
+              }
               stats.units.active++;
             }
             if (building && building._type === Models.BuildingTypes.HABITATION && this.maxUnitsNum > 0) {
@@ -611,9 +629,12 @@ export default {
           }
           if (building && building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) {
             stats.towers.total++;
+            if (!unit) stats.towers.empty++;
           }
         }
       }
+      // Combine arrays: units not on buildings first, then units on buildings
+      stats.units.coordsArr = [...unitsNotOnBuildings, ...unitsOnBuildings];
       return stats
     },
 

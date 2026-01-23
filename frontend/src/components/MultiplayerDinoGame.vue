@@ -18,6 +18,9 @@
     :my-player-order="myPlayerOrder"
     :cellSize="cellSize"
     :is-my-turn="isMyTurn"
+    :unitModifier="unitModifier"
+    :baseModifier="baseModifier"
+    :current-stats="getCurrentStats()"
   />
   <InfoPanel
     v-if="state === STATES.play || (state === STATES.ready && !showReadyLabel)"
@@ -126,6 +129,8 @@ export default {
       enableFogOfWar: true,
       enableScoutMode: true,
       hideEnemySpeed: false,
+      unitModifier: 3,
+      baseModifier: 3,
       // Track coordinates revealed by scout actions (persist until turn ends)
       scoutRevealedCoords: new Set(), // Set of strings like "x,y"
       // Game end state
@@ -211,6 +216,8 @@ export default {
       this.enableFogOfWar = settings.enableFogOfWar !== false;
       this.enableScoutMode = settings.enableScoutMode !== false;
       this.hideEnemySpeed = settings.hideEnemySpeed || false;
+      this.unitModifier = settings.unitModifier || 3;
+      this.baseModifier = settings.baseModifier || 3;
       
       // Initialize players from gameState prop
       if (this.gameState && this.gameState.players) {
@@ -240,6 +247,8 @@ export default {
         this.enableFogOfWar = settings.enableFogOfWar !== false;
         this.enableScoutMode = settings.enableScoutMode !== false;
         this.hideEnemySpeed = settings.hideEnemySpeed || false;
+        this.unitModifier = settings.unitModifier || 3;
+        this.baseModifier = settings.baseModifier || 3;
         // Store full settings locally (can't mutate props)
         this.localSettings = JSON.parse(JSON.stringify(settings));
       }
@@ -667,6 +676,7 @@ export default {
         towers: {
           total: 0,
           max: settings.maxBasesNum || 3,
+          empty: 0,
         },
       };
       
@@ -674,6 +684,9 @@ export default {
       if (!this.localField || !Array.isArray(this.localField) || this.localField.length === 0) {
         return stats;
       }
+      
+      const unitsNotOnBuildings = [];
+      const unitsOnBuildings = [];
       
       for (let x = 0; x < this.width; x++) {
         // Guard: check if row exists
@@ -694,7 +707,18 @@ export default {
           if (unit && unit.player === this.currentPlayer) {
             stats.units.total++;
             if (!unit.hasMoved) {
-              stats.units.coordsArr.push([x, y]);
+              // Check if unit is on a building that should be excluded from priority
+              const isOnExcludedBuilding = building && (
+                (building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) ||
+                (building._type === Models.BuildingTypes.BASE && building.player === null) ||
+                building._type === Models.BuildingTypes.OBELISK
+              );
+              
+              if (!building || !isOnExcludedBuilding) {
+                unitsNotOnBuildings.push([x, y]);
+              } else {
+                unitsOnBuildings.push([x, y]);
+              }
               stats.units.active++;
             }
             // Check for habitation buildings that increase unit limit
@@ -710,9 +734,13 @@ export default {
           // Count bases (towers)
           if (building && building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) {
             stats.towers.total++;
+            if (!unit) stats.towers.empty++;
           }
         }
       }
+      
+      // Combine arrays: units not on buildings first, then units on buildings
+      stats.units.coordsArr = [...unitsNotOnBuildings, ...unitsOnBuildings];
       
       return stats;
     },
@@ -726,11 +754,12 @@ export default {
     },
     
     getCurrentUnitCoords() {
-      const coords = [];
+      const unitsNotOnBuildings = [];
+      const unitsOnBuildings = [];
       
       // Guard: return empty array if field is not ready
       if (!this.localField || !Array.isArray(this.localField) || this.localField.length === 0) {
-        return coords;
+        return [];
       }
       
       for (let x = 0; x < this.width; x++) {
@@ -740,13 +769,30 @@ export default {
         }
         
         for (let y = 0; y < this.height; y++) {
-          const unit = this.localField[x][y].unit;
+          const cell = this.localField[x][y];
+          if (!cell) continue;
+          
+          const unit = cell.unit;
+          const building = cell.building;
+          
           if (unit && unit.player === this.currentPlayer && !unit.hasMoved) {
-            coords.push([x, y]);
+            // Check if unit is on a building that should be excluded from priority
+            const isOnExcludedBuilding = building && (
+              (building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) ||
+              (building._type === Models.BuildingTypes.BASE && building.player === null) ||
+              building._type === Models.BuildingTypes.OBELISK
+            );
+            
+            if (!building || !isOnExcludedBuilding) {
+              unitsNotOnBuildings.push([x, y]);
+            } else {
+              unitsOnBuildings.push([x, y]);
+            }
           }
         }
       }
-      return coords;
+      // Combine arrays: units not on buildings first, then units on buildings
+      return [...unitsNotOnBuildings, ...unitsOnBuildings];
     },
     
     initScrollCoordsOnce() {
