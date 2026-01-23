@@ -155,3 +155,18 @@ export function normalizeField(field) {
 //     boardHeight: `${(this.cellSize + 2) * this.height + 35}px`,  // Board height + bottom info label height
 //   };
 // },
+
+const PLAYER_COLOR_MAP = {
+  0: '#4A90E2',      // 1 - blue
+  1: '#32cc67',      // 2 - mint
+  2: '#FF4444',      // 3 - red
+  3: '#FFD700',      // 4 - yellow
+  4: '#8B5CF6',      // 5 - violet
+  5: '#00FFFF',      // 6 - cyan
+  6: '#9B59B6',      // 7 - purple
+  7: '#2E7D32',      // 8 - dark green
+};
+
+export function getPlayerColor(order) {
+  return PLAYER_COLOR_MAP[order] || '#ffffff';
+}

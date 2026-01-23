@@ -97,6 +97,7 @@ import { LobbyWebSocket } from "@/game/lobbyWebSocket";
 import { getActiveGames } from "@/game/service";
 import { whoami, signout } from "@/auth";
 import { GAME_STATES } from "@/game/const";
+import { getPlayerColor } from "@/game/helpers";
 
 export default {
     name: 'LobbyPage',
@@ -265,18 +266,7 @@ export default {
             this.$emit('setupGame');
         },
         getPlayerColor(order) {
-            // Color mapping based on player order (0-indexed, but we'll treat as 1-indexed for colors)
-            const colorMap = {
-                0: '#4A90E2',      // 1 - blue
-                1: '#32cc67',      // 2 - mint
-                2: '#FF4444',      // 3 - red
-                3: '#FFD700',      // 4 - yellow
-                4: '#8B5CF6',      // 5 - violet
-                5: '#00FFFF',      // 6 - cyan
-                6: '#9B59B6',      // 7 - purple
-                7: '#2E7D32',      // 8 - dark green
-            };
-            return colorMap[order] || '#ffffff'; // Default to white if order is out of range
+            return getPlayerColor(order);
         },
         async handleSignOut() {
             try {

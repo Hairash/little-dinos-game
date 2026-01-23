@@ -2,6 +2,7 @@
   <div class="cell"
     :class="{'hidden': hidden, 'selected': selected, 'highlighted': highlighted}"
     :style="{ width: `${width}px`, height: `${height}px` }"
+    @contextmenu.prevent="handleContextMenu"
   >
     <img
       class="terrainImg"
@@ -29,6 +30,13 @@
       :movePoints="unit.movePoints"
       :has-moved="unit.hasMoved"
       :showMovePoints="showMovePoints()"
+    />
+    <!-- Warning indicator for tower limit reached -->
+    <img
+      v-if="showTowerLimitWarning"
+      class="tower-limit-warning"
+      src="/images/warning_sign.png"
+      alt="Warning"
     />
   </div>
 </template>
@@ -66,22 +74,67 @@ export default {
       default: null, // null for single-player mode
     },
     hideEnemySpeed: Boolean,
+    cellX: Number,
+    cellY: Number,
+    hasSelectedUnit: Boolean,
+    currentStats: {
+      type: Object,
+      default: () => ({
+        towers: { total: 0, max: 0 },
+      }),
+    },
+    baseModifier: {
+      type: Number,
+      default: 3,
+    },
+    selectedUnitOnStorage: Boolean,
   },
   computed: {
     transitionOpacity() {
       return `opacity ${TRANSITION_DELAY}s`;
     },
+    showTowerLimitWarning() {
+      // Show warning if:
+      // 1. A unit is selected
+      // 2. This cell is highlighted (in unit's zone)
+      // 3. This cell has a building that is a tower (base)
+      // 4. The tower is empty or enemy-owned
+      // 5. Tower limit is reached
+      if (!this.hasSelectedUnit || !this.highlighted) {
+        return false;
+      }
+      
+      if (!this.building || this.building._type !== Models.BuildingTypes.BASE) {
+        return false;
+      }
+      
+      // Check if tower is empty or enemy-owned
+      const isTowerEmpty = this.building.player === null;
+      const isTowerEnemy = this.building.player !== null && this.building.player !== this.currentPlayer;
+      
+      if (!isTowerEmpty && !isTowerEnemy) {
+        return false;
+      }
+      
+      // Check if tower limit is reached
+      const towersTotal = this.currentStats?.towers?.total || 0;
+      let towersMax = this.currentStats?.towers?.max || 0;
+      
+      // If max is 0, there's no limit
+      if (towersMax === 0) {
+        return false;
+      }
+      
+      // If the selected unit is standing on a storage building, subtract the modifier
+      // because when the unit moves away, the storage bonus will be lost
+      if (this.selectedUnitOnStorage) {
+        console.log('selectedUnitOnStorage', this.selectedUnitOnStorage);
+        towersMax = Math.max(0, towersMax - this.baseModifier);
+      }
+      
+      return towersTotal >= towersMax;
+    },
   },
-  // data() {
-  //   return {
-  //     cssProps: {
-  //       width: `${this.width}px`,
-  //       height: `${this.height}px`,
-  //       transitionBorder: `border ${TRANSITION_DELAY}s`,
-  //       transitionOpacity: `opacity ${TRANSITION_DELAY}s`,
-  //     },
-  //   }
-  // },
   methods: {
     getTerrainImg() {
       if (this.terrain.kind === Models.TerrainTypes.MOUNTAIN) {
@@ -106,7 +159,11 @@ export default {
       if (this.unit && this.unit.player === playerToCheck) return true;
       return false;
     },
-  }
+    handleContextMenu(event) {
+      // Right-click handler (also triggered by long press on mobile)
+      this.$emit('contextMenu', { x: this.cellX, y: this.cellY });
+    },
+  },
 }
 </script>
 
@@ -142,5 +199,15 @@ div.cell .cellSelection.selected {
 }
 div.cell .cellSelection.highlighted {
   background-color: rgba(66, 185, 131, 0.5);
+}
+
+.tower-limit-warning {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  width: 40%;
+  height: 40%;
+  pointer-events: none;
 }
 </style>

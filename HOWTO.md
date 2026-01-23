@@ -1,6 +1,9 @@
 # How to run
 
 ## Backend
+1. Go to the directory  
+`cd backend`
+
 1. Create and activate virtual environment
     ```
     python -m venv venv
@@ -25,7 +28,17 @@
 For local test run instead:  
 `DJANGO_DEBUG=True daphne -b 0.0.0.0 -p 8008 server.asgi:application`
 
+### Fast run
+```
+cd backend
+source venv/bin/activate
+DJANGO_DEBUG=True daphne -b 0.0.0.0 -p 8008 server.asgi:application
+```
+
 ## Frontend
+1. Go to the directory  
+`cd frontend`
+
 1. Install dependencies  
 `npm i`
 

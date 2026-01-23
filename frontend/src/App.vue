@@ -111,7 +111,7 @@ export default {
     emitter.on('createGame', this.callCreateGame);
     emitter.on('callStartMultiplayerGame', this.callStartMultiplayerGame);
     emitter.on('multiplayerSettingsConfigured', this.handleMultiplayerSettingsConfigured);
-    
+
     this.state = GAME_STATES.menu;
   },
   methods: {

@@ -29,11 +29,34 @@
                 :currentPlayer="currentPlayer"
                 :myPlayerOrder="myPlayerOrder"
                 :hideEnemySpeed="hideEnemySpeed"
+                :cellX="x"
+                :cellY="y"
+                :hasSelectedUnit="selectedCoords !== null"
+                :currentStats="currentStats"
+                :baseModifier="baseModifier"
+                :selectedUnitOnStorage="selectedUnitOnStorage"
                 @click="processClick($event, x, y)"
+                @contextMenu="handleContextMenu"
               />
             </template>
           </div>
         </div>
+        <CellContextHelp
+          :visible="contextHelpVisible"
+          :x="contextHelpX"
+          :y="contextHelpY"
+          :cellSize="cellSize"
+          :fieldWidth="width"
+          :fieldHeight="height"
+          :cell="contextHelpCell"
+          :unitModifier="unitModifier"
+          :baseModifier="baseModifier"
+          :fogOfWarRadius="fogOfWarRadius"
+          :hasSelectedUnit="selectedCoords !== null"
+          :currentStats="currentStats"
+          :currentPlayer="currentPlayer"
+          :selectedUnitOnStorage="selectedUnitOnStorage"
+        />
       </div>
     </div>
 <!--  </div>-->
@@ -48,12 +71,14 @@ import { ACTIONS } from '@/game/const'
 
 import emitter from '@/game/eventBus';
 import ActionHint from "@/components/ActionHint.vue";
+import CellContextHelp from "@/components/CellContextHelp.vue";
 
 export default {
   name: "GameGrid",
   components: {
     ActionHint,
     GameCell,
+    CellContextHelp,
   },
   props: {
     isHidden: Boolean,
@@ -72,6 +97,20 @@ export default {
       type: Boolean,
       default: true, // Default to true for single-player mode compatibility
     },
+    unitModifier: {
+      type: Number,
+      default: 3,
+    },
+    baseModifier: {
+      type: Number,
+      default: 3,
+    },
+    currentStats: {
+      type: Object,
+      default: () => ({
+        towers: { total: 0, max: 0 },
+      }),
+    },
   },
   data() {
     return {
@@ -80,6 +119,11 @@ export default {
       waveEngine: null,
       fieldEngine: null,
       fieldOutput: null,  // Will be initialized in created()
+      contextHelpVisible: false,
+      contextHelpX: 0,
+      contextHelpY: 0,
+      contextHelpCell: null,
+      infoPanelContextHelpVisible: false,
     }
   },
   computed: {
@@ -113,6 +157,21 @@ export default {
     },
     boardWrapperWidth() {
       return `${this.cellSize * this.width}px`;
+    },
+    selectedUnitOnStorage() {
+      // Check if the selected unit is standing on a storage building
+      if (!this.selectedCoords) {
+        return false;
+      }
+      const [x, y] = this.selectedCoords;
+      if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+        return false;
+      }
+      const cell = this.field[x][y];
+      if (!cell || !cell.building) {
+        return false;
+      }
+      return cell.building._type === Models.BuildingTypes.STORAGE;
     },
   },
   created() {
@@ -178,16 +237,23 @@ export default {
   mounted() {
     emitter.on('initTurn', this.initTurn);
     emitter.on('selectNextUnit', this.selectNextUnit);
+    emitter.on('infoPanelContextHelpChanged', this.onInfoPanelContextHelpChanged);
+    emitter.on('closeGameGridContextHelp', this.hideContextHelp);
     emitter.on('setAction', this.setAction);
     emitter.on('saveCoords', this.saveCoords);
     emitter.on('getScrollCoordsByCell', this.getScrollCoordsByCell);
+    // Hide context help when clicking outside
+    document.addEventListener('click', this.hideContextHelpOnOutsideClick);
   },
   beforeUnmount() {
     emitter.off('initTurn', this.initTurn);
     emitter.off('selectNextUnit', this.selectNextUnit);
+    emitter.off('infoPanelContextHelpChanged', this.onInfoPanelContextHelpChanged);
+    emitter.off('closeGameGridContextHelp', this.hideContextHelp);
     emitter.off('setAction', this.setAction);
     emitter.off('saveCoords', this.saveCoords);
     emitter.off('getScrollCoordsByCell', this.getScrollCoordsByCell);
+    document.removeEventListener('click', this.hideContextHelpOnOutsideClick);
   },
   methods: {
     initTurn(scrollCoords=null) {
@@ -200,19 +266,35 @@ export default {
       }
     },
     selectNextUnit(unitCoordsArr) {
+      if (unitCoordsArr.length === 0) return;
+      
       let coords = unitCoordsArr[0];
 
       if (this.selectedCoords) {
         const curIdx = unitCoordsArr.findIndex(el => el[0] === this.selectedCoords[0] && el[1] === this.selectedCoords[1]);
-        if (curIdx + 1 < unitCoordsArr.length) {
+        if (curIdx !== -1 && curIdx + 1 < unitCoordsArr.length) {
+          // Selected unit is still in the array, select next one
           coords = unitCoordsArr[curIdx + 1];
+        } else if (curIdx === -1) {
+          // Selected unit was moved (no longer in array), continue with next unit
+          // Find the first unit that comes after the previously selected position
+          // If no such unit exists, wrap around to the first unit
+          const nextIdx = unitCoordsArr.findIndex(el => {
+            // Compare by position: find first unit that is "after" the selected one
+            return el[0] > this.selectedCoords[0] || 
+                   (el[0] === this.selectedCoords[0] && el[1] > this.selectedCoords[1]);
+          });
+          coords = nextIdx !== -1 ? unitCoordsArr[nextIdx] : unitCoordsArr[0];
         }
+        // If curIdx is the last element, it will wrap to the first (coords already set to unitCoordsArr[0])
       }
       const [x, y] = coords;
       const unit = this.field[x][y].unit;
-      this.selectUnit(x, y, unit.movePoints);
-      const scrollCoords = this.getScrollCoordsByCell([x, y]);
-      this.$refs.gameGridContainer.scrollTo(...scrollCoords);
+      if (unit) {
+        this.selectUnit(x, y, unit.movePoints);
+        const scrollCoords = this.getScrollCoordsByCell([x, y]);
+        this.$refs.gameGridContainer.scrollTo(...scrollCoords);
+      }
     },
     selectUnit(x, y, movePoints) {
       this.selectedCoords = [x, y];
@@ -220,6 +302,17 @@ export default {
       this.setHighlights(x, y, movePoints);
     },
     processClick(event, x, y) {
+      // Check if any context window is open
+      const wasContextHelpVisible = this.contextHelpVisible || this.infoPanelContextHelpVisible;
+      
+      // Hide context help on any click
+      this.hideContextHelp();
+      
+      // If a context window was open, just close it and don't perform any action
+      if (wasContextHelpVisible) {
+        return;
+      }
+      
       // In multiplayer mode, only process clicks if it's the player's turn
       if (!this.isMyTurn) {
         console.log('Not my turn');
@@ -293,6 +386,37 @@ export default {
         const curY = coords[1];
         this.fieldOutput[curX][curY].isHighlighted = true;
       }
+    },
+    handleContextMenu(coords) {
+      const { x, y } = coords;
+      if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+        const cell = this.field[x][y];
+        // Only show context help for visible cells
+        if (!cell.isHidden) {
+          // Close InfoPanel context help if open
+          if (this.infoPanelContextHelpVisible) {
+            emitter.emit('infoPanelContextHelpChanged', false);
+          }
+          this.contextHelpX = x;
+          this.contextHelpY = y;
+          this.contextHelpCell = cell;
+          this.contextHelpVisible = true;
+        }
+      }
+    },
+    hideContextHelp() {
+      this.contextHelpVisible = false;
+    },
+    hideContextHelpOnOutsideClick(event) {
+      // Hide context help if clicking outside the board
+      if (this.contextHelpVisible && this.$refs.gameGridContainer) {
+        if (!this.$refs.gameGridContainer.contains(event.target)) {
+          this.hideContextHelp();
+        }
+      }
+    },
+    onInfoPanelContextHelpChanged(visible) {
+      this.infoPanelContextHelpVisible = visible;
     },
   }
 }

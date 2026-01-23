@@ -5,7 +5,13 @@
     <div id="inner-info-panel">
       <!-- Left group: Zoom controls -->
       <span class="infoBlock left-group">
-        <button type="button" class="infoBtn" @click="handleExitBtnClick">
+        <button 
+          type="button" 
+          class="infoBtn" 
+          @click="handleExitBtnClick" 
+          @contextmenu.prevent="showContextHelp($event, 'Exit')"
+          title="Exit"
+        >
           <img
             style="margin-left: 1px; margin-top: 1px;"
             class="curPlayerImage"
@@ -16,7 +22,9 @@
           type="button"
           class="infoBtn"
           @click="handleChangeCellSize(10)"
+          @contextmenu.prevent="showContextHelp($event, 'Zoom in')"
           style="margin-left: 2px"
+          title="Zoom in"
         >
           <img
             style="margin-left: 1px; margin-top: 1px;"
@@ -28,7 +36,9 @@
           type="button"
           class="infoBtn"
           @click="handleChangeCellSize(-10)"
+          @contextmenu.prevent="showContextHelp($event, 'Zoom out')"
           style="margin-left: 2px"
+          title="Zoom out"
         >
           <img
             style="margin-left: 1px; margin-top: 1px;"
@@ -43,7 +53,12 @@
 
       <!-- Center-left: Units -->
       <span class="infoItem">
-        <button type="button" class="infoBtn" @click="handleUnitClick">
+        <button 
+          type="button" 
+          class="infoBtn" 
+          @click="handleUnitClick"
+          @contextmenu.prevent="showContextHelp($event, 'Next unit')"
+        >
           <img v-if="areAllUnitsOnBuildings && currentStats.units.active > 0"
             class="curPlayerImage"
             :src="`/images/habitation.png`"
@@ -56,8 +71,23 @@
             title="Next unit"
           >
         </button>
-        <span class="infoLabel">
-          {{ currentStats.units.active }}/{{ currentStats.units.total }}/{{ maxUnitsNum }}
+        <span
+          class="infoLabel"
+          :class="{ 'units-overlimit': unitsOverLimit, 'units-overlimit-animate': animateUnitsOverlimit }"
+          @contextmenu.prevent="showUnitsContextHelp($event)"
+          title="Active / Total / Max dinos"
+        >
+          {{ currentStats.units.active }}/<span 
+            :key="currentStats.units.total" 
+            :class="{ 'limit-animate': animateUnitsTotal }"
+            class="limit-number"
+            :style="animateUnitsTotal ? { '--player-color': playerColor } : {}"
+          >{{ currentStats.units.total }}</span>/<span 
+            :key="maxUnitsNum" 
+            :class="{ 'limit-animate': animateUnitsLimit }"
+            class="limit-number"
+            :style="animateUnitsLimit ? { '--player-color': playerColor } : {}"
+          >{{ maxUnitsNum }}</span>
         </span>
       </span>
 
@@ -70,8 +100,22 @@
           class="towerImage"
           :src="`/images/base${currentPlayer + 1}.png`"
         >
-        <span class="infoLabel">
-          {{ currentStats.towers.total }}/{{ maxTowersNum }}
+        <span 
+          class="infoLabel" 
+          @contextmenu.prevent="showContextHelp($event, 'Total / Max towers')"
+          title="Total / Max towers"
+        >
+          <span 
+            :key="currentStats.towers.total" 
+            :class="{ 'limit-animate': animateTowersTotal }"
+            class="limit-number"
+            :style="animateTowersTotal ? { '--player-color': playerColor } : {}"
+          >{{ currentStats.towers.total }}</span>/<span 
+            :key="maxTowersNum" 
+            :class="{ 'limit-animate': animateTowersLimit }"
+            class="limit-number"
+            :style="animateTowersLimit ? { '--player-color': playerColor } : {}"
+          >{{ maxTowersNum }}</span>
         </span>
       </span>
 
@@ -86,7 +130,9 @@
           type="button"
           class="infoBtn endTurnBtn"
           @click="handleEndTurnBtnClick"
+          @contextmenu.prevent="showContextHelp($event, 'End turn')"
           :disabled="player && player.type === botType"
+          title="End turn"
         >
           <img
             style="margin-left: 4px; margin-top: 1px;"
@@ -108,11 +154,20 @@
 <!--      </div>-->
 <!--    </span>-->
     </div>
+    <!-- Context help window -->
+    <div
+      v-if="contextHelpVisible"
+      class="info-context-help"
+      :style="contextHelpStyle"
+      v-html="contextHelpText"
+    ></div>
   </div>
 </template>
 
 <script>
 import Models from "@/game/models";
+import { getPlayerColor } from "@/game/helpers";
+import emitter from '@/game/eventBus';
 
 export default {
   name: 'InfoPanel',
@@ -134,6 +189,20 @@ export default {
   data() {
     return {
       showScore: false,
+      prevMaxUnitsNum: null,
+      prevMaxTowersNum: null,
+      prevUnitsTotal: null,
+      prevTowersTotal: null,
+      animateUnitsLimit: false,
+      animateTowersLimit: false,
+      animateUnitsTotal: false,
+      animateTowersTotal: false,
+      prevUnitsOverLimit: false,
+      animateUnitsOverlimit: false,
+      contextHelpVisible: false,
+      contextHelpText: '',
+      contextHelpX: 0,
+      contextHelpY: 0,
     }
   },
   computed: {
@@ -155,13 +224,147 @@ export default {
     },
     botType() {
       return Models.PlayerTypes.BOT;
-    }
+    },
+    playerColor() {
+      return getPlayerColor(this.currentPlayer);
+    },
+    unitsOverLimit() {
+      if (!this.currentStats.units.max) return false;
+      const emptyBases = this.currentStats.towers.empty || 0;
+      return (this.currentStats.units.total + emptyBases) > this.currentStats.units.max;
+    },
+    contextHelpStyle() {
+      if (!this.contextHelpVisible) return {};
+      return {
+        left: `${this.contextHelpX}px`,
+        top: `${this.contextHelpY}px`,
+      };
+    },
+  },
+  watch: {
+    maxUnitsNum(newVal, oldVal) {
+      if (this.prevMaxUnitsNum !== null && newVal !== this.prevMaxUnitsNum) {
+        // Limit changed - trigger animation
+        this.animateUnitsLimit = true;
+        // Reset animation class after animation completes
+        setTimeout(() => {
+          this.animateUnitsLimit = false;
+        }, 1000);
+      }
+      this.prevMaxUnitsNum = newVal;
+    },
+    maxTowersNum(newVal, oldVal) {
+      if (this.prevMaxTowersNum !== null && newVal !== this.prevMaxTowersNum) {
+        // Limit changed - trigger animation
+        this.animateTowersLimit = true;
+        // Reset animation class after animation completes
+        setTimeout(() => {
+          this.animateTowersLimit = false;
+        }, 1000);
+      }
+      this.prevMaxTowersNum = newVal;
+    },
+    'currentStats.units.total'(newVal, oldVal) {
+      if (this.prevUnitsTotal !== null && newVal !== this.prevUnitsTotal) {
+        // Total units changed - trigger animation
+        this.animateUnitsTotal = true;
+        // Reset animation class after animation completes
+        setTimeout(() => {
+          this.animateUnitsTotal = false;
+        }, 1000);
+      }
+      this.prevUnitsTotal = newVal;
+    },
+    'currentStats.towers.total'(newVal, oldVal) {
+      if (this.prevTowersTotal !== null && newVal !== this.prevTowersTotal) {
+        // Total towers changed - trigger animation
+        this.animateTowersTotal = true;
+        // Reset animation class after animation completes
+        setTimeout(() => {
+          this.animateTowersTotal = false;
+        }, 1000);
+      }
+      this.prevTowersTotal = newVal;
+    },
+    unitsOverLimit(newVal) {
+      if (newVal === true && this.prevUnitsOverLimit !== true) {
+        this.animateUnitsOverlimit = true;
+        setTimeout(() => { this.animateUnitsOverlimit = false; }, 500);
+      }
+      this.prevUnitsOverLimit = newVal;
+    },
+  },
+  mounted() {
+    // Initialize previous values
+    this.prevMaxUnitsNum = this.maxUnitsNum;
+    this.prevMaxTowersNum = this.maxTowersNum;
+    this.prevUnitsTotal = this.currentStats.units.total;
+    this.prevTowersTotal = this.currentStats.towers.total;
+    this.prevUnitsOverLimit = this.unitsOverLimit || false;
+    
+    // Add click listener to hide context help when clicking outside
+    document.addEventListener('click', this.hideContextHelp);
+    
+    // Listen for events to close context help when GameGrid opens its own
+    emitter.on('infoPanelContextHelpChanged', this.onContextHelpChanged);
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.hideContextHelp);
+    emitter.off('infoPanelContextHelpChanged', this.onContextHelpChanged);
   },
   methods: {
     handleExitClick() {
       console.log('Exit button clicked');
       this.handleExitBtnClick();
-    }
+    },
+    showContextHelp(event, text) {
+      event.stopPropagation();
+      const rect = event.currentTarget.getBoundingClientRect();
+      const panelRect = this.$el.getBoundingClientRect();
+      
+      // Position above the element, centered horizontally
+      this.contextHelpX = rect.left - panelRect.left + (rect.width / 2);
+      this.contextHelpY = rect.top - panelRect.top - 5; // 5px above
+      
+      // Close GameGrid context help if open
+      emitter.emit('closeGameGridContextHelp');
+      
+      this.contextHelpText = `<b>${text}</b>`;
+      this.contextHelpVisible = true;
+      emitter.emit('infoPanelContextHelpChanged', true);
+    },
+    showUnitsContextHelp(event) {
+      event.stopPropagation();
+      const rect = event.currentTarget.getBoundingClientRect();
+      const panelRect = this.$el.getBoundingClientRect();
+      
+      // Position above the element, centered horizontally
+      this.contextHelpX = rect.left - panelRect.left + (rect.width / 2);
+      this.contextHelpY = rect.top - panelRect.top - 5; // 5px above
+      
+      // Close GameGrid context help if open
+      emitter.emit('closeGameGridContextHelp');
+      
+      let text = '<b>Active / Total / Max dinos</b>';
+      if (this.unitsOverLimit) {
+        text += '<br>❗Limit reached❗';
+      }
+      this.contextHelpText = text;
+      this.contextHelpVisible = true;
+      emitter.emit('infoPanelContextHelpChanged', true);
+    },
+    hideContextHelp(event) {
+      // Don't hide if it's a right-click event
+      if (event && event.button === 2) return;
+      this.contextHelpVisible = false;
+      emitter.emit('infoPanelContextHelpChanged', false);
+    },
+    onContextHelpChanged(visible) {
+      // This handles both our own changes and external requests to close
+      if (!visible) {
+        this.contextHelpVisible = false;
+      }
+    },
   },
 }
 </script>
@@ -206,6 +409,7 @@ div.infoPanel {
   min-width: 0;
   flex: 0 1 auto;
   white-space: nowrap;
+  overflow: visible;
 }
 
 .infoItem .infoBtn,
@@ -218,8 +422,10 @@ span.infoLabel {
   flex: 1 1 0;              /* <-- key: label takes remaining space */
   min-width: 0;
   line-height: 26px;
+  padding: 0 2px;
+  margin: 0 1px;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
   text-overflow: clip;  /* or ellipsis */
   /* 1cqw = 1% of .infoItem width */
   /* font-size: 16px; */
@@ -319,6 +525,66 @@ div.tooltip {
   50% {
     transform: translateX(-50%) translateY(-5px);
   }
+}
+
+.limit-number {
+  display: inline-block;
+  transition: color 0.3s ease-out;
+  transform-origin: center center;
+  position: relative;
+  z-index: 1;
+  color: black;
+}
+
+.limit-number.limit-animate {
+  animation: limitScale 1s ease-out;
+}
+
+@keyframes limitScale {
+  0% {
+    transform: scale(2);
+    color: var(--player-color, black);
+  }
+  /* 50% {
+    color: var(--player-color, black);
+  } */
+  100% {
+    transform: scale(1);
+    color: black;
+  }
+}
+
+.infoLabel.units-overlimit {
+  background-color: rgb(156 10 14 / 85%);
+  border-radius: 4px;
+}
+
+.infoLabel.units-overlimit-animate {
+  animation: overlimitScale 0.5s ease-out;
+}
+
+@keyframes overlimitScale {
+  0% { transform: scale(2); }
+  100% { transform: scale(1); }
+}
+
+.info-context-help {
+  position: absolute;
+  background: black;
+  border: solid 2px;
+  border-color: white;
+  color: white;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-100%);
+  margin-top: -5px;
+  max-width: 200px;
+  word-wrap: break-word;
+  white-space: normal;
 }
 </style>
 
