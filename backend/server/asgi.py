@@ -12,7 +12,7 @@ from game.routing import websocket_urlpatterns
 from game.middleware import JWTAuthMiddleware
 
 # Use JWT middleware for WebSocket authentication (works with iOS WebKit)
-# Fallback to AuthMiddlewareStack for session-based auth if needed
+# JWT-only authentication - no session-based auth
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
     "websocket": JWTAuthMiddleware(

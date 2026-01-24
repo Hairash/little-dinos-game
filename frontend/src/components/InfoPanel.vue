@@ -154,13 +154,17 @@
 <!--      </div>-->
 <!--    </span>-->
     </div>
-    <!-- Context help window -->
+    <!-- Context help window - refactored to avoid v-html for XSS safety -->
     <div
       v-if="contextHelpVisible"
       class="info-context-help"
       :style="contextHelpStyle"
-      v-html="contextHelpText"
-    ></div>
+    >
+      <b>{{ contextHelpTitle }}</b>
+      <template v-if="contextHelpWarning">
+        <br><span class="warning-text">❗Limit reached❗</span>
+      </template>
+    </div>
   </div>
 </template>
 
@@ -200,7 +204,8 @@ export default {
       prevUnitsOverLimit: false,
       animateUnitsOverlimit: false,
       contextHelpVisible: false,
-      contextHelpText: '',
+      contextHelpTitle: '',
+      contextHelpWarning: false,
       contextHelpX: 0,
       contextHelpY: 0,
     }
@@ -321,15 +326,16 @@ export default {
       event.stopPropagation();
       const rect = event.currentTarget.getBoundingClientRect();
       const panelRect = this.$el.getBoundingClientRect();
-      
+
       // Position above the element, centered horizontally
       this.contextHelpX = rect.left - panelRect.left + (rect.width / 2);
       this.contextHelpY = rect.top - panelRect.top - 5; // 5px above
-      
+
       // Close GameGrid context help if open
       emitter.emit('closeGameGridContextHelp');
-      
-      this.contextHelpText = `<b>${text}</b>`;
+
+      this.contextHelpTitle = text;
+      this.contextHelpWarning = false;
       this.contextHelpVisible = true;
       emitter.emit('infoPanelContextHelpChanged', true);
     },
@@ -337,19 +343,16 @@ export default {
       event.stopPropagation();
       const rect = event.currentTarget.getBoundingClientRect();
       const panelRect = this.$el.getBoundingClientRect();
-      
+
       // Position above the element, centered horizontally
       this.contextHelpX = rect.left - panelRect.left + (rect.width / 2);
       this.contextHelpY = rect.top - panelRect.top - 5; // 5px above
-      
+
       // Close GameGrid context help if open
       emitter.emit('closeGameGridContextHelp');
-      
-      let text = '<b>Active / Total / Max dinos</b>';
-      if (this.unitsOverLimit) {
-        text += '<br>❗Limit reached❗';
-      }
-      this.contextHelpText = text;
+
+      this.contextHelpTitle = 'Active / Total / Max dinos';
+      this.contextHelpWarning = this.unitsOverLimit;
       this.contextHelpVisible = true;
       emitter.emit('infoPanelContextHelpChanged', true);
     },
@@ -586,6 +589,10 @@ div.tooltip {
   word-wrap: break-word;
   white-space: normal;
 }
+/* 
+.warning-text {
+  color: #ff6b6b;
+} */
 </style>
 
 <style>

@@ -64,10 +64,16 @@ import { FieldEngine } from "@/game/fieldEngine";
 import { GameWebSocket } from "@/game/gameWebSocket";
 import { whoami } from "@/auth";
 import { normalizeField } from "@/game/helpers";
+import { gameCoreMixin } from "@/game/mixins/gameCoreMixin";
 import emitter from '@/game/eventBus';
+import logger from '@/utils/logger';
+
+// Module-specific logger with prefix
+const log = logger.withPrefix('MultiplayerDinoGame');
 
 export default {
   name: 'MultiplayerDinoGame',
+  mixins: [gameCoreMixin],
   components: {
     MultiplayerReadyLabel,
     GameGrid,
@@ -98,22 +104,15 @@ export default {
     },
   },
   data() {
-    const STATES = {
-      ready: 'ready',
-      play: 'play',
-      exitDialog: 'exitDialog',
-    };
-    
     return {
-      STATES,
+      // STATES and cellSize come from gameCoreMixin
       localField: [],  // Local copy of field for reactivity (initialize as empty array)
       localSettings: null,  // Local copy of settings for reactivity (can be updated from server)
       players: [],
       currentPlayer: 0,
       currentUserId: null,
       myPlayerOrder: null,
-      state: STATES.play,
-      cellSize: 30,
+      state: 'play',  // Initial state (STATES.play)
       gameWs: null,
       clientSeq: 0,
       reconnectAttempts: 0,  // Track reconnect attempts for UI
@@ -151,7 +150,7 @@ export default {
       // whoami returns { auth: true, user: { id, username } }
       if (userInfo.auth && userInfo.user) {
         this.currentUserId = userInfo.user.id;
-        console.log(`[DEBUG] Set currentUserId to: ${this.currentUserId} from whoami response:`, userInfo);
+        log.debug(`Set currentUserId to: ${this.currentUserId} from whoami response:`, userInfo);
       } else {
         console.warn(`[DEBUG] whoami returned auth=false or no user:`, userInfo);
       }
@@ -234,7 +233,7 @@ export default {
     },
     
     initializeFromServerState(gameState) {
-      console.log('Initializing from server state:', gameState);
+      log.debug('Initializing from server state:', gameState);
       
       // Update settings from server
       if (gameState.settings) {
@@ -266,7 +265,7 @@ export default {
       // Set currentPlayer from server if provided (preferred over turnPlayer)
       if (gameState.currentPlayer !== undefined) {
         this.currentPlayer = gameState.currentPlayer;
-        console.log(`[DEBUG] Set currentPlayer from gameState: ${this.currentPlayer}`);
+        log.debug(`Set currentPlayer from gameState: ${this.currentPlayer}`);
       }
       
       // Initialize engines with server data
@@ -277,14 +276,14 @@ export default {
     },
     
     initializePlayers(playersData, turnPlayerUsername) {
-      console.log(`[DEBUG] initializePlayers called with currentUserId=${this.currentUserId}, playersData:`, playersData);
+      log.debug(`initializePlayers called with currentUserId=${this.currentUserId}, playersData:`, playersData);
       
       this.players = playersData.map((p, idx) => {
         // Find my player order - use the order from server, not array index
         // Compare both id and check if currentUserId is set
         if (this.currentUserId !== null && p.id === this.currentUserId) {
           this.myPlayerOrder = p.order !== undefined ? p.order : idx;
-          console.log(`[DEBUG] Found my player order: ${this.myPlayerOrder} for user ${this.currentUserId} (player id: ${p.id})`);
+          log.debug(`Found my player order: ${this.myPlayerOrder} for user ${this.currentUserId} (player id: ${p.id})`);
         } else if (this.currentUserId === null) {
           console.warn(`[DEBUG] currentUserId is null, cannot determine myPlayerOrder. Player data:`, p);
         }
@@ -297,17 +296,17 @@ export default {
         if (turnPlayer) {
           // Use the order from server data, not array index
           this.currentPlayer = turnPlayer.order !== undefined ? turnPlayer.order : playersData.findIndex(p => p.id === turnPlayer.id);
-          console.log(`[DEBUG] Set currentPlayer to: ${this.currentPlayer} (turnPlayer: ${turnPlayerUsername}, order: ${turnPlayer.order})`);
+          log.debug(`Set currentPlayer to: ${this.currentPlayer} (turnPlayer: ${turnPlayerUsername}, order: ${turnPlayer.order})`);
         } else {
           console.warn(`[DEBUG] Turn player not found: ${turnPlayerUsername}`);
         }
       } else {
         // If no turnPlayer specified, default to first player
         this.currentPlayer = 0;
-        console.log(`[DEBUG] No turnPlayer specified, defaulting currentPlayer to 0`);
+        log.debug(`No turnPlayer specified, defaulting currentPlayer to 0`);
       }
       
-      console.log(`[DEBUG] isMyTurn check: myPlayerOrder=${this.myPlayerOrder}, currentPlayer=${this.currentPlayer}, currentUserId=${this.currentUserId}, isMyTurn=${this.isMyTurn}`);
+      log.debug(`isMyTurn check: myPlayerOrder=${this.myPlayerOrder}, currentPlayer=${this.currentPlayer}, currentUserId=${this.currentUserId}, isMyTurn=${this.isMyTurn}`);
     },
     
     initializeEngines() {
@@ -349,10 +348,10 @@ export default {
         this.gameCode,
         {
           onOpen: () => {
-            console.log('Game WebSocket connected');
+            log.debug('Game WebSocket connected');
           },
           onReconnected: () => {
-            console.log('[WS] Successfully reconnected to game');
+            log.debug('[WS] Successfully reconnected to game');
             this.reconnectAttempts = 0;
             this.isInitialConnect = false;  // Mark that we've reconnected
             // Show notification for reconnection
@@ -369,7 +368,7 @@ export default {
             // Could show an error message to user here
           },
           onJoined: (gameState) => {
-            console.log('Joined game, received state:', gameState);
+            log.debug('Joined game, received state:', gameState);
             // Update clientSeq from server if provided (for reconnection)
             // The server sends the last clientSeq that was processed for this player
             // We set it to that value, and sendMoveToServer will increment it before sending
@@ -391,11 +390,11 @@ export default {
             }
           },
           onStateUpdate: (patch, serverTick) => {
-            console.log('State update received:', patch, serverTick);
+            log.debug('State update received:', patch, serverTick);
             this.applyStatePatch(patch);
           },
           onGameStarted: (gameState) => {
-            console.log('Game started event:', gameState);
+            log.debug('Game started event:', gameState);
             // Update field and state from server, normalize to model instances
             // Note: This callback is never called for Game WebSocket (only for Lobby WebSocket)
             if (gameState.field) {
@@ -406,17 +405,17 @@ export default {
             console.error('Game WebSocket error:', error);
           },
           onClose: () => {
-            console.log('Game WebSocket disconnected');
+            log.debug('Game WebSocket disconnected');
             // Show notification for own disconnection
             this.showNotification('You are disconnected', 'disconnect');
           },
           onPlayerDisconnected: (player) => {
-            console.log('Player disconnected:', player);
+            log.debug('Player disconnected:', player);
             // Show notification for other player's disconnection
             this.showNotification(`Player ${player.username} disconnected`, 'disconnect');
           },
           onPlayerReconnected: (player) => {
-            console.log('Player reconnected:', player);
+            log.debug('Player reconnected:', player);
             // Show notification for other player's reconnection
             this.showNotification(`Player ${player.username} reconnected`, 'reconnect');
           },
@@ -428,7 +427,7 @@ export default {
     
     applyStatePatch(patch) {
       // Apply state changes from server
-      console.log('[DEBUG] applyStatePatch called with patch:', patch);
+      log.debug('applyStatePatch called with patch:', patch);
       
       if (patch.field) {
         // Check if this is a partial patch (has null values) or full replacement
@@ -436,7 +435,7 @@ export default {
         
         if (isPartialPatch) {
           // Partial patch - merge with existing field (likely a scout action)
-          console.log('[DEBUG] Merging partial field patch (scout action)');
+          log.debug('Merging partial field patch (scout action)');
           if (!this.localField || this.localField.length === 0) {
             console.warn('[DEBUG] Cannot merge partial patch - localField not initialized');
             return;
@@ -464,9 +463,9 @@ export default {
           this.localField = normalizedField;
         } else {
           // Full field replacement
-          console.log('[DEBUG] Updating localField from full patch.field');
+          log.debug('Updating localField from full patch.field');
           const normalizedField = normalizeField(patch.field);
-          console.log('[DEBUG] Normalized field, length:', normalizedField.length);
+          log.debug('Normalized field, length:', normalizedField.length);
           this.localField = normalizedField;
           
           // IMPORTANT: After full field replacement, the server may have set isHidden
@@ -502,7 +501,7 @@ export default {
           settings.killAtBirth !== false,
           settings.visibilitySpeedRelation !== false,
         );
-        console.log('[DEBUG] Engines updated with new field');
+        log.debug('Engines updated with new field');
         
         // Ensure scout-revealed cells remain visible after field updates
         // (Called again here in case engines modified the field)
@@ -517,7 +516,7 @@ export default {
           ) {
             const action = this.fieldEngine.getActionTriggered(x, y);
             if (action) {
-              console.log('[DEBUG] Obelisk detected at', x, y, '- triggering scouting action');
+              log.debug('Obelisk detected at', x, y, '- triggering scouting action');
               emitter.emit('setAction', action);
             }
           }
@@ -529,13 +528,13 @@ export default {
       if (patch.currentPlayer !== undefined) {
         const previousPlayer = this.currentPlayer;
         this.currentPlayer = patch.currentPlayer;
-        console.log(`[DEBUG] Updated currentPlayer from patch: ${this.currentPlayer}, isMyTurn=${this.isMyTurn}`);
+        log.debug(`Updated currentPlayer from patch: ${this.currentPlayer}, isMyTurn=${this.isMyTurn}`);
         
         // Clear scout-revealed coordinates when turn changes and recalculate visibility
         // The server will send a properly filtered field patch, but we also recalculate on client
         // Skip visibility recalculation if game has ended (we'll reveal everything instead)
         if (previousPlayer !== undefined && previousPlayer !== this.currentPlayer && !gameEnded) {
-          console.log('[DEBUG] Turn changed, clearing scout-revealed coordinates and recalculating visibility');
+          log.debug('Turn changed, clearing scout-revealed coordinates and recalculating visibility');
           this.scoutRevealedCoords.clear();
           // Recalculate visibility based on current player's units and buildings only (no scout-revealed coords)
           this.recalculateVisibilityForClient();
@@ -561,7 +560,7 @@ export default {
         this.players = patch.players;
       }
       if (gameEnded) {
-        console.log('[DEBUG] Game ended! Winner:', patch.winner, patch.winnerUsername);
+        log.info('Game ended! Winner:', patch.winner, patch.winnerUsername);
         this.winner = patch.winner;
         this.winnerUsername = patch.winnerUsername || null;
         // Show ready label with winner
@@ -617,7 +616,7 @@ export default {
         return;
       }
       
-      console.log('[DEBUG] moveUnit: Sending move to server from', fromCoords, 'to', toCoords);
+      log.debug('moveUnit: Sending move to server from', fromCoords, 'to', toCoords);
       
       // Send move to server - wait for server response to update the field
       const payload = {
@@ -662,139 +661,9 @@ export default {
       // Skip ready label if it's not player's turn or other conditions
       return !this.isMyTurn;
     },
-    
-    getCurrentStats() {
-      // Calculate stats for current player - must match InfoPanel expected structure
-      const settings = this.localSettings || this.settings || {};
-      const stats = {
-        units: {
-          active: 0,
-          total: 0,
-          max: settings.maxUnitsNum || 5,
-          coordsArr: [],
-        },
-        towers: {
-          total: 0,
-          max: settings.maxBasesNum || 3,
-          empty: 0,
-        },
-      };
-      
-      // Guard: return default stats if field is not ready
-      if (!this.localField || !Array.isArray(this.localField) || this.localField.length === 0) {
-        return stats;
-      }
-      
-      const unitsNotOnBuildings = [];
-      const unitsOnBuildings = [];
-      
-      for (let x = 0; x < this.width; x++) {
-        // Guard: check if row exists
-        if (!this.localField[x] || !Array.isArray(this.localField[x])) {
-          continue;
-        }
-        
-        for (let y = 0; y < this.height; y++) {
-          // Guard: check if cell exists
-          if (!this.localField[x][y]) {
-            continue;
-          }
-          
-          const cell = this.localField[x][y];
-          const unit = cell.unit;
-          const building = cell.building;
-          
-          if (unit && unit.player === this.currentPlayer) {
-            stats.units.total++;
-            if (!unit.hasMoved) {
-              // Check if unit is on a building that should be excluded from priority
-              const isOnExcludedBuilding = building && (
-                (building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) ||
-                (building._type === Models.BuildingTypes.BASE && building.player === null) ||
-                building._type === Models.BuildingTypes.OBELISK
-              );
-              
-              if (!building || !isOnExcludedBuilding) {
-                unitsNotOnBuildings.push([x, y]);
-              } else {
-                unitsOnBuildings.push([x, y]);
-              }
-              stats.units.active++;
-            }
-            // Check for habitation buildings that increase unit limit
-            if (building && building._type === Models.BuildingTypes.HABITATION && stats.units.max > 0) {
-              stats.units.max += (settings.unitModifier || 3);
-            }
-            // Check for storage buildings that increase base limit
-            if (building && building._type === Models.BuildingTypes.STORAGE && stats.towers.max > 0) {
-              stats.towers.max += (settings.baseModifier || 3);
-            }
-          }
-          
-          // Count bases (towers)
-          if (building && building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) {
-            stats.towers.total++;
-            if (!unit) stats.towers.empty++;
-          }
-        }
-      }
-      
-      // Combine arrays: units not on buildings first, then units on buildings
-      stats.units.coordsArr = [...unitsNotOnBuildings, ...unitsOnBuildings];
-      
-      return stats;
-    },
-    
-    findNextUnit() {
-      // Find next unit that can move
-      const unitCoords = this.getCurrentUnitCoords();
-      if (unitCoords.length > 0) {
-        emitter.emit('selectNextUnit', unitCoords);
-      }
-    },
-    
-    getCurrentUnitCoords() {
-      const unitsNotOnBuildings = [];
-      const unitsOnBuildings = [];
-      
-      // Guard: return empty array if field is not ready
-      if (!this.localField || !Array.isArray(this.localField) || this.localField.length === 0) {
-        return [];
-      }
-      
-      for (let x = 0; x < this.width; x++) {
-        // Guard: check if row exists
-        if (!this.localField[x] || !Array.isArray(this.localField[x])) {
-          continue;
-        }
-        
-        for (let y = 0; y < this.height; y++) {
-          const cell = this.localField[x][y];
-          if (!cell) continue;
-          
-          const unit = cell.unit;
-          const building = cell.building;
-          
-          if (unit && unit.player === this.currentPlayer && !unit.hasMoved) {
-            // Check if unit is on a building that should be excluded from priority
-            const isOnExcludedBuilding = building && (
-              (building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) ||
-              (building._type === Models.BuildingTypes.BASE && building.player === null) ||
-              building._type === Models.BuildingTypes.OBELISK
-            );
-            
-            if (!building || !isOnExcludedBuilding) {
-              unitsNotOnBuildings.push([x, y]);
-            } else {
-              unitsOnBuildings.push([x, y]);
-            }
-          }
-        }
-      }
-      // Combine arrays: units not on buildings first, then units on buildings
-      return [...unitsNotOnBuildings, ...unitsOnBuildings];
-    },
-    
+
+    // getCurrentStats, getCurrentUnitCoords, findNextUnit come from gameCoreMixin
+
     initScrollCoordsOnce() {
       // Initialize scrollCoords once at the beginning of the game
       // Find the first unit for the current player (or my player if it's my turn)
@@ -827,34 +696,28 @@ export default {
           this.players[playerOrder].scrollCoords = scrollCoords;
         }
         // Scroll to this position once
-        console.log('[DEBUG] initScrollCoordsOnce: Scrolling to', scrollCoords);
+        log.debug('initScrollCoordsOnce: Scrolling to', scrollCoords);
         emitter.emit('initTurn', scrollCoords);
       } else {
         // No units found or GameGrid not mounted, use default
         if (this.players[playerOrder]) {
           this.players[playerOrder].scrollCoords = [0, 0];
         }
-        console.log('[DEBUG] initScrollCoordsOnce: No units found, scrolling to [0, 0]');
+        log.debug('initScrollCoordsOnce: No units found, scrolling to [0, 0]');
         emitter.emit('initTurn', [0, 0]);
       }
     },
-    
-    changeCellSize(delta) {
-      this.cellSize = Math.min(Math.max(10, this.cellSize + delta), 70);
-    },
-    
+
+    // changeCellSize, doesVisibilityMakeSense come from gameCoreMixin
+
     exitGame() {
       if (this.gameWs) {
         this.gameWs.disconnect();
       }
       this.$emit('exitGame');
     },
-    
+
     // Visibility helpers
-    doesVisibilityMakeSense() {
-      return this.enableFogOfWar && this.isMyTurn;
-    },
-    
     emitAddTempVisibilityForCoords(data) {
       this.addTempVisibilityForCoords(data.x, data.y, data.fogRadius);
     },
@@ -891,7 +754,7 @@ export default {
     },
     
     ensureScoutRevealedVisible() {
-      console.log('[DEBUG] ensureScoutRevealedVisible called', this.scoutRevealedCoords);
+      log.debug('ensureScoutRevealedVisible called', this.scoutRevealedCoords);
       // Keep scout-revealed cells visible even after visibility recalculations
       if (!this.localField || this.scoutRevealedCoords.size === 0) return;
       

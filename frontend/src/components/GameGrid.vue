@@ -12,10 +12,10 @@
         >
           <div
               class="cell_line" v-for="(line, y) in fieldT"
-              :key=y
+              :key="`row-${y}`"
               :style="{ width: lineWidth, height: lineHeight }"
           >
-            <template v-for="(cellData, x) in line" :key=x>
+            <template v-for="(cellData, x) in line" :key="`cell-${x}-${y}`">
               <!-- TODO: Why do we have isHidden applied to field and not to fieldOutput? -->
               <GameCell
                 :hidden="field[x][y].isHidden"
@@ -200,37 +200,53 @@ export default {
   },
   watch: {
     field: {
-      handler(newField) {
+      handler(newField, oldField) {
         // Update engines when field prop changes
         if (newField && newField.length > 0 && newField[0]) {
           const width = newField.length;
           const height = newField[0].length;
-          
+
+          // Check if dimensions changed (more significant change requiring engine recreation)
+          const oldWidth = oldField?.length || 0;
+          const oldHeight = oldField?.[0]?.length || 0;
+          const dimensionsChanged = width !== oldWidth || height !== oldHeight;
+
           // Update fieldOutput dimensions if needed
-          if (!this.fieldOutput || this.fieldOutput.length !== width || 
+          if (!this.fieldOutput || this.fieldOutput.length !== width ||
               (this.fieldOutput[0] && this.fieldOutput[0].length !== height)) {
             this.fieldOutput = Array.from({ length: width }, () =>
               Array.from({ length: height }, () => ({ isHidden: false, isHighlighted: false }))
             );
           }
-          
-          // Update engines with new field reference
-          this.waveEngine = new WaveEngine(
-            newField,
-            width,
-            height,
-            this.fogOfWarRadius,
-            this.enableScoutMode,
-          );
-          this.fieldEngine = new FieldEngine(
-            newField,
-            width,
-            height,
-            this.fogOfWarRadius,
-          );
+
+          // Only recreate engines if dimensions changed or field reference changed
+          // Note: Using reference equality check as a proxy for "significant" changes
+          // This avoids expensive deep comparisons while still handling most cases
+          if (dimensionsChanged || newField !== oldField) {
+            // Update engines with new field reference
+            this.waveEngine = new WaveEngine(
+              newField,
+              width,
+              height,
+              this.fogOfWarRadius,
+              this.enableScoutMode,
+            );
+            this.fieldEngine = new FieldEngine(
+              newField,
+              width,
+              height,
+              this.fogOfWarRadius,
+            );
+          } else {
+            // Just update the field reference in existing engines
+            this.waveEngine.field = newField;
+            this.fieldEngine.field = newField;
+          }
         }
       },
-      deep: true,
+      // Use shallow watch instead of deep - more performant
+      // The watcher will still trigger on field reference changes and Vue's reactivity
+      deep: false,
       immediate: false,
     },
   },

@@ -55,11 +55,13 @@ import { FieldEngine } from "@/game/fieldEngine";
 import { BotEngine } from "@/game/botEngine";
 import { createPlayers } from "@/game/helpers";
 import { FIELDS_TO_SAVE, GAME_STATUS_FIELDS, SCORE_MOD } from "@/game/const";
+import { gameCoreMixin } from "@/game/mixins/gameCoreMixin";
 
 import emitter from '@/game/eventBus';
 
 export default {
   name: 'DinoGame',
+  mixins: [gameCoreMixin],
   components: {
     ReadyLabel,
     GameGrid,
@@ -93,12 +95,7 @@ export default {
     field: Array,  // Optional: pre-generated field from backend (for multiplayer)
   },
   data() {
-    // Game states
-    const STATES = {
-      ready: 'ready',  // Show label before start of turn
-      play: 'play',  // Turn
-      exitDialog: 'exitDialog',  // Exit dialog
-    }
+    // Phase constants (single-player specific)
     const WIN_PHASES = {
       progress: 'progress',  // Play
       has_winner: 'has_winner',  // Somebody won
@@ -116,7 +113,7 @@ export default {
     }
     const playersNum = this.humanPlayersNum + this.botPlayersNum;
     return {
-      STATES,
+      // STATES and cellSize come from gameCoreMixin
       WIN_PHASES,
       HUMAN_PHASES,
       LAST_PLAYER_PHASES,
@@ -124,7 +121,7 @@ export default {
       players: [],
       currentPlayer: 0,
       field: null,
-      state: STATES.ready,
+      state: 'ready',  // Initial state (STATES.ready)
       winPhase: WIN_PHASES.progress,
       winner: null,
       humanPhase: HUMAN_PHASES.progress,
@@ -134,8 +131,11 @@ export default {
       prevField: null,
       prevPlayer: 0,
       unitCoordsArr: [],
-      cellSize: 30,
       tempVisibilityCoords: new Set(),  // Set of coord pairs (x, y) of obelisks that will be shown next turn
+      // Handler references for cleanup (to prevent memory leaks)
+      _keyupHandler: null,
+      _contextmenuHandler: null,
+      _mouseupHandler: null,
     }
   },
   created() {
@@ -187,23 +187,27 @@ export default {
       this.fieldEngine,
       this.waveEngine,
     );
-    console.log(this.players);
-    window.addEventListener('keyup', (e) => {
+    // console.log(this.players);
+    // Store handler references for cleanup in beforeUnmount
+    this._keyupHandler = (e) => {
       if (e.key === 'Enter') this.state = this.STATES.play;
       if (e.key === 'e' && this.state === this.STATES.play) this.processEndTurn();
       // TODO: Add test mode
       // if (e.key === 'Enter') this.makeBotUnitMove();
-    });
-    window.addEventListener('contextmenu', (e) => {
+    };
+    this._contextmenuHandler = (e) => {
       e.preventDefault();
       // this.processEndTurn();
-    });
-    window.addEventListener('mouseup', (e) => {
+    };
+    this._mouseupHandler = (e) => {
       e.preventDefault();
       if (this.enableUndo && e.button === 1 && this.prevField) {
         this.restoreField();
       }
-    });
+    };
+    window.addEventListener('keyup', this._keyupHandler);
+    window.addEventListener('contextmenu', this._contextmenuHandler);
+    window.addEventListener('mouseup', this._mouseupHandler);
   },
   mounted() {
     emitter.on('makeBotMove', this.makeBotMove);
@@ -221,8 +225,18 @@ export default {
     emitter.off('makeBotMove', this.makeBotMove);
     emitter.off('processEndTurn', this.processEndTurn);
     emitter.off('startTurn', this.startTurn);
-    emitter.off('moveUnit', this.moveUnit);
+    emitter.off('moveUnit', this.emitMoveUnit);
     emitter.off('scoutArea', this.handleScoutArea);
+    // Clean up window event listeners to prevent memory leaks
+    if (this._keyupHandler) {
+      window.removeEventListener('keyup', this._keyupHandler);
+    }
+    if (this._contextmenuHandler) {
+      window.removeEventListener('contextmenu', this._contextmenuHandler);
+    }
+    if (this._mouseupHandler) {
+      window.removeEventListener('mouseup', this._mouseupHandler);
+    }
   },
   methods: {
     // Main events
@@ -357,10 +371,7 @@ export default {
       }
       while (!this.players[this.currentPlayer].active);
     },
-    changeCellSize(delta) {
-      this.cellSize = Math.min(Math.max(10, this.cellSize + delta), 70);
-      console.log(this.cellSize);
-    },
+    // changeCellSize comes from gameCoreMixin
     initPlayersScrollCoords() {
       for (let playerNum = 0; playerNum < this.players.length; playerNum++) {
         const coords = this.getCurrentUnitCoords(playerNum)[0];
@@ -370,9 +381,7 @@ export default {
     },
 
     // Visibility helpers
-    doesVisibilityMakeSense() {
-      return this.enableFogOfWar && this.players[this.currentPlayer].active
-    },
+    // doesVisibilityMakeSense comes from gameCoreMixin
     handleScoutArea(data) {
       this.addTempVisibilityForCoords(data.x, data.y, data.fogRadius);
     },
@@ -479,6 +488,16 @@ export default {
         }
       }
     },
+    // Safe JSON parse helper with validation
+    safeParseJSON(jsonString, fallback = null) {
+      if (!jsonString) return fallback;
+      try {
+        return JSON.parse(jsonString);
+      } catch (e) {
+        console.warn('Failed to parse JSON from localStorage:', e);
+        return fallback;
+      }
+    },
     loadFieldOrGenerateNewField() {
       if (this.field) {
         // Field provided as prop (from backend in multiplayer mode)
@@ -487,9 +506,15 @@ export default {
       }
       if (this.loadGame) {
         const fieldFromStorage = localStorage.getItem('field');
-        // TODO: Fix JSON.parse to avoid warning - convert units and buildings to the correct type
-        this.field = JSON.parse(fieldFromStorage);
-        // console.log(this.field);
+        const parsedField = this.safeParseJSON(fieldFromStorage);
+        // Validate field structure - must be a non-empty 2D array
+        if (parsedField && Array.isArray(parsedField) && parsedField.length > 0) {
+          this.field = parsedField;
+        } else {
+          console.warn('Invalid field data in localStorage, generating new field');
+          this.loadGame = false; // Fall back to new game
+          this.field = this.engine.generateField();
+        }
       }
       else {
         this.field = this.engine.generateField();
@@ -498,17 +523,24 @@ export default {
     loadOrCreatePlayers() {
       if (this.loadGame) {
         const players = localStorage.getItem('players');
-        // TODO: Fix JSON.parse to avoid warning - convert players to the correct type
-        this.players = JSON.parse(players);
-        // Choose current player
-        for (let idx = 0; idx < this.players.length; idx++) {
-          if (this.players[idx].active) {
-            this.currentPlayer = idx;
-            break;
+        const parsedPlayers = this.safeParseJSON(players);
+        // Validate players structure - must be a non-empty array
+        if (parsedPlayers && Array.isArray(parsedPlayers) && parsedPlayers.length > 0) {
+          this.players = parsedPlayers;
+          // Choose current player
+          for (let idx = 0; idx < this.players.length; idx++) {
+            if (this.players[idx].active) {
+              this.currentPlayer = idx;
+              break;
+            }
           }
-        }
-        for (let player of this.players) {
-          player.informed_lose = false;
+          for (let player of this.players) {
+            player.informed_lose = false;
+          }
+        } else {
+          console.warn('Invalid players data in localStorage, creating new players');
+          this.loadGame = false; // Fall back to new game
+          this.players = createPlayers(this.humanPlayersNum, this.botPlayersNum);
         }
       }
       else {
@@ -517,7 +549,7 @@ export default {
     },
     loadGameStatus() {
       for (const field of GAME_STATUS_FIELDS) {
-        this[field] = JSON.parse(localStorage.getItem(field));
+        this[field] = this.safeParseJSON(localStorage.getItem(field));
       }
       if (this.humanPhase === this.HUMAN_PHASES.informed) {
         this.humanPhase = this.HUMAN_PHASES.all_eliminated;
@@ -563,80 +595,7 @@ export default {
       emitter.emit('processEndTurn');
     },
 
-    // Unit helpers
-    findNextUnit() {
-      // TODO: Think how to refactor this
-      const coordsArr = this.getCurrentStats().units.coordsArr;
-      if (coordsArr.length === 0) return;
-      emitter.emit('selectNextUnit', coordsArr);
-    },
-    getCurrentUnitCoords(playerNum=this.currentPlayer) {
-      const coordsArr = [];
-      for (let x = 0; x < this.width; x++) {
-        for (let y = 0; y < this.height; y++) {
-          const unit = this.field[x][y].unit;
-          if (unit && unit.player === playerNum && !unit.hasMoved) {
-            coordsArr.push([x, y]);
-          }
-        }
-      }
-      return coordsArr;
-    },
-    getCurrentStats() {
-      const stats = {
-        units: {
-          active: 0,
-          total: 0,
-          max: this.maxUnitsNum,
-          coordsArr: [],
-        },
-        towers: {
-          total: 0,
-          max: this.maxBasesNum,
-          empty: 0,
-        },
-      };
-      const unitsNotOnBuildings = [];
-      const unitsOnBuildings = [];
-      
-      for (let x = 0; x < this.width; x++) {
-        for (let y = 0; y < this.height; y++) {
-          const unit = this.field[x][y].unit;
-          const building = this.field[x][y].building;
-          if (unit && unit.player === this.currentPlayer) {
-            stats.units.total++;
-            if (!unit.hasMoved) {
-              // Check if unit is on a building that should be excluded from priority
-              const isOnExcludedBuilding = building && (
-                (building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) ||
-                (building._type === Models.BuildingTypes.BASE && building.player === null) ||
-                building._type === Models.BuildingTypes.OBELISK
-              );
-              
-              if (!building || isOnExcludedBuilding) {
-                unitsNotOnBuildings.push([x, y]);
-              } else {
-                unitsOnBuildings.push([x, y]);
-              }
-              stats.units.active++;
-            }
-            if (building && building._type === Models.BuildingTypes.HABITATION && this.maxUnitsNum > 0) {
-              stats.units.max += this.unitModifier;
-            }
-            if (building && building._type === Models.BuildingTypes.STORAGE && this.maxBasesNum > 0) {
-              stats.towers.max += this.baseModifier;
-            }
-          }
-          if (building && building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) {
-            stats.towers.total++;
-            if (!unit) stats.towers.empty++;
-          }
-        }
-      }
-      // Combine arrays: units not on buildings first, then units on buildings
-      stats.units.coordsArr = [...unitsNotOnBuildings, ...unitsOnBuildings];
-      return stats
-    },
+    // findNextUnit, getCurrentUnitCoords, getCurrentStats come from gameCoreMixin
 
     // State helpers
     areAllHumanPlayersEliminated() {

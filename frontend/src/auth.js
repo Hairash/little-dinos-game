@@ -3,7 +3,6 @@ import { API_URL } from '@/config';
 export async function signup(username, password) {
   const r = await fetch(API_URL + '/auth/signup/', {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   });
@@ -18,7 +17,6 @@ export async function signup(username, password) {
 export async function signin(username, password) {
   const r = await fetch(API_URL + '/auth/signin/', {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   });
@@ -37,7 +35,6 @@ export async function whoami() {
     headers['Authorization'] = `Bearer ${token}`;
   }
   const r = await fetch(API_URL + '/auth/whoami/', { 
-    credentials: 'include',
     headers: headers,
   });
   if (!r.ok) {
@@ -48,7 +45,7 @@ export async function whoami() {
 }
 
 export async function signout() {
-  await fetch(API_URL + '/auth/signout/', { method: 'POST', credentials: 'include' });
+  await fetch(API_URL + '/auth/signout/', { method: 'POST' });
   // Clear JWT token on signout
   localStorage.removeItem('auth_token');
 }

@@ -21,6 +21,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
+# =============================================================================
+# PRODUCTION SECURITY REQUIREMENTS
+# =============================================================================
+# Before deploying to production, you MUST set these environment variables:
+#   - DJANGO_SECRET_KEY: A unique, unpredictable secret key (use: python -c "import secrets; print(secrets.token_urlsafe(50))")
+#   - JWT_SECRET_KEY: A separate secret for JWT tokens (can be same as DJANGO_SECRET_KEY)
+#   - ALLOWED_HOSTS: Comma-separated list of valid hostnames (e.g., "yourdomain.com,api.yourdomain.com")
+#   - CORS_ALLOWED_ORIGINS: Frontend URLs (e.g., "https://yourdomain.com")
+#   - CSRF_TRUSTED_ORIGINS: Same as CORS_ALLOWED_ORIGINS for CSRF protection
+#
+# The default values below are ONLY for local development convenience.
+# Using defaults in production is a CRITICAL SECURITY VULNERABILITY.
+# =============================================================================
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-=m!dtx2tnzu5ol!r)t@&#kki*u+x!s54ny24msfj_#w5=-6md9")
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", SECRET_KEY)
@@ -50,7 +64,7 @@ if DEBUG and not CORS_ALLOWED_ORIGINS:
 
 print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = False  # Not needed for JWT-only auth (no cookies)
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",
@@ -67,18 +81,18 @@ CSRF_COOKIE_SAMESITE = "None" if not DEBUG else "Lax"  # "None" required for cro
 CSRF_COOKIE_SECURE = not DEBUG  # Required when SameSite=None
 CSRF_COOKIE_DOMAIN = None  # Let Django set domain automatically
 
-# Session cookie settings - critical for iOS WebKit compatibility
-SESSION_COOKIE_SAMESITE = "None" if not DEBUG else "Lax"  # "None" required for cross-origin with credentials
-SESSION_COOKIE_SECURE = not DEBUG  # Required when SameSite=None (MUST be True in production)
-SESSION_COOKIE_DOMAIN = None  # Let Django set domain automatically (don't set explicit domain for cross-origin)
+# Session cookie settings - kept for Django admin only
+# Our API uses JWT-only authentication (no session cookies)
+# Sessions are only used by Django admin interface
+SESSION_COOKIE_SAMESITE = "Lax"  # Lax is fine for admin (same-origin)
+SESSION_COOKIE_SECURE = not DEBUG  # Required in production
+SESSION_COOKIE_DOMAIN = None
 SESSION_COOKIE_HTTPONLY = True  # Security: prevent JavaScript access
-SESSION_COOKIE_AGE = 86400 * 7  # 7 days (default is 2 weeks, but be explicit)
-SESSION_SAVE_EVERY_REQUEST = True  # Save session on every request (helps with Safari cookie persistence)
-SESSION_COOKIE_PATH = '/'  # Explicitly set cookie path
-SESSION_COOKIE_NAME = 'sessionid'  # Explicit cookie name (default, but be explicit)
-
-# Ensure session is saved on login
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Keep session alive across browser sessions
+SESSION_COOKIE_AGE = 86400 * 7  # 7 days
+SESSION_SAVE_EVERY_REQUEST = False  # Not needed for admin
+SESSION_COOKIE_PATH = '/'
+SESSION_COOKIE_NAME = 'sessionid'
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 
 # Application definition
@@ -214,3 +228,60 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# Logging configuration
+# Set LOG_LEVEL environment variable to control logging (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+# Default: DEBUG in development, INFO in production
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "DEBUG" if DEBUG else "INFO")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+        # Optional: Add file handler for production
+        # "file": {
+        #     "class": "logging.handlers.RotatingFileHandler",
+        #     "filename": BASE_DIR / "logs" / "django.log",
+        #     "maxBytes": 1024 * 1024 * 5,  # 5 MB
+        #     "backupCount": 5,
+        #     "formatter": "verbose",
+        # },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": LOG_LEVEL,
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "game": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        # Reduce noise from third-party libraries
+        "channels": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
+}

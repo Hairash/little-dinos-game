@@ -1,4 +1,5 @@
 import json
+import logging
 import secrets
 from django.http import JsonResponse
 from django.db.models import Max
@@ -13,6 +14,9 @@ from .models import Game, GamePlayer
 from .services.field import generate_field
 from .decorators import login_required_json
 
+# Get logger for this module
+logger = logging.getLogger(__name__)
+
 
 @require_http_methods(["GET"])
 def index(request):
@@ -22,7 +26,10 @@ def index(request):
     })
 
 
-@csrf_exempt  # DEV ONLY; replace with proper CSRF handling in prod
+# Note: @csrf_exempt is safe here because JWT authentication is used via Authorization header.
+# CSRF attacks exploit cookie-based auth; JWT tokens sent in headers are not vulnerable to CSRF.
+# We use JWT-only authentication (no session cookies), so CSRF protection is not needed.
+@csrf_exempt
 @login_required_json
 @require_http_methods(["POST"])
 def create_game(request):
@@ -51,7 +58,8 @@ def create_game(request):
     return JsonResponse({"gameCode": game_code})
 
 
-@csrf_exempt  # DEV ONLY; replace with proper CSRF handling in prod
+# Note: @csrf_exempt is safe here because JWT authentication is used via Authorization header.
+@csrf_exempt
 @login_required_json
 @require_http_methods(["POST"])
 def join_game(request, game_code):
@@ -105,7 +113,8 @@ def join_game(request, game_code):
     return JsonResponse({"message": "Joined game"})
 
 
-@csrf_exempt  # DEV ONLY; replace with proper CSRF handling in prod
+# Note: @csrf_exempt is safe here because JWT authentication is used via Authorization header.
+@csrf_exempt
 @login_required_json
 @require_http_methods(["POST"])
 def leave_game(request, game_code):
@@ -144,19 +153,30 @@ def leave_game(request, game_code):
     except Game.DoesNotExist:
         return JsonResponse({"error": "Game not found"}, status=404)
     except Exception as e:
-        print(f"Error leaving game: {e}")
+        logger.error(f"Error leaving game: {e}", exc_info=True)
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@csrf_exempt  # DEV ONLY; replace with proper CSRF handling in prod
+# Note: @csrf_exempt is safe here because JWT authentication is used via Authorization header.
+@csrf_exempt
 @login_required_json
 @require_http_methods(["POST"])
 def start_game(request, game_code):
     """Start a game."""
-    print(f"Starting game {game_code}")
+    logger.info(f"Starting game {game_code}")
     initial_settings = request.body.decode('utf-8')
-    print(f"Initial settings: {initial_settings}")
-    game = Game.objects.get(game_code=game_code)
+    logger.debug(f"Initial settings: {initial_settings}")
+
+    try:
+        game = Game.objects.get(game_code=game_code)
+    except Game.DoesNotExist:
+        return JsonResponse({"error": "Game not found"}, status=404)
+
+    # Authorization check: only the game creator (order=0) can start the game
+    creator = GamePlayer.objects.filter(game=game, order=0).first()
+    if not creator or creator.player != request.user:
+        return JsonResponse({"error": "Only the game creator can start the game"}, status=403)
+
     if game.status != "ready":
         return JsonResponse({"error": "Game is not ready"}, status=400)
     game.status = "playing"
@@ -188,7 +208,7 @@ def start_game(request, game_code):
                 for gp in game.players.select_related("player").order_by("order")
             ],
         }
-        print(f"Broadcasting game started to lobby (without field): {game_state}")
+        logger.debug(f"Broadcasting game started to lobby (without field): {game_state}")
         # Broadcast to lobby WebSocket group (players are connected to lobby)
         async_to_sync(channel_layer.group_send)(
             f"lobby_{game_code}",
@@ -207,7 +227,16 @@ def start_game(request, game_code):
 @require_http_methods(["GET"])
 def get_game(request, game_code):
     """Get a game."""
-    game = Game.objects.get(game_code=game_code)
+    try:
+        game = Game.objects.get(game_code=game_code)
+    except Game.DoesNotExist:
+        return JsonResponse({"error": "Game not found"}, status=404)
+
+    # Authorization check: user must be a participant in the game
+    is_participant = GamePlayer.objects.filter(game=game, player=request.user).exists()
+    if not is_participant:
+        return JsonResponse({"error": "You are not a participant in this game"}, status=403)
+
     return JsonResponse(game.to_dict())
 
 
@@ -263,5 +292,5 @@ def get_active_games(request):
             "hasMore": total_count > len(games)
         })
     except Exception as e:
-        print(f"Error getting active games: {e}")
+        logger.error(f"Error getting active games: {e}", exc_info=True)
         return JsonResponse({"games": [], "total": 0, "hasMore": False})
