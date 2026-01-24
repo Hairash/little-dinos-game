@@ -8,11 +8,11 @@ def login_required_json(view_func):
     """
     Decorator that returns 401 JSON instead of redirecting for unauthenticated users.
     Use this for API endpoints instead of @login_required.
-    Supports JWT token authentication via Authorization header.
+    Requires JWT token authentication via Authorization header.
     """
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
-        # Check JWT token from Authorization header first
+        # Check JWT token from Authorization header
         auth_header = request.headers.get('Authorization', '')
         if auth_header.startswith('Bearer '):
             token = auth_header[7:]  # Remove 'Bearer ' prefix
@@ -21,10 +21,7 @@ def login_required_json(view_func):
                 request.user = user  # Set user for the view
                 return view_func(request, *args, **kwargs)
         
-        # Fallback to session-based auth (for backward compatibility)
-        if request.user.is_authenticated:
-            return view_func(request, *args, **kwargs)
-        
+        # No valid JWT token found
         return JsonResponse({"detail": "Authentication required"}, status=401)
     return _wrapped_view
 

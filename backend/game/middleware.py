@@ -1,6 +1,6 @@
 """
 Custom WebSocket middleware for JWT authentication.
-Supports both JWT tokens (for iOS WebKit) and session-based auth (fallback).
+Uses JWT tokens only (no session-based auth).
 
 Security Note: We accept tokens from query string as a fallback, but prefer
 Authorization header or first message authentication for better security.

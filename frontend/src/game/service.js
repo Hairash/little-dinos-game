@@ -14,7 +14,6 @@ function getAuthHeaders() {
 export async function createGame() {
   const response = await fetch(API_URL + '/games/', {
     method: 'POST',
-    credentials: 'include',
     headers: getAuthHeaders(),
   });
   if (!response.ok) {
@@ -27,7 +26,6 @@ export async function leaveGame(gameCode) {
   console.log('Leaving game call', gameCode);
   const response = await fetch(API_URL + `/games/${gameCode}/leave/`, {
     method: 'POST',
-    credentials: 'include',
     headers: getAuthHeaders(),
   });
   if (!response.ok) {
@@ -43,7 +41,6 @@ export async function joinGame(gameCode) {
   console.log('Joining game call', gameCode);
   const response = await fetch(API_URL + `/games/${gameCode}/join/`, {
     method: 'POST',
-    credentials: 'include',
     headers: getAuthHeaders(),
   });
   if (!response.ok) {
@@ -59,7 +56,6 @@ export async function startMultiplayerGame(gameCode, customSettings = null) {
   const headers = { 'Content-Type': 'application/json', ...getAuthHeaders() };
   const response = await fetch(API_URL + `/games/${gameCode}/start/`, {
     method: 'POST',
-    credentials: 'include',
     headers: headers,
     body: JSON.stringify(settings),
   });
@@ -75,7 +71,6 @@ export async function getActiveGames(limit = 10) {
     : `${API_URL}/games/active/?limit=${limit}`;
   const response = await fetch(url, {
     method: 'GET',
-    credentials: 'include',
     headers: getAuthHeaders(),
   });
   if (!response.ok) {

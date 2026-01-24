@@ -4,7 +4,16 @@
     class="cell-context-help"
     :style="positionStyle"
   >
-    <div v-html="cellType"></div>
+    <!-- Refactored to avoid v-html for XSS safety -->
+    <div v-if="cellContent">
+      <b :style="cellContent.titleStyle">{{ cellContent.title }}</b>
+      <template v-if="cellContent.description">
+        <br>{{ cellContent.description }}
+      </template>
+      <template v-if="cellContent.warning">
+        <br><span class="warning-text">❗Limit reached❗</span>
+      </template>
+    </div>
   </div>
 </template>
 
@@ -75,16 +84,17 @@ export default {
     },
   },
   computed: {
-    cellType() {
-      if (!this.cell) return '';
-      
+    // Returns structured content object instead of HTML for XSS safety
+    cellContent() {
+      if (!this.cell) return null;
+
       if (this.cell.building) {
-        return this.buildingDescription(this.cell.building._type);
+        return this.buildingContent(this.cell.building._type);
       }
       if (this.cell.terrain && this.cell.terrain.kind === Models.TerrainTypes.MOUNTAIN) {
-        return '<b>Rock</b>';
+        return { title: 'Rock', titleStyle: null, description: null, warning: false };
       }
-      return '<b>Empty space</b>';
+      return { title: 'Empty space', titleStyle: null, description: null, warning: false };
     },
     positionStyle() {
       if (!this.visible) return {};
@@ -172,37 +182,60 @@ export default {
     },
   },
   methods: {
-    buildingDescription(_type) {
+    // Returns structured content object instead of HTML for XSS safety
+    buildingContent(_type) {
       const building = this.cell.building;
       const playerColor = building && building.player !== null && building.player !== undefined
         ? getPlayerColor(building.player)
         : null;
-      
-      const towerText = playerColor 
-        ? `<b><span style="color: ${playerColor}">Tower</span></b>`
-        : '<b>Tower</b>';
-      
-      let description = '';
+
+      const towerTitleStyle = playerColor ? { color: playerColor } : null;
+
       switch (_type) {
         case 'base':
-          description = `${towerText}<br>Produce 1 unit every turn`;
-          // Add warning if cannot be captured
-          if (this.cannotBeCaptured) {
-            description += `<br>❗Limit reached❗`;
-          }
-          return description;
+          return {
+            title: 'Tower',
+            titleStyle: towerTitleStyle,
+            description: 'Produce 1 unit every turn',
+            warning: this.cannotBeCaptured,
+          };
         case 'habitation':
-          return `<b>Habitation</b><br>Units limit +${this.unitModifier}`;
+          return {
+            title: 'Habitation',
+            titleStyle: null,
+            description: `Units limit +${this.unitModifier}`,
+            warning: false,
+          };
         case 'temple':
-          return `<b>Temple</b><br>Speed for generated units +1`;
+          return {
+            title: 'Temple',
+            titleStyle: null,
+            description: 'Speed for generated units +1',
+            warning: false,
+          };
         case 'well':
-          return `<b>Well</b><br>Speed for current unit +1`;
+          return {
+            title: 'Well',
+            titleStyle: null,
+            description: 'Speed for current unit +1',
+            warning: false,
+          };
         case 'storage':
-          return `<b>Storage</b><br>Towers limit +${this.baseModifier}`;
+          return {
+            title: 'Storage',
+            titleStyle: null,
+            description: `Towers limit +${this.baseModifier}`,
+            warning: false,
+          };
         case 'obelisk':
-          return `<b>Obelisk</b><br>Show any part of the map ${this.fogOfWarRadius}x${this.fogOfWarRadius}`;
+          return {
+            title: 'Obelisk',
+            titleStyle: null,
+            description: `Show any part of the map ${this.fogOfWarRadius}x${this.fogOfWarRadius}`,
+            warning: false,
+          };
         default:
-          return '';
+          return null;
       }
     },
   },
@@ -225,5 +258,9 @@ export default {
   pointer-events: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+/* 
+.warning-text {
+  color: #ff6b6b;
+} */
 </style>
 

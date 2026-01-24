@@ -69,8 +69,14 @@ export class GameWebSocket {
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        
-        // Handle different message types
+
+        // Validate message has required type field
+        if (!data || typeof data.t !== 'string') {
+          console.warn('[WS] Invalid message format - missing or invalid type:', data);
+          return;
+        }
+
+        // Handle different message types with validation
         switch (data.t) {
           case 'auth_required':
             // Server is requesting authentication - send token if we have it
@@ -86,18 +92,32 @@ export class GameWebSocket {
             // Mark as authenticated after successful join
             this.authenticated = true;
             if (this.callbacks.onJoined) {
-              // Backend sends gameState, not state
-              this.callbacks.onJoined(data.gameState || data.state);
+              // Backend sends gameState, not state - validate it exists
+              const gameState = data.gameState || data.state;
+              if (gameState && typeof gameState === 'object') {
+                this.callbacks.onJoined(gameState);
+              } else {
+                console.warn('[WS] Invalid joined message - missing gameState');
+              }
             }
             break;
           case 'state':
             if (this.callbacks.onStateUpdate) {
-              this.callbacks.onStateUpdate(data.patch, data.serverTick);
+              // Validate patch exists (serverTick is optional)
+              if (data.patch !== undefined) {
+                this.callbacks.onStateUpdate(data.patch, data.serverTick);
+              } else {
+                console.warn('[WS] Invalid state message - missing patch');
+              }
             }
             break;
           case 'game_started':
             if (this.callbacks.onGameStarted) {
-              this.callbacks.onGameStarted(data.gameState);
+              if (data.gameState && typeof data.gameState === 'object') {
+                this.callbacks.onGameStarted(data.gameState);
+              } else {
+                console.warn('[WS] Invalid game_started message - missing gameState');
+              }
             }
             break;
           case 'err':
@@ -106,26 +126,30 @@ export class GameWebSocket {
             }
             break;
           case 'player_disconnected':
-            console.log('[WS] Received player_disconnected message:', data);
+            // console.log('[WS] Received player_disconnected message:', data);
             if (this.callbacks.onPlayerDisconnected) {
-              this.callbacks.onPlayerDisconnected(data.player);
-            } else {
-              console.warn('[WS] No onPlayerDisconnected callback registered');
+              if (data.player !== undefined) {
+                this.callbacks.onPlayerDisconnected(data.player);
+              } else {
+                console.warn('[WS] Invalid player_disconnected message - missing player');
+              }
             }
             break;
           case 'player_reconnected':
-            console.log('[WS] Received player_reconnected message:', data);
+            // console.log('[WS] Received player_reconnected message:', data);
             if (this.callbacks.onPlayerReconnected) {
-              this.callbacks.onPlayerReconnected(data.player);
-            } else {
-              console.warn('[WS] No onPlayerReconnected callback registered');
+              if (data.player !== undefined) {
+                this.callbacks.onPlayerReconnected(data.player);
+              } else {
+                console.warn('[WS] Invalid player_reconnected message - missing player');
+              }
             }
             break;
           default:
-            console.log('Unknown message type:', data);
+            console.warn('[WS] Unknown message type:', data.t);
         }
       } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
+        console.error('[WS] Error parsing WebSocket message:', error);
       }
     };
 
