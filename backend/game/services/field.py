@@ -1,85 +1,85 @@
-import random
 import math
+import random
 
 MOUNTAIN_RATIO = 0.75  # Ratio of cells that will be empty (others - mountains)
 
 TERRAIN_TYPES = {
-    'EMPTY': 'empty',
-    'MOUNTAIN': 'mountain',
+    "EMPTY": "empty",
+    "MOUNTAIN": "mountain",
 }
 
 BUILDING_TYPES = {
-    'BASE': 'base',
-    'HABITATION': 'habitation',
-    'TEMPLE': 'temple',
-    'WELL': 'well',
-    'STORAGE': 'storage',
-    'OBELISK': 'obelisk',
+    "BASE": "base",
+    "HABITATION": "habitation",
+    "TEMPLE": "temple",
+    "WELL": "well",
+    "STORAGE": "storage",
+    "OBELISK": "obelisk",
 }
 
 
 def generate_field(settings: dict) -> list:
     """Generate a field based on the settings."""
-    players_num = settings.get('humanPlayersNum', 1) + settings.get('botPlayersNum', 0)
-    width = settings.get('width', 20)
-    height = settings.get('height', 20)
-    sectors_num = settings.get('sectorsNum', 4)
-    min_speed = settings.get('minSpeed', 1)
-    max_speed = settings.get('maxSpeed', 5)
-    speed_min_visibility = settings.get('speedMinVisibility', 7)
-    fog_of_war_radius = settings.get('fogOfWarRadius', 3)
-    visibility_speed_relation = settings.get('visibilitySpeedRelation', True)
-    building_rates = settings.get('buildingRates', {})
-    
-    start_positions = []
-    
+    players_num = settings.get("humanPlayersNum", 1) + settings.get("botPlayersNum", 0)
+    width = settings.get("width", 20)
+    height = settings.get("height", 20)
+    sectors_num = settings.get("sectorsNum", 4)
+    min_speed = settings.get("minSpeed", 1)
+    speed_min_visibility = settings.get("speedMinVisibility", 7)
+    fog_of_war_radius = settings.get("fogOfWarRadius", 3)
+    visibility_speed_relation = settings.get("visibilitySpeedRelation", True)
+    building_rates = settings.get("buildingRates", {})
+
+    start_positions: list[list[int]] = []
+
     # Generate base terrain
-    field = []
-    for x in range(width):
-        col = []
-        for y in range(height):
+    field: list[list[dict]] = []
+    for _x in range(width):
+        col: list[dict] = []
+        for _y in range(height):
             r = random.random()
-            terrain_kind = TERRAIN_TYPES['MOUNTAIN'] if r > MOUNTAIN_RATIO else TERRAIN_TYPES['EMPTY']
+            terrain_kind = (
+                TERRAIN_TYPES["MOUNTAIN"] if r > MOUNTAIN_RATIO else TERRAIN_TYPES["EMPTY"]
+            )
             cell = {
-                'terrain': {
-                    'kind': terrain_kind,
-                    'idx': math.ceil(random.random() * 9),
+                "terrain": {
+                    "kind": terrain_kind,
+                    "idx": math.ceil(random.random() * 9),
                 },
-                'building': None,
-                'unit': None,
-                'isHidden': True,
+                "building": None,
+                "unit": None,
+                "isHidden": True,
             }
             col.append(cell)
         field.append(col)
-    
+
     # Set units and bases for players
-    sectors = []
+    sectors: list[list[int]] = []
     for player in range(players_num):
         x = random.randint(0, width - 1)
         y = random.randint(0, height - 1)
         sector_x, sector_y = get_sector(x, y, width, height, sectors_num)
-        
+
         try_ctr = 0
         while (
-            field[x][y]['terrain']['kind'] == TERRAIN_TYPES['MOUNTAIN'] or
-            is_cell_in_start_positions(x, y, start_positions) or
-            (not validate_sector(sector_x, sector_y, sectors, sectors_num) and try_ctr < 100)
+            field[x][y]["terrain"]["kind"] == TERRAIN_TYPES["MOUNTAIN"]
+            or is_cell_in_start_positions(x, y, start_positions)
+            or (not validate_sector(sector_x, sector_y, sectors, sectors_num) and try_ctr < 100)
         ):
             x = random.randint(0, width - 1)
             y = random.randint(0, height - 1)
             sector_x, sector_y = get_sector(x, y, width, height, sectors_num)
-            if (
-                field[x][y]['terrain']['kind'] != TERRAIN_TYPES['MOUNTAIN'] and
-                not is_cell_in_start_positions(x, y, start_positions)
-            ):
+            if field[x][y]["terrain"]["kind"] != TERRAIN_TYPES[
+                "MOUNTAIN"
+            ] and not is_cell_in_start_positions(x, y, start_positions):
                 try_ctr += 1
-        
+
         sectors.append([sector_x, sector_y])
-        field[x][y]['building'] = {
-            'player': player,
-            '_type': BUILDING_TYPES['BASE'],
+        field[x][y]["building"] = {
+            "player": player,
+            "_type": BUILDING_TYPES["BASE"],
         }
-        
+
         # Create unit
         move_points = min_speed  # Initial unit gets min_speed
         visibility = fog_of_war_radius
@@ -88,42 +88,47 @@ def generate_field(settings: dict) -> list:
             visibility = calculate_unit_visibility(
                 move_points, min_speed, speed_min_visibility, fog_of_war_radius
             )
-        
-        field[x][y]['unit'] = {
-            'player': player,
-            '_type': f'dino{player + 1}',
-            'movePoints': move_points,
-            'visibility': visibility,
-            'hasMoved': False,
+
+        field[x][y]["unit"] = {
+            "player": player,
+            "_type": f"dino{player + 1}",
+            "movePoints": move_points,
+            "visibility": visibility,
+            "hasMoved": False,
         }
         start_positions.append([x, y])
-    
+
     # Make field linked (ensure all players can reach each other)
     if players_num > 1:
         make_field_linked(field, width, height, start_positions)
-    
+
     # Set buildings
     min_distance = 5
     for building_type, rate in building_rates.items():
         if rate == 0:
             continue
-        average = 2 ** rate
+        average = 2**rate
         min_buildings = math.floor(average / 2)
         max_buildings = math.ceil(average * 1.5)
         buildings_num = max(
-            1, math.floor((random.random() * (max_buildings - min_buildings + 1) + min_buildings) * width * height * 0.0025)
+            1,
+            math.floor(
+                (random.random() * (max_buildings - min_buildings + 1) + min_buildings)
+                * width
+                * height
+                * 0.0025
+            ),
         )
-        
-        for building_ctr in range(buildings_num):
+
+        for _building_ctr in range(buildings_num):
             if min_distance < 0:
                 break
             fail_ctr = 0
             x = random.randint(0, width - 1)
             y = random.randint(0, height - 1)
-            while (
-                field[x][y]['terrain']['kind'] == TERRAIN_TYPES['MOUNTAIN'] or
-                not no_buildings_in_distance(field, x, y, min_distance, width, height)
-            ):
+            while field[x][y]["terrain"]["kind"] == TERRAIN_TYPES[
+                "MOUNTAIN"
+            ] or not no_buildings_in_distance(field, x, y, min_distance, width, height):
                 x = random.randint(0, width - 1)
                 y = random.randint(0, height - 1)
                 fail_ctr += 1
@@ -131,17 +136,19 @@ def generate_field(settings: dict) -> list:
                     min_distance -= 1
                     fail_ctr = 0
                     if min_distance < 0:
-                        print(f"Warning: Cannot place {building_type} building, all the cells are occupied")
-                        x = None
-                        y = None
+                        print(
+                            f"Warning: Cannot place {building_type} building, all the cells are occupied"
+                        )
+                        x = -1  # Use -1 instead of None to indicate invalid
+                        y = -1
                         break
-            
-            if x is not None and y is not None:
-                field[x][y]['building'] = {
-                    'player': None,
-                    '_type': building_type,
+
+            if x >= 0 and y >= 0:
+                field[x][y]["building"] = {
+                    "player": None,
+                    "_type": building_type,
                 }
-    
+
     return field
 
 
@@ -154,10 +161,7 @@ def validate_sector(x, y, sectors, sectors_num):
     """Validate that sector is on the edge and not too close to other sectors."""
     if not (x == 0 or x == sectors_num - 1 or y == 0 or y == sectors_num - 1):
         return False
-    for sector in sectors:
-        if sectors_distance([x, y], sector) < 2:
-            return False
-    return True
+    return all(sectors_distance([x, y], sector) >= 2 for sector in sectors)
 
 
 def sectors_distance(s1, s2):
@@ -182,7 +186,7 @@ def no_buildings_in_distance(field, x, y, r, width, height):
                 continue
             if abs(cur_x - x) + abs(cur_y - y) > r:
                 continue
-            if field[cur_x][cur_y]['building']:
+            if field[cur_x][cur_y]["building"]:
                 return False
     return True
 
@@ -190,60 +194,60 @@ def no_buildings_in_distance(field, x, y, r, width, height):
 def make_field_linked(field, width, height, start_positions):
     """Ensure all players can reach each other by removing mountains."""
     w_field = wave(field, width, height, start_positions)
-    
+
     # Check if all players are already reachable
     if all_players_reached(w_field, start_positions):
         return
-    
+
     max_num_cell = get_max_num_cell(w_field, field, start_positions)
-    max_num = max_num_cell['num']
-    max_cell = max_num_cell['cell']
-    
+    max_num = max_num_cell["num"]
+    max_cell = max_num_cell["cell"]
+
     # If no valid cell found or max_num is 0, all players are reachable
     if not max_cell or max_num == 0:
         return
-    
+
     start_x, start_y = max_cell
-    
+
     while not all_players_reached(w_field, start_positions) and max_num > 0:
         fix_wave(w_field, field, width, height, max_num, start_x, start_y)
         w_field = wave(field, width, height, start_positions)
         max_num_cell = get_max_num_cell(w_field, field, start_positions)
-        max_num = max_num_cell['num']
-        max_cell = max_num_cell['cell']
-        
+        max_num = max_num_cell["num"]
+        max_cell = max_num_cell["cell"]
+
         # Check if we still have a valid cell to process
         if not max_cell or max_num == 0:
             break
-        
+
         start_x, start_y = max_cell
 
 
 def wave(field, width, height, start_positions):
     """Create wave field - number of walls from first player start pos to each other player's."""
     w_field = []
-    for x in range(width):
+    for _x in range(width):
         line = []
-        for y in range(height):
+        for _y in range(height):
             line.append(999)  # MAX_INT equivalent
         w_field.append(line)
-    
+
     start_x, start_y = start_positions[0]
     w_field[start_x][start_y] = 0
     queue = [[start_x, start_y]]
-    
+
     while queue:
         cur_x, cur_y = queue.pop(0)
         neighbours = find_neighbours(cur_x, cur_y, width, height)
         for x, y in neighbours:
             prev_value = w_field[x][y]
-            if field[x][y]['terrain']['kind'] == TERRAIN_TYPES['MOUNTAIN']:
+            if field[x][y]["terrain"]["kind"] == TERRAIN_TYPES["MOUNTAIN"]:
                 w_field[x][y] = min(w_field[x][y], w_field[cur_x][cur_y] + 1)
             else:
                 w_field[x][y] = min(w_field[x][y], w_field[cur_x][cur_y])
             if w_field[x][y] < prev_value:
                 queue.append([x, y])
-    
+
     return w_field
 
 
@@ -263,7 +267,7 @@ def find_neighbours(x, y, width, height):
 
 def get_max_num_cell(w_field, field, start_positions):
     """Get player with max number of walls on the path to them.
-    
+
     Returns dict with 'num' (max wave value) and 'cell' (coordinates [x, y]).
     If all players are reachable (wave value 0), returns empty cell list.
     """
@@ -271,31 +275,31 @@ def get_max_num_cell(w_field, field, start_positions):
     max_cell = []
     for x, y in start_positions:
         # Skip if this position is a mountain (shouldn't happen, but safety check)
-        if field[x][y]['terrain']['kind'] == TERRAIN_TYPES['MOUNTAIN']:
+        if field[x][y]["terrain"]["kind"] == TERRAIN_TYPES["MOUNTAIN"]:
             continue
         cell_value = w_field[x][y]
         if cell_value > max_val:
             max_cell = [x, y]
             max_val = cell_value
-    return {'num': max_val, 'cell': max_cell}
+    return {"num": max_val, "cell": max_cell}
 
 
 def fix_wave(w_field, field, width, height, max_num, start_x, start_y):
     """Remove wall with highest wave value."""
     queue = [[start_x, start_y]]
     visited_cells = set()
-    
+
     while queue:
         cur_x, cur_y = queue.pop(0)
         if f"{cur_x}, {cur_y}" in visited_cells:
             continue
         visited_cells.add(f"{cur_x}, {cur_y}")
-        
+
         neighbours = find_neighbours(cur_x, cur_y, width, height)
         for x, y in neighbours:
             if w_field[x][y] != max_num:
                 continue
-            if field[x][y]['terrain']['kind'] == TERRAIN_TYPES['MOUNTAIN']:
+            if field[x][y]["terrain"]["kind"] == TERRAIN_TYPES["MOUNTAIN"]:
                 if fix_wall(w_field, field, width, height, max_num, x, y):
                     return
             else:
@@ -308,22 +312,19 @@ def fix_wall(w_field, field, width, height, max_num, wall_x, wall_y):
     neighbours = find_neighbours(wall_x, wall_y, width, height)
     for x, y in neighbours:
         if w_field[x][y] == max_num - 1:
-            field[wall_x][wall_y]['terrain']['kind'] = TERRAIN_TYPES['EMPTY']
+            field[wall_x][wall_y]["terrain"]["kind"] = TERRAIN_TYPES["EMPTY"]
             return True
     return False
 
 
 def all_players_reached(w_field, start_positions):
     """Check that every player has path to each other."""
-    for x, y in start_positions:
-        if w_field[x][y] > 0:
-            return False
-    return True
+    return all(w_field[x][y] <= 0 for x, y in start_positions)
 
 
 def calculate_unit_visibility(move_points, min_speed, max_speed, avg_visibility):
     """Calculate unit visibility based on move points and speed.
-    
+
     Note: This matches the JavaScript signature where max_speed parameter
     actually receives speed_min_visibility value in the initial unit creation.
     """
@@ -331,11 +332,13 @@ def calculate_unit_visibility(move_points, min_speed, max_speed, avg_visibility)
         return 1
     if min_speed == max_speed:
         return avg_visibility
-    
+
     min_visibility = 1
     max_visibility = 2 * avg_visibility - min_visibility
-    
-    normalized_speed = (move_points - min_speed) / (max_speed - min_speed) if max_speed != min_speed else 0
+
+    normalized_speed = (
+        (move_points - min_speed) / (max_speed - min_speed) if max_speed != min_speed else 0
+    )
     adjusted_speed = adjust_speed(normalized_speed)
     visibility = min_visibility + round((max_visibility - min_visibility) * adjusted_speed)
     return visibility

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import DinoGame from '@/components/DinoGame.vue'
+import DinoGame from '@/components/game/DinoGame.vue'
 import { FieldEngine } from '@/game/fieldEngine.js'
 import Models from '@/game/models.js'
 

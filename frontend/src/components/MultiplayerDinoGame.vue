@@ -61,8 +61,8 @@ import MultiplayerReadyLabel from '@/components/MultiplayerReadyLabel.vue';
 import Models from "@/game/models";
 import { WaveEngine } from "@/game/waveEngine";
 import { FieldEngine } from "@/game/fieldEngine";
-import { GameWebSocket } from "@/game/gameWebSocket";
-import { whoami } from "@/auth";
+import { GameWebSocket } from "@/game/websocket/gameWebSocket";
+import { whoami } from "@/services/auth";
 import { normalizeField } from "@/game/helpers";
 import { gameCoreMixin } from "@/game/mixins/gameCoreMixin";
 import emitter from '@/game/eventBus';
@@ -546,7 +546,6 @@ export default {
       }
       if (patch.players) {
         // Detect if any players disconnected
-        const previousPlayerIds = new Set(this.players.map(p => p.id));
         const newPlayerIds = new Set(patch.players.map(p => p.id));
         
         // Find players who were in the previous list but not in the new list
@@ -602,7 +601,7 @@ export default {
     
     moveUnit(fromCoords, toCoords) {
       const [x0, y0] = fromCoords;
-      const [x1, y1] = toCoords;
+      const [_x1, _y1] = toCoords;
       
       if (!this.localField || !this.localField[x0] || !this.localField[x0][y0]) {
         console.error('[DEBUG] moveUnit: Invalid source cell', x0, y0);

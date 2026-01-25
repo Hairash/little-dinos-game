@@ -1,5 +1,6 @@
-from game.models import Game, GamePlayer, Move
 from django.contrib import admin
+
+from game.models import Game, GamePlayer, Move
 
 
 @admin.register(Game)
@@ -8,11 +9,13 @@ class GameAdmin(admin.ModelAdmin):
     search_fields = ["game_code"]
     list_filter = ["created_at"]
 
+
 @admin.register(GamePlayer)
 class GamePlayerAdmin(admin.ModelAdmin):
     list_display = ["game", "player", "order"]
     search_fields = ["game__game_code", "player__username"]
     list_filter = ["game__created_at"]
+
 
 @admin.register(Move)
 class MoveAdmin(admin.ModelAdmin):

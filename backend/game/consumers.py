@@ -1,9 +1,11 @@
 import logging
-from channels.generic.websocket import AsyncJsonWebsocketConsumer
+
 from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth.models import AnonymousUser
+
 from .models import Game, GamePlayer, Move
-from .services.general import apply_move_txn, apply_end_turn_txn, apply_scout_txn
+from .services.game_logic import apply_end_turn_txn, apply_move_txn, apply_scout_txn
 from .services.visibility import filter_field_for_player
 
 # Get logger for this module
@@ -29,15 +31,17 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         if self.user_id:
             self.player_info = await self._get_player_info(self.user_id)
             self.authenticated = True
-        logger.debug(f"GameConsumer.connect: game_code={self.game_code}, user_id={self.user_id}, player_info={self.player_info}, is_authenticated={getattr(self.user, 'is_authenticated', False)}")
+        logger.debug(
+            f"GameConsumer.connect: game_code={self.game_code}, user_id={self.user_id}, player_info={self.player_info}, is_authenticated={getattr(self.user, 'is_authenticated', False)}"
+        )
         await self.accept()
-        
+
         # If not authenticated, wait for auth message
         if not self.user_id:
             # Send message requesting authentication
             await self.send_json({"t": "auth_required"})
             return
-        
+
         await self.channel_layer.group_add(room(self.game_code), self.channel_name)
 
         # Check if this is a reconnection (game is already started and player is in the game)
@@ -46,34 +50,35 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         if self.player_info:
             is_reconnection = await self._is_reconnection(self.user_id)
             if is_reconnection:
-                logger.debug(f"Player {self.player_info['username']} reconnected, broadcasting to others")
+                logger.debug(
+                    f"Player {self.player_info['username']} reconnected, broadcasting to others"
+                )
                 await self.channel_layer.group_send(
                     room(self.game_code),
                     {
                         "type": "player_reconnected",
                         "player": self.player_info,
-                    }
+                    },
                 )
 
         # Send full initial state (field, settings, players, current turn)
         state = await self._get_full_state(self.user_id)  # async helper below
-        await self.send_json(
-            {"t": "joined", "gameCode": self.game_code, "gameState": state}
-        )
+        await self.send_json({"t": "joined", "gameCode": self.game_code, "gameState": state})
 
     async def receive_json(self, msg, **_):
         logger.debug(f"receive_json: msg={msg}, authenticated={self.authenticated}")
-        
+
         # Handle authentication message (more secure than query string)
         if msg.get("t") == "auth":
             if self.authenticated:
                 # Already authenticated, ignore duplicate auth message
                 logger.debug("Already authenticated, ignoring auth message")
                 return
-            
+
             token = msg.get("token")
             if token:
-                from .jwt_utils import get_user_from_token
+                from server.utils.jwt import get_user_from_token
+
                 user = await database_sync_to_async(get_user_from_token)(token)
                 if user:
                     self.user = user
@@ -81,20 +86,22 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     self.authenticated = True
                     self.player_info = await self._get_player_info(self.user_id)
                     await self.channel_layer.group_add(room(self.game_code), self.channel_name)
-                    
+
                     # Check if this is a reconnection
                     if self.player_info:
                         is_reconnection = await self._is_reconnection(self.user_id)
                         if is_reconnection:
-                            logger.debug(f"Player {self.player_info['username']} reconnected, broadcasting to others")
+                            logger.debug(
+                                f"Player {self.player_info['username']} reconnected, broadcasting to others"
+                            )
                             await self.channel_layer.group_send(
                                 room(self.game_code),
                                 {
                                     "type": "player_reconnected",
                                     "player": self.player_info,
-                                }
+                                },
                             )
-                    
+
                     # Send initial state after authentication
                     state = await self._get_full_state(self.user_id)
                     await self.send_json(
@@ -102,24 +109,32 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     )
                     return
                 else:
-                    await self.send_json({"t": "err", "code": "AUTH_FAILED", "message": "Invalid token"})
+                    await self.send_json(
+                        {"t": "err", "code": "AUTH_FAILED", "message": "Invalid token"}
+                    )
                     await self.close()
                     return
             else:
-                await self.send_json({"t": "err", "code": "AUTH_REQUIRED", "message": "Token required"})
+                await self.send_json(
+                    {"t": "err", "code": "AUTH_REQUIRED", "message": "Token required"}
+                )
                 await self.close()
                 return
-        
+
         # Require authentication for all other messages
         if not self.authenticated:
             logger.warning("Message received but not authenticated, sending auth_required")
-            await self.send_json({"t": "err", "code": "AUTH_REQUIRED", "message": "Authentication required"})
+            await self.send_json(
+                {"t": "err", "code": "AUTH_REQUIRED", "message": "Authentication required"}
+            )
             return
-        
+
         # Handle game move messages
         if msg.get("t") != "move":
             logger.warning(f"Unknown message type: {msg.get('t')}")
-            return await self.send_json({"t": "err", "code": "UNKNOWN", "message": f"Unknown message type: {msg.get('t')}"})
+            return await self.send_json(
+                {"t": "err", "code": "UNKNOWN", "message": f"Unknown message type: {msg.get('t')}"}
+            )
         payload = msg.get("payload", {})
         client_seq = msg.get("clientSeq", 0)
         user_id = getattr(self.user, "id", None)
@@ -138,18 +153,20 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             # Scout actions should only be sent to the initiating player
             # The patch is already filtered with revealed area in apply_scout_txn
             # Don't filter again - just send it directly
-            return await self.send_json({
-                "t": "state",
-                "gameCode": self.game_code,
-                "patch": res["patch"],
-                "serverTick": res["server_tick"],
-            })
+            return await self.send_json(
+                {
+                    "t": "state",
+                    "gameCode": self.game_code,
+                    "patch": res["patch"],
+                    "serverTick": res["server_tick"],
+                }
+            )
         else:
             # Regular move
             ok, res = await database_sync_to_async(apply_move_txn)(
                 self.game_code, user_id, payload, client_seq
             )
-        
+
         if not ok:
             logger.warning(f"receive_json: error applying move: {res}")
             return await self.send_json({"t": "err", **res})
@@ -187,37 +204,47 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     "serverTick": event["serverTick"],
                 }
             )
-    
+
     async def player_disconnected(self, event):
         """Handle player disconnection broadcast - send to all connected clients."""
-        logger.debug(f"player_disconnected handler: user_id={self.user_id}, event player={event.get('player')}")
+        logger.debug(
+            f"player_disconnected handler: user_id={self.user_id}, event player={event.get('player')}"
+        )
         # Don't send to the player who disconnected (they're already gone)
         # Only send to other players
         if self.user_id and event.get("player") and event["player"]["id"] != self.user_id:
             logger.debug(f"Sending player_disconnected message to user_id={self.user_id}")
-            await self.send_json({
-                "t": "player_disconnected",
-                "player": event["player"],
-            })
+            await self.send_json(
+                {
+                    "t": "player_disconnected",
+                    "player": event["player"],
+                }
+            )
         else:
             logger.debug("Skipping player_disconnected (same player or no player info)")
-    
+
     async def player_reconnected(self, event):
         """Handle player reconnection broadcast - send to all connected clients."""
-        logger.debug(f"player_reconnected handler: user_id={self.user_id}, event player={event.get('player')}")
+        logger.debug(
+            f"player_reconnected handler: user_id={self.user_id}, event player={event.get('player')}"
+        )
         # Don't send to the player who reconnected (they already know)
         # Only send to other players
         if self.user_id and event.get("player") and event["player"]["id"] != self.user_id:
             logger.debug(f"Sending player_reconnected message to user_id={self.user_id}")
-            await self.send_json({
-                "t": "player_reconnected",
-                "player": event["player"],
-            })
+            await self.send_json(
+                {
+                    "t": "player_reconnected",
+                    "player": event["player"],
+                }
+            )
         else:
             logger.debug("Skipping player_reconnected (same player or no player info)")
 
     async def disconnect(self, code):
-        logger.debug(f"GameConsumer.disconnect: game_code={self.game_code}, user_id={self.user_id}, code={code}, player_info={self.player_info}")
+        logger.debug(
+            f"GameConsumer.disconnect: game_code={self.game_code}, user_id={self.user_id}, code={code}, player_info={self.player_info}"
+        )
         # Broadcast player disconnection to other players
         # Use stored player_info if available, otherwise try to get it
         player_info = self.player_info
@@ -227,77 +254,87 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 logger.debug(f"Player info retrieved in disconnect: {player_info}")
             except Exception as e:
                 logger.warning(f"Error getting player info in disconnect: {e}", exc_info=True)
-        
+
         if player_info:
             try:
                 # Broadcast to all other players in the game
-                logger.debug(f"Broadcasting player_disconnected for {player_info['username']} to room {room(self.game_code)}")
+                logger.debug(
+                    f"Broadcasting player_disconnected for {player_info['username']} to room {room(self.game_code)}"
+                )
                 await self.channel_layer.group_send(
                     room(self.game_code),
                     {
                         "type": "player_disconnected",
                         "player": player_info,
-                    }
+                    },
                 )
                 logger.debug("Broadcast sent successfully")
             except Exception as e:
                 logger.error(f"Error in disconnect broadcast: {e}", exc_info=True)
         else:
             logger.debug("No player_info available for disconnect broadcast")
-        
+
         await self.channel_layer.group_discard(room(self.game_code), self.channel_name)
 
     # ---- async read helper ----
     @database_sync_to_async
     def _get_full_state(self, user_id):
         g = Game.objects.get(game_code=self.game_code)
-        
+
         # Get player's order for visibility filtering
         player_order = None
         if user_id:
             try:
                 game_player = GamePlayer.objects.get(game=g, player_id=user_id)
                 player_order = game_player.order
-                # Debug: List all players in this game
-                all_players = list(GamePlayer.objects.filter(game=g).order_by('order').values('player_id', 'player__username', 'order'))
-                # print(f"[DEBUG] _get_full_state: user_id={user_id}, player_order={player_order}, username={game_player.player.username}")
-                # print(f"[DEBUG] All players in game: {all_players}")
             except GamePlayer.DoesNotExist:
                 logger.debug(f"_get_full_state: user_id={user_id}, GamePlayer not found")
         else:
-            logger.debug(f"_get_full_state: user_id is None or not provided")
-        
+            logger.debug("_get_full_state: user_id is None or not provided")
+
         # Get settings for fog of war configuration
         settings = g.settings if isinstance(g.settings, dict) else {}
-        enable_fog_of_war = settings.get('enableFogOfWar', True)
-        fog_of_war_radius = settings.get('fogOfWarRadius', 3)
-        width = settings.get('width', 20)
-        height = settings.get('height', 20)
-        
+        enable_fog_of_war = settings.get("enableFogOfWar", True)
+        fog_of_war_radius = settings.get("fogOfWarRadius", 3)
+        width = settings.get("width", 20)
+        height = settings.get("height", 20)
+
         # Filter field based on player's visibility
         # Always filter the field to ensure isHidden is set correctly (even when fog of war is disabled)
         # If game has ended, show full field to all players
         field = g.field
         scout_revealed_coords = None
-        game_ended = g.status == 'ended'
+        game_ended = g.status == "ended"
         # If game ended, disable fog of war to show full field
         effective_fog_of_war = enable_fog_of_war and not game_ended
-        
+
         if player_order is not None and field:
             # print(f"[DEBUG] Filtering field for player_order={player_order}, enable_fog_of_war={enable_fog_of_war}, game_ended={game_ended}")
             # Get scout-revealed coordinates for this player (only relevant when fog of war is enabled)
             if effective_fog_of_war:
                 try:
                     game_player = GamePlayer.objects.get(game=g, player_id=user_id)
-                    scout_revealed_coords = game_player.scout_revealed_coords if game_player.scout_revealed_coords else None
+                    scout_revealed_coords = (
+                        game_player.scout_revealed_coords
+                        if game_player.scout_revealed_coords
+                        else None
+                    )
                 except GamePlayer.DoesNotExist:
                     pass
             field = filter_field_for_player(
-                field, width, height, player_order, fog_of_war_radius, effective_fog_of_war, scout_revealed_coords
+                field,
+                width,
+                height,
+                player_order,
+                fog_of_war_radius,
+                effective_fog_of_war,
+                scout_revealed_coords,
             )
         else:
-            logger.debug(f"Not filtering field: player_order={player_order}, field_exists={field is not None}")
-        
+            logger.debug(
+                f"Not filtering field: player_order={player_order}, field_exists={field is not None}"
+            )
+
         # Get current player order for turnPlayer
         current_player_order = None
         if g.turn_player:
@@ -306,14 +343,16 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 current_player_order = turn_game_player.order
             except GamePlayer.DoesNotExist:
                 pass
-        
+
         # Get last clientSeq for this player (for reconnection)
         last_client_seq = 0
         if user_id:
-            last_move = Move.objects.filter(game=g, player_id=user_id).order_by('-client_seq').first()
+            last_move = (
+                Move.objects.filter(game=g, player_id=user_id).order_by("-client_seq").first()
+            )
             if last_move:
                 last_client_seq = last_move.client_seq
-        
+
         # Return exactly the shape your client expects
         return {
             "gameCode": g.game_code,
@@ -332,7 +371,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             ],
             "lastClientSeq": last_client_seq,  # Last clientSeq for this player (for reconnection)
         }
-    
+
     @database_sync_to_async
     def _get_player_info(self, user_id):
         """Get player info (username, id) for disconnection notification."""
@@ -347,7 +386,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         except Exception as e:
             logger.warning(f"Error getting player info: {e}", exc_info=True)
         return None
-    
+
     @database_sync_to_async
     def _is_reconnection(self, user_id):
         """Check if this is a reconnection (game is playing and player is in the game)."""
@@ -356,20 +395,20 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             # Only consider it a reconnection if:
             # 1. Game is already started (status='playing')
             # 2. Player is in the game
-            if game.status == 'playing':
+            if game.status == "playing":
                 return GamePlayer.objects.filter(game=game, player_id=user_id).exists()
         except Exception as e:
             logger.warning(f"Error checking if reconnection: {e}", exc_info=True)
         return False
-    
+
     @database_sync_to_async
     def _filter_patch_for_player(self, patch, user_id):
         """Filter patch field based on player's visibility."""
         if "field" not in patch or not patch["field"]:
             return patch
-        
+
         g = Game.objects.get(game_code=self.game_code)
-        
+
         # Get player's order for visibility filtering
         player_order = None
         if user_id:
@@ -378,38 +417,48 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 player_order = game_player.order
             except GamePlayer.DoesNotExist:
                 pass
-        
+
         # Get settings for fog of war configuration
         settings = g.settings if isinstance(g.settings, dict) else {}
-        enable_fog_of_war = settings.get('enableFogOfWar', True)
-        fog_of_war_radius = settings.get('fogOfWarRadius', 3)
-        width = settings.get('width', 20)
-        height = settings.get('height', 20)
-        
+        enable_fog_of_war = settings.get("enableFogOfWar", True)
+        fog_of_war_radius = settings.get("fogOfWarRadius", 3)
+        width = settings.get("width", 20)
+        height = settings.get("height", 20)
+
         # Filter field based on player's visibility
         # Always filter the field to ensure isHidden is set correctly (even when fog of war is disabled)
         # If game has ended, show full field to all players
         field = patch["field"]
         scout_revealed_coords = None
         # Check both game status and patch flag to ensure we show full field when game ends
-        game_ended = g.status == 'ended' or patch.get("gameEnded", False)
+        game_ended = g.status == "ended" or patch.get("gameEnded", False)
         # If game ended, disable fog of war to show full field
         effective_fog_of_war = enable_fog_of_war and not game_ended
-        
+
         if player_order is not None and field:
             # Get scout-revealed coordinates for this player (only relevant when fog of war is enabled)
             # IMPORTANT: Refresh from DB to get the latest cleared coordinates
             if effective_fog_of_war:
                 try:
                     game_player = GamePlayer.objects.get(game=g, player_id=user_id)
-                    scout_revealed_coords = game_player.scout_revealed_coords if game_player.scout_revealed_coords else None
+                    scout_revealed_coords = (
+                        game_player.scout_revealed_coords
+                        if game_player.scout_revealed_coords
+                        else None
+                    )
                     # print(f"[DEBUG] _filter_patch_for_player: user_id={user_id}, player_order={player_order}, scout_revealed_coords={scout_revealed_coords}, game_ended={game_ended}")
                 except GamePlayer.DoesNotExist:
                     pass
             field = filter_field_for_player(
-                field, width, height, player_order, fog_of_war_radius, effective_fog_of_war, scout_revealed_coords
+                field,
+                width,
+                height,
+                player_order,
+                fog_of_war_radius,
+                effective_fog_of_war,
+                scout_revealed_coords,
             )
-        
+
         # Return patch with filtered field
         filtered_patch = patch.copy()
         filtered_patch["field"] = field
@@ -424,26 +473,25 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         self.user = self.scope.get("user", AnonymousUser())
         self.authenticated = getattr(self.user, "id", None) is not None
         await self.accept()
-        
+
         # If not authenticated, wait for auth message
         if not self.authenticated:
             await self.send_json({"type": "auth_required"})
             return
-        
-        await self.channel_layer.group_add(
-            lobby_room(self.game_code), self.channel_name
-        )
+
+        await self.channel_layer.group_add(lobby_room(self.game_code), self.channel_name)
 
         # Send initial players list
         players = await self._get_players()
         await self.send_json({"type": "players", "players": players})
-    
+
     async def receive_json(self, content, **_):
         # Handle authentication message (more secure than query string)
         if content.get("type") == "auth" and not self.authenticated:
             token = content.get("token")
             if token:
-                from .jwt_utils import get_user_from_token
+                from server.utils.jwt import get_user_from_token
+
                 user = await database_sync_to_async(get_user_from_token)(token)
                 if user:
                     self.user = user
@@ -463,7 +511,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                 await self.send_json({"type": "error", "message": "Token required"})
                 await self.close()
                 return
-        
+
         # Require authentication for all other messages
         if not self.authenticated:
             await self.send_json({"type": "error", "message": "Authentication required"})
@@ -476,16 +524,16 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
     async def game_started(self, event):
         """Handle game started event - sends full game state to lobby players."""
         logger.info(f"Game started event: {event}")
-        await self.send_json({
-            "type": "game_started",
-            "gameCode": event["gameCode"],
-            "gameState": event["gameState"],
-        })
+        await self.send_json(
+            {
+                "type": "game_started",
+                "gameCode": event["gameCode"],
+                "gameState": event["gameState"],
+            }
+        )
 
     async def disconnect(self, code):
-        await self.channel_layer.group_discard(
-            lobby_room(self.game_code), self.channel_name
-        )
+        await self.channel_layer.group_discard(lobby_room(self.game_code), self.channel_name)
 
     @database_sync_to_async
     def _get_players(self):
