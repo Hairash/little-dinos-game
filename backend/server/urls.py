@@ -17,20 +17,21 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path
+
 import game.views as views
-import game.auth as auth
+import server.auth as auth
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", views.index, name="index"),
-    path("auth/signup/", auth.signup, name="signup"),                   # POST
-    path("auth/signin/", auth.signin, name="signin"),                   # POST
-    path("auth/signout/", auth.signout, name="signout"),                 # POST
-    path("auth/whoami/", auth.whoami, name="whoami"),                     # GET
-    path("games/", views.create_game, name="create-game"),                   # POST
-    path("games/active/", views.get_active_games, name="get-active-games"),    # GET
-    path("games/<str:game_code>/join/", views.join_game, name="join-game"),        # POST
-    path("games/<str:game_code>/leave/", views.leave_game, name="leave-game"),      # POST
-    path("games/<str:game_code>/start/", views.start_game, name="start-game"),     # POST
-    path("games/<str:game_code>/", views.get_game, name="get-game"),               # GET
+    path("auth/signup/", auth.signup, name="signup"),  # POST
+    path("auth/signin/", auth.signin, name="signin"),  # POST
+    path("auth/signout/", auth.signout, name="signout"),  # POST
+    path("auth/whoami/", auth.whoami, name="whoami"),  # GET
+    path("games/", views.create_game, name="create-game"),  # POST
+    path("games/active/", views.get_active_games, name="get-active-games"),  # GET
+    path("games/<str:game_code>/join/", views.join_game, name="join-game"),  # POST
+    path("games/<str:game_code>/leave/", views.leave_game, name="leave-game"),  # POST
+    path("games/<str:game_code>/start/", views.start_game, name="start-game"),  # POST
+    path("games/<str:game_code>/", views.get_game, name="get-game"),  # GET
 ]

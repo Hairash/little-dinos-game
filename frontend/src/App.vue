@@ -67,16 +67,16 @@
 </template>
 
 <script>
-import GameMenu from "@/components/GameMenu.vue";
-import GameSetup from '@/components/GameSetup.vue'
-import DinoGame from '@/components/DinoGame.vue'
-import MultiplayerDinoGame from '@/components/MultiplayerDinoGame.vue'
-import GameHelp from "@/components/GameHelp.vue";
-import LoginPage from '@/components/LoginPage.vue';
-import LobbyPage from '@/components/LobbyPage.vue';
+import GameMenu from "@/components/game/GameMenu.vue";
+import GameSetup from '@/components/game/GameSetup.vue'
+import DinoGame from '@/components/game/DinoGame.vue'
+import MultiplayerDinoGame from '@/components/game/MultiplayerDinoGame.vue'
+import GameHelp from "@/components/game/GameHelp.vue";
+import LoginPage from '@/components/pages/LoginPage.vue';
+import LobbyPage from '@/components/pages/LobbyPage.vue';
 import emitter from "@/game/eventBus";
 import {DEFAULT_BUILDING_RATES, FIELDS_TO_SAVE, GAME_STATES, INITIAL_SETTINGS, MULTIPLAYER_INITIAL_SETTINGS} from "@/game/const";
-import { whoami } from "@/auth";
+import { whoami } from "@/services/auth";
 import { joinGame, createGame, startMultiplayerGame, leaveGame } from "@/game/service";
 
 export default {

@@ -7,8 +7,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "test:ui": "vitest --ui",
     "lint": "eslint src tests --ext .js,.jsx,.vue",
-    "lint:fix": "eslint src tests --ext .js,.jsx,.vue --fix"
+    "lint:fix": "eslint src tests --ext .js,.jsx,.vue --fix",
+    "format": "prettier --write \"src/**/*.{js,jsx,vue,json,css}\" \"tests/**/*.{js,jsx}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,vue,json,css}\" \"tests/**/*.{js,jsx}\""
   },
   "dependencies": {
     "mitt": "^3.0.1",
@@ -16,12 +20,18 @@
     "vue3-slider": "^1.0.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.6",
+    "@babel/eslint-parser": "^7.28.6",
+    "@babel/preset-env": "^7.28.6",
     "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/test-utils": "^2.4.6",
-    "eslint": "^7.32.0",
-    "eslint-plugin-vue": "^8.0.3",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-vue": "^9.28.0",
     "happy-dom": "^20.0.10",
+    "prettier": "^3.2.5",
     "vite": "^7.1.12",
     "vitest": "^3.2.4"
   },

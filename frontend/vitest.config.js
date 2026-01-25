@@ -12,5 +12,22 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setupTests.js'],
     include: ['tests/**/*.spec.js'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'tests/',
+        'dist/',
+        '**/*.config.js',
+        '**/setupTests.js',
+      ],
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 70,
+        statements: 70,
+      },
+    },
   },
 })

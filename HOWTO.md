@@ -44,3 +44,21 @@ DJANGO_DEBUG=True daphne -b 0.0.0.0 -p 8008 server.asgi:application
 
 1. Run project  
 `npm run dev`
+
+
+# How to test
+
+## Backend
+1. Run linter
+`ruff check . && black .`
+
+1. Run tests
+`pytest`
+
+
+## Frontend
+1. Run linter
+`npm run lint`
+
+1. Run tests
+`npm run test`

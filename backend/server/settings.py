@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+
 import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -36,7 +37,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # =============================================================================
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-=m!dtx2tnzu5ol!r)t@&#kki*u+x!s54ny24msfj_#w5=-6md9")
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY", "django-insecure-=m!dtx2tnzu5ol!r)t@&#kki*u+x!s54ny24msfj_#w5=-6md9"
+)
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -48,9 +51,13 @@ print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
 
 # CORS
 cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "")
-CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(",") if origin.strip()] if cors_origins else []
+CORS_ALLOWED_ORIGINS = (
+    [origin.strip() for origin in cors_origins.split(",") if origin.strip()] if cors_origins else []
+)
 csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
-CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins.split(",") if origin.strip()] if csrf_origins else []
+CSRF_TRUSTED_ORIGINS = (
+    [origin.strip() for origin in csrf_origins.split(",") if origin.strip()] if csrf_origins else []
+)
 
 # In debug mode with no CORS origins set, allow common local dev origins
 if DEBUG and not CORS_ALLOWED_ORIGINS:
@@ -77,7 +84,9 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
 ]
 CSRF_COOKIE_HTTPONLY = False  # so SPA can read cookie (or keep True and echo via meta tag)
-CSRF_COOKIE_SAMESITE = "None" if not DEBUG else "Lax"  # "None" required for cross-origin with credentials
+CSRF_COOKIE_SAMESITE = (
+    "None" if not DEBUG else "Lax"
+)  # "None" required for cross-origin with credentials
 CSRF_COOKIE_SECURE = not DEBUG  # Required when SameSite=None
 CSRF_COOKIE_DOMAIN = None  # Let Django set domain automatically
 
@@ -90,8 +99,8 @@ SESSION_COOKIE_DOMAIN = None
 SESSION_COOKIE_HTTPONLY = True  # Security: prevent JavaScript access
 SESSION_COOKIE_AGE = 86400 * 7  # 7 days
 SESSION_SAVE_EVERY_REQUEST = False  # Not needed for admin
-SESSION_COOKIE_PATH = '/'
-SESSION_COOKIE_NAME = 'sessionid'
+SESSION_COOKIE_PATH = "/"
+SESSION_COOKIE_NAME = "sessionid"
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 
@@ -159,7 +168,7 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "NAME": str(BASE_DIR / "db.sqlite3"),  # Convert Path to str for type checking
         }
     }
 
@@ -175,7 +184,6 @@ if redis_url:
     }
 else:
     # In-memory layer for build / local dev without Redis
-    from channels.layers import InMemoryChannelLayer
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
@@ -219,8 +227,8 @@ USE_TZ = True
 
 
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"   # where collectstatic will put files
-STATICFILES_DIRS = [BASE_DIR / "static"] # (optional) your own extra static dir
+STATIC_ROOT = BASE_DIR / "staticfiles"  # where collectstatic will put files
+STATICFILES_DIRS = [BASE_DIR / "static"]  # (optional) your own extra static dir
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 

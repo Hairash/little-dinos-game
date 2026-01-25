@@ -1,0 +1,28 @@
+# Ruff configuration for Django project
+
+[lint]
+# Enable pycodestyle (E), pyflakes (F), isort (I), and common rules
+select = ["E", "F", "I", "W", "UP", "B", "SIM"]
+ignore = [
+    "E501",  # Line too long - handled by formatter
+    "E402",  # Module level import not at top of file (needed for Django)
+]
+
+# Allow autofix for all enabled rules
+fixable = ["ALL"]
+unfixable = []
+
+[lint.per-file-ignores]
+# Ignore unused imports in __init__.py files
+"__init__.py" = ["F401"]
+# Ignore all in migrations
+"**/migrations/*.py" = ["ALL"]
+
+[lint.isort]
+known-first-party = ["game", "server"]
+
+[format]
+# Use double quotes for strings
+quote-style = "double"
+# Indent with spaces
+indent-style = "space"
