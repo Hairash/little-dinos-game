@@ -205,7 +205,7 @@ div.cell .cellSelection.highlighted {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 10;
+  z-index: 1;
   width: 40%;
   height: 40%;
   pointer-events: none;

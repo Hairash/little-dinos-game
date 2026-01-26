@@ -22,6 +22,7 @@
     :unitModifier="unitModifier"
     :baseModifier="baseModifier"
     :current-stats="getCurrentStats()"
+    :menu-open="menuOpen"
   />
   <InfoPanel
     v-if="state === STATES.play"
@@ -34,6 +35,12 @@
     :handle-change-cell-size="changeCellSize"
     :handle-exit-btn-click="() => this.state = this.STATES.exitDialog"
     :are-all-units-on-buildings="this.fieldEngine.areAllUnitsOnBuildings(this.currentPlayer)"
+    :field="field"
+    :field-engine="fieldEngine"
+    :enable-fog-of-war="enableFogOfWar"
+    :min-speed="minSpeed"
+    :max-speed="maxSpeed"
+    @menuOpen="handleMenuOpen"
   />
   <ExitDialog
     v-if="state === STATES.exitDialog"
@@ -143,6 +150,7 @@ export default {
       keyupHandlerRef: null,
       contextmenuHandlerRef: null,
       mouseupHandlerRef: null,
+      menuOpen: false,
     }
   },
   created() {
@@ -247,6 +255,9 @@ export default {
   },
   methods: {
     // Main events
+    handleMenuOpen(isOpen) {
+      this.menuOpen = isOpen;
+    },
     handleExitClick() {
       this.state = this.STATES.exitDialog;
     },

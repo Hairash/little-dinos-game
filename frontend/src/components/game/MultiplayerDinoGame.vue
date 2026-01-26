@@ -21,6 +21,7 @@
     :unitModifier="unitModifier"
     :baseModifier="baseModifier"
     :current-stats="getCurrentStats()"
+    :menu-open="menuOpen"
   />
   <InfoPanel
     v-if="state === STATES.play || (state === STATES.ready && !showReadyLabel)"
@@ -34,6 +35,12 @@
     :handle-exit-btn-click="() => this.state = this.STATES.exitDialog"
     :are-all-units-on-buildings="false"
     :show-end-turn-tip="showEndTurnTip && isMyTurn"
+    :field="localField"
+    :field-engine="fieldEngine"
+    :enable-fog-of-war="enableFogOfWar"
+    :min-speed="minSpeed"
+    :max-speed="maxSpeed"
+    @menuOpen="handleMenuOpen"
   />
   <ExitDialog
     v-if="state === STATES.exitDialog"
@@ -136,11 +143,20 @@ export default {
       winner: null, // Player order (0, 1, 2, ...) of the winner, or null if game not ended
       winnerUsername: null, // Username of the winner, or null if game not ended
       showReadyLabel: false, // Whether to show the ready label (can be closed while keeping game visible)
+      menuOpen: false,
     };
   },
   computed: {
     isMyTurn() {
       return this.myPlayerOrder !== null && this.currentPlayer === this.myPlayerOrder;
+    },
+    minSpeed() {
+      const settings = this.localSettings || this.settings || {};
+      return settings.minSpeed || 1;
+    },
+    maxSpeed() {
+      const settings = this.localSettings || this.settings || {};
+      return settings.maxSpeed || 5;
     },
   },
   async created() {
@@ -198,6 +214,9 @@ export default {
     }
   },
   methods: {
+    handleMenuOpen(isOpen) {
+      this.menuOpen = isOpen;
+    },
     initializeFromProps() {
       // Initialize field from prop and normalize to model instances
       if (this.field && this.field.length > 0) {
