@@ -111,6 +111,10 @@ export default {
         towers: { total: 0, max: 0 },
       }),
     },
+    menuOpen: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -318,6 +322,11 @@ export default {
       this.setHighlights(x, y, movePoints);
     },
     processClick(event, x, y) {
+      // Don't process clicks if menu is open
+      if (this.menuOpen) {
+        return;
+      }
+      
       // Check if any context window is open
       const wasContextHelpVisible = this.contextHelpVisible || this.infoPanelContextHelpVisible;
       

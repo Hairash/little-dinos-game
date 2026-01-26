@@ -68,9 +68,22 @@ if DEBUG and not CORS_ALLOWED_ORIGINS:
         "http://127.0.0.1:3000",
     ]
     CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
+    # Allow any local network IP address (192.168.x.x, 10.x.x.x, 172.16-31.x.x) on common dev ports
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^http://192\.168\.\d+\.\d+:5173$",
+        r"^http://192\.168\.\d+\.\d+:3000$",
+        r"^http://10\.\d+\.\d+\.\d+:5173$",
+        r"^http://10\.\d+\.\d+\.\d+:3000$",
+        r"^http://172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+:5173$",
+        r"^http://172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+:3000$",
+    ]
+else:
+    CORS_ALLOWED_ORIGIN_REGEXES = []
 
 print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 print(f"CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
+if DEBUG:
+    print(f"CORS_ALLOWED_ORIGIN_REGEXES: {CORS_ALLOWED_ORIGIN_REGEXES}")
 CORS_ALLOW_CREDENTIALS = False  # Not needed for JWT-only auth (no cookies)
 CORS_ALLOW_HEADERS = [
     "accept",

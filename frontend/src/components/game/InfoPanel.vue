@@ -1,49 +1,20 @@
 <template>
   <div class="infoPanel">
-    <!-- Zoom buttons -->
-<!--    style="margin-left: 11px-->
     <div id="inner-info-panel">
-      <!-- Left group: Zoom controls -->
+      <!-- Left group: Menu button -->
       <span class="infoBlock left-group">
         <button 
           type="button" 
           class="infoBtn" 
-          @click="handleExitBtnClick" 
-          @contextmenu.prevent="showContextHelp($event, 'Exit')"
-          title="Exit"
+          @click="toggleMenu"
+          @contextmenu.prevent="showContextHelp($event, 'Menu')"
+          :disabled="menuOpen"
+          title="Menu"
         >
           <img
             style="margin-left: 1px; margin-top: 1px;"
             class="curPlayerImage"
-            :src="`/images/exit_icon.png`"
-          >
-        </button>
-        <button
-          type="button"
-          class="infoBtn"
-          @click="handleChangeCellSize(10)"
-          @contextmenu.prevent="showContextHelp($event, 'Zoom in')"
-          style="margin-left: 2px"
-          title="Zoom in"
-        >
-          <img
-            style="margin-left: 1px; margin-top: 1px;"
-            class="curPlayerImage"
-            :src="`/images/plus.png`"
-          >
-        </button>
-        <button
-          type="button"
-          class="infoBtn"
-          @click="handleChangeCellSize(-10)"
-          @contextmenu.prevent="showContextHelp($event, 'Zoom out')"
-          style="margin-left: 2px"
-          title="Zoom out"
-        >
-          <img
-            style="margin-left: 1px; margin-top: 1px;"
-            class="curPlayerImage"
-            :src="`/images/minus.png`"
+            :src="`/images/settings_icon.png`"
           >
         </button>
       </span>
@@ -58,6 +29,7 @@
           class="infoBtn" 
           @click="handleUnitClick"
           @contextmenu.prevent="showContextHelp($event, 'Next unit')"
+          :disabled="menuOpen"
         >
           <img v-if="areAllUnitsOnBuildings && currentStats.units.active > 0"
             class="curPlayerImage"
@@ -101,8 +73,9 @@
           :src="`/images/base${currentPlayer + 1}.png`"
         >
         <span 
-          class="infoLabel" 
-          @contextmenu.prevent="showContextHelp($event, 'Total / Max towers')"
+          class="infoLabel"
+          :class="{ 'units-overlimit': towersOverLimit, 'units-overlimit-animate': animateTowersOverlimit }"
+          @contextmenu.prevent="showTowersContextHelp($event)"
           title="Total / Max towers"
         >
           <span 
@@ -131,7 +104,7 @@
           class="infoBtn endTurnBtn"
           @click="handleEndTurnBtnClick"
           @contextmenu.prevent="showContextHelp($event, 'End turn')"
-          :disabled="player && player.type === botType"
+          :disabled="(player && player.type === botType) || menuOpen"
           title="End turn"
         >
           <img
@@ -165,6 +138,21 @@
         <br><span class="warning-text">❗Limit reached❗</span>
       </template>
     </div>
+    <!-- Game Menu Overlay -->
+    <GameMenuOverlay
+      v-if="menuOpen"
+      :field="field"
+      :field-engine="fieldEngine"
+      :current-player="currentPlayer"
+      :players="players"
+      :enable-fog-of-war="enableFogOfWar"
+      :min-speed="minSpeed"
+      :max-speed="maxSpeed"
+      :handle-exit="handleMenuExit"
+      :handle-zoom-in="handleMenuZoomIn"
+      :handle-zoom-out="handleMenuZoomOut"
+      :handle-resume="toggleMenu"
+    />
   </div>
 </template>
 
@@ -172,9 +160,13 @@
 import Models from "@/game/models";
 import { getPlayerColor } from "@/game/helpers";
 import emitter from '@/game/eventBus';
+import GameMenuOverlay from '@/components/game/GameMenuOverlay.vue';
 
 export default {
   name: 'InfoPanel',
+  components: {
+    GameMenuOverlay,
+  },
   props: {
     currentPlayer: Number,
     players: Array[Models.Player],
@@ -189,7 +181,13 @@ export default {
       type: Boolean,
       default: false,
     },
+    field: Array,
+    fieldEngine: Object,
+    enableFogOfWar: Boolean,
+    minSpeed: Number,
+    maxSpeed: Number,
   },
+  emits: ['menuOpen'],
   data() {
     return {
       showScore: false,
@@ -203,11 +201,15 @@ export default {
       animateTowersTotal: false,
       prevUnitsOverLimit: false,
       animateUnitsOverlimit: false,
+      prevTowersOverLimit: false,
+      animateTowersOverlimit: false,
       contextHelpVisible: false,
       contextHelpTitle: '',
       contextHelpWarning: false,
+      contextHelpIsTowers: false,
       contextHelpX: 0,
       contextHelpY: 0,
+      menuOpen: false,
     }
   },
   computed: {
@@ -238,12 +240,20 @@ export default {
       const emptyBases = this.currentStats.towers.empty || 0;
       return (this.currentStats.units.total + emptyBases) > this.currentStats.units.max;
     },
+    towersOverLimit() {
+      if (!this.currentStats.towers.max) return false;
+      return this.currentStats.towers.total >= this.currentStats.towers.max;
+    },
     contextHelpStyle() {
       if (!this.contextHelpVisible) return {};
-      return {
+      const style = {
         left: `${this.contextHelpX}px`,
         top: `${this.contextHelpY}px`,
       };
+      if (this.contextHelpIsTowers) {
+        style.minWidth = '115px';
+      }
+      return style;
     },
   },
   watch: {
@@ -298,6 +308,13 @@ export default {
       }
       this.prevUnitsOverLimit = newVal;
     },
+    towersOverLimit(newVal) {
+      if (newVal === true && this.prevTowersOverLimit !== true) {
+        this.animateTowersOverlimit = true;
+        setTimeout(() => { this.animateTowersOverlimit = false; }, 500);
+      }
+      this.prevTowersOverLimit = newVal;
+    },
   },
   mounted() {
     // Initialize previous values
@@ -306,6 +323,7 @@ export default {
     this.prevUnitsTotal = this.currentStats.units.total;
     this.prevTowersTotal = this.currentStats.towers.total;
     this.prevUnitsOverLimit = this.unitsOverLimit || false;
+    this.prevTowersOverLimit = this.towersOverLimit || false;
     
     // Add click listener to hide context help when clicking outside
     document.addEventListener('click', this.hideContextHelp);
@@ -318,6 +336,21 @@ export default {
     emitter.off('infoPanelContextHelpChanged', this.onContextHelpChanged);
   },
   methods: {
+    toggleMenu() {
+      this.menuOpen = !this.menuOpen;
+      this.$emit('menuOpen', this.menuOpen);
+    },
+    handleMenuExit() {
+      this.menuOpen = false;
+      this.$emit('menuOpen', false);
+      this.handleExitBtnClick();
+    },
+    handleMenuZoomIn() {
+      this.handleChangeCellSize(10);
+    },
+    handleMenuZoomOut() {
+      this.handleChangeCellSize(-10);
+    },
     handleExitClick() {
       console.log('Exit button clicked');
       this.handleExitBtnClick();
@@ -336,6 +369,7 @@ export default {
 
       this.contextHelpTitle = text;
       this.contextHelpWarning = false;
+      this.contextHelpIsTowers = false;
       this.contextHelpVisible = true;
       emitter.emit('infoPanelContextHelpChanged', true);
     },
@@ -353,6 +387,25 @@ export default {
 
       this.contextHelpTitle = 'Active / Total / Max dinos';
       this.contextHelpWarning = this.unitsOverLimit;
+      this.contextHelpIsTowers = false;
+      this.contextHelpVisible = true;
+      emitter.emit('infoPanelContextHelpChanged', true);
+    },
+    showTowersContextHelp(event) {
+      event.stopPropagation();
+      const rect = event.currentTarget.getBoundingClientRect();
+      const panelRect = this.$el.getBoundingClientRect();
+
+      // Position above the element, centered horizontally
+      this.contextHelpX = rect.left - panelRect.left + (rect.width / 2);
+      this.contextHelpY = rect.top - panelRect.top - 5; // 5px above
+
+      // Close GameGrid context help if open
+      emitter.emit('closeGameGridContextHelp');
+
+      this.contextHelpTitle = 'Total / Max towers';
+      this.contextHelpWarning = this.towersOverLimit;
+      this.contextHelpIsTowers = true;
       this.contextHelpVisible = true;
       emitter.emit('infoPanelContextHelpChanged', true);
     },
@@ -435,6 +488,11 @@ span.infoLabel {
   font-size: clamp(1px, 3.9cqw, 16px);
   font-weight: bold;   /* restore what you had in .infoBlock */
   color: black;
+  
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 button.infoBtn {
@@ -448,6 +506,11 @@ button.infoBtn {
   height: 26px;
   vertical-align: text-bottom;
   cursor: pointer;
+}
+
+button.infoBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 button.infoBtn.endTurnBtn {
