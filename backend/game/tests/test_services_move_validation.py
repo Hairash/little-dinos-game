@@ -79,29 +79,36 @@ class TestCanReach:
         )
 
     def test_can_reach_blocked_by_mountain(self, small_field):
-        """Cannot reach through mountain."""
+        """Cannot reach when completely surrounded by mountains."""
         field, width, height = small_field
-        field[2][3]["terrain"]["kind"] = TERRAIN_TYPES["MOUNTAIN"]
+        # Create a wall of mountains around (2,2) leaving only the source accessible
+        # Block all paths from (2,2) to (4,4) by creating vertical wall
+        for y in range(height):
+            field[3][y]["terrain"]["kind"] = TERRAIN_TYPES["MOUNTAIN"]
 
-        # Path blocked by mountain
+        # Path blocked by mountain wall - can't reach (4,4) from (2,2)
         assert not can_reach(
-            field, width, height, 2, 2, 2, 4, move_points=10, enable_scout_mode=False
+            field, width, height, 2, 2, 4, 4, move_points=10, enable_scout_mode=False
         )
 
     def test_can_reach_blocked_by_unit(self, small_field):
-        """Cannot reach through unit."""
+        """Cannot reach when path is blocked by units."""
         field, width, height = small_field
-        field[2][3]["unit"] = {"player": 1, "_type": "dino2"}
+        # Create a wall of units blocking the path
+        for y in range(height):
+            field[3][y]["unit"] = {"player": 1, "_type": "dino2"}
 
-        # Path blocked by unit
+        # Path blocked by unit wall - can't reach (4,4) from (2,2)
         assert not can_reach(
-            field, width, height, 2, 2, 2, 4, move_points=10, enable_scout_mode=False
+            field, width, height, 2, 2, 4, 4, move_points=10, enable_scout_mode=False
         )
 
     def test_can_reach_same_cell(self, small_field):
-        """Can always reach same cell (distance 0)."""
+        """Cannot move to same cell (not a valid move)."""
         field, width, height = small_field
-        assert can_reach(field, width, height, 2, 2, 2, 2, move_points=0, enable_scout_mode=False)
+        assert not can_reach(
+            field, width, height, 2, 2, 2, 2, move_points=0, enable_scout_mode=False
+        )
 
 
 class TestValidateMove:

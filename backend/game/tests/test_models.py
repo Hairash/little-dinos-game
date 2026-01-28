@@ -52,43 +52,43 @@ class TestGame:
 class TestGamePlayer:
     """Test GamePlayer model."""
 
-    def test_create_game_player(self, game, user):
+    def test_create_game_player(self, game_without_player, user):
         """Can create a game player."""
-        game_player = GamePlayer.objects.create(game=game, player=user, order=1)
-        assert game_player.game == game
+        game_player = GamePlayer.objects.create(game=game_without_player, player=user, order=1)
+        assert game_player.game == game_without_player
         assert game_player.player == user
         assert game_player.order == 1
 
-    def test_game_player_str(self, game, user):
+    def test_game_player_str(self, game_without_player, user):
         """GamePlayer string representation."""
-        game_player = GamePlayer.objects.create(game=game, player=user, order=0)
-        assert str(game_player) == f"{user} in Game {game.game_code} (order 0)"
+        game_player = GamePlayer.objects.create(game=game_without_player, player=user, order=0)
+        assert str(game_player) == f"{user} in Game {game_without_player.game_code} (order 0)"
 
-    def test_game_player_unique_together(self, game, user):
+    def test_game_player_unique_together(self, game_without_player, user):
         """Cannot add same player to game twice."""
-        GamePlayer.objects.create(game=game, player=user, order=0)
+        GamePlayer.objects.create(game=game_without_player, player=user, order=0)
 
         with pytest.raises(IntegrityError):
-            GamePlayer.objects.create(game=game, player=user, order=1)
+            GamePlayer.objects.create(game=game_without_player, player=user, order=1)
 
-    def test_game_player_unique_order(self, game, user, user2):
+    def test_game_player_unique_order(self, game_without_player, user, user2):
         """Cannot have two players with same order."""
-        GamePlayer.objects.create(game=game, player=user, order=0)
+        GamePlayer.objects.create(game=game_without_player, player=user, order=0)
 
         with pytest.raises(IntegrityError):
-            GamePlayer.objects.create(game=game, player=user2, order=0)
+            GamePlayer.objects.create(game=game_without_player, player=user2, order=0)
 
-    def test_game_player_scout_revealed_coords(self, game, user):
+    def test_game_player_scout_revealed_coords(self, game_without_player, user):
         """Can store scout revealed coordinates."""
         coords = [[1, 2], [3, 4], [5, 6]]
         game_player = GamePlayer.objects.create(
-            game=game, player=user, order=0, scout_revealed_coords=coords
+            game=game_without_player, player=user, order=0, scout_revealed_coords=coords
         )
         assert game_player.scout_revealed_coords == coords
 
-    def test_game_player_default_scout_coords(self, game, user):
+    def test_game_player_default_scout_coords(self, game_without_player, user):
         """Scout revealed coords defaults to empty list."""
-        game_player = GamePlayer.objects.create(game=game, player=user, order=0)
+        game_player = GamePlayer.objects.create(game=game_without_player, player=user, order=0)
         assert game_player.scout_revealed_coords == []
 
 

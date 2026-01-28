@@ -36,6 +36,7 @@ little-dinos-game/
 │   ├── game/
 │   │   ├── services/            # Core game logic
 │   │   │   ├── general.py       # Game operations
+│   │   │   ├── field.py         # Field generation (multiplayer)
 │   │   │   └── visibility.py    # Fog of war calculations
 │   │   ├── consumers.py         # WebSocket handlers
 │   │   └── views.py             # REST API endpoints
