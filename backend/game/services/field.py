@@ -98,11 +98,7 @@ def generate_field(settings: dict) -> list:
         }
         start_positions.append([x, y])
 
-    # Make field linked (ensure all players can reach each other)
-    if players_num > 1:
-        make_field_linked(field, width, height, start_positions)
-
-    # Set buildings
+    # Set buildings BEFORE making field linked so they become reachable too
     min_distance = 5
     for building_type, rate in building_rates.items():
         if rate == 0:
@@ -149,6 +145,12 @@ def generate_field(settings: dict) -> list:
                     "_type": building_type,
                 }
 
+    # Make field linked (ensure all players AND buildings can reach each other)
+    building_positions = get_building_positions(field, width, height)
+    all_targets = start_positions + building_positions
+    if len(all_targets) > 1:
+        make_field_linked(field, width, height, all_targets)
+
     return field
 
 
@@ -176,6 +178,17 @@ def is_cell_in_start_positions(x, y, start_positions):
     return any(pos[0] == x and pos[1] == y for pos in start_positions)
 
 
+def get_building_positions(field, width, height):
+    """Get positions of all non-player buildings (neutral buildings)."""
+    positions = []
+    for x in range(width):
+        for y in range(height):
+            building = field[x][y].get("building")
+            if building and building.get("player") is None:
+                positions.append([x, y])
+    return positions
+
+
 def no_buildings_in_distance(field, x, y, r, width, height):
     """Check if there are no buildings within distance r."""
     for cur_x in range(x - r, x + r + 1):
@@ -191,28 +204,35 @@ def no_buildings_in_distance(field, x, y, r, width, height):
     return True
 
 
-def make_field_linked(field, width, height, start_positions):
-    """Ensure all players can reach each other by removing mountains."""
-    w_field = wave(field, width, height, start_positions)
+def make_field_linked(field, width, height, targets):
+    """Ensure all targets (players and buildings) can reach each other by removing mountains.
 
-    # Check if all players are already reachable
-    if all_players_reached(w_field, start_positions):
+    Args:
+        field: The game field
+        width: Field width
+        height: Field height
+        targets: List of [x, y] positions that must all be reachable from each other
+    """
+    w_field = wave(field, width, height, targets)
+
+    # Check if all targets are already reachable
+    if all_targets_reached(w_field, targets):
         return
 
-    max_num_cell = get_max_num_cell(w_field, field, start_positions)
+    max_num_cell = get_max_num_cell(w_field, field, targets)
     max_num = max_num_cell["num"]
     max_cell = max_num_cell["cell"]
 
-    # If no valid cell found or max_num is 0, all players are reachable
+    # If no valid cell found or max_num is 0, all targets are reachable
     if not max_cell or max_num == 0:
         return
 
     start_x, start_y = max_cell
 
-    while not all_players_reached(w_field, start_positions) and max_num > 0:
+    while not all_targets_reached(w_field, targets) and max_num > 0:
         fix_wave(w_field, field, width, height, max_num, start_x, start_y)
-        w_field = wave(field, width, height, start_positions)
-        max_num_cell = get_max_num_cell(w_field, field, start_positions)
+        w_field = wave(field, width, height, targets)
+        max_num_cell = get_max_num_cell(w_field, field, targets)
         max_num = max_num_cell["num"]
         max_cell = max_num_cell["cell"]
 
@@ -223,8 +243,18 @@ def make_field_linked(field, width, height, start_positions):
         start_x, start_y = max_cell
 
 
-def wave(field, width, height, start_positions):
-    """Create wave field - number of walls from first player start pos to each other player's."""
+def wave(field, width, height, targets):
+    """Create wave field - number of walls from first target position to each other target.
+
+    Args:
+        field: The game field
+        width: Field width
+        height: Field height
+        targets: List of [x, y] positions (players and buildings)
+
+    Returns:
+        A 2D array where each cell contains the number of mountains to cross to reach it.
+    """
     w_field = []
     for _x in range(width):
         line = []
@@ -232,7 +262,7 @@ def wave(field, width, height, start_positions):
             line.append(999)  # MAX_INT equivalent
         w_field.append(line)
 
-    start_x, start_y = start_positions[0]
+    start_x, start_y = targets[0]
     w_field[start_x][start_y] = 0
     queue = [[start_x, start_y]]
 
@@ -265,15 +295,21 @@ def find_neighbours(x, y, width, height):
     return neighbours
 
 
-def get_max_num_cell(w_field, field, start_positions):
-    """Get player with max number of walls on the path to them.
+def get_max_num_cell(w_field, field, targets):
+    """Get target with max number of walls on the path to it.
 
-    Returns dict with 'num' (max wave value) and 'cell' (coordinates [x, y]).
-    If all players are reachable (wave value 0), returns empty cell list.
+    Args:
+        w_field: The wave field
+        field: The game field
+        targets: List of [x, y] positions (players and buildings)
+
+    Returns:
+        dict with 'num' (max wave value) and 'cell' (coordinates [x, y]).
+        If all targets are reachable (wave value 0), returns empty cell list.
     """
     max_val = 0
     max_cell = []
-    for x, y in start_positions:
+    for x, y in targets:
         # Skip if this position is a mountain (shouldn't happen, but safety check)
         if field[x][y]["terrain"]["kind"] == TERRAIN_TYPES["MOUNTAIN"]:
             continue
@@ -317,9 +353,17 @@ def fix_wall(w_field, field, width, height, max_num, wall_x, wall_y):
     return False
 
 
-def all_players_reached(w_field, start_positions):
-    """Check that every player has path to each other."""
-    return all(w_field[x][y] <= 0 for x, y in start_positions)
+def all_targets_reached(w_field, targets):
+    """Check that all targets (players and buildings) have paths to each other.
+
+    Args:
+        w_field: The wave field
+        targets: List of [x, y] positions (players and buildings)
+
+    Returns:
+        True if all targets can reach each other without crossing mountains.
+    """
+    return all(w_field[x][y] <= 0 for x, y in targets)
 
 
 def calculate_unit_visibility(move_points, min_speed, max_speed, avg_visibility):
@@ -348,4 +392,6 @@ def adjust_speed(x):
     """Takes number 0..1 and returns number 0..1."""
     factor = 2
     shift = 0.05
-    return (-math.tan((x - 1 / 2) * factor) / math.tan(1 / 2 * factor) + 1) / 2 - shift
+    result = (-math.tan((x - 1 / 2) * factor) / math.tan(1 / 2 * factor) + 1) / 2 - shift
+    # Clamp to [0, 1] range to handle edge cases
+    return max(0, min(1, result))

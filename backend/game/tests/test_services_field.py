@@ -3,13 +3,18 @@ Tests for field generation service.
 """
 
 from game.services.field import (
+    TERRAIN_TYPES,
     adjust_speed,
+    all_targets_reached,
     calculate_unit_visibility,
     generate_field,
+    get_building_positions,
     get_sector,
     is_cell_in_start_positions,
+    make_field_linked,
     sectors_distance,
     validate_sector,
+    wave,
 )
 
 
@@ -257,3 +262,239 @@ class TestGenerateField:
         # Field should be linked (tested by make_field_linked being called)
         # We can't easily test pathfinding here without importing wave functions,
         # but we can verify the field structure is valid
+
+
+class TestGetBuildingPositions:
+    """Test getting building positions from field."""
+
+    def _create_empty_field(self, width, height):
+        """Create an empty field for testing."""
+        field = []
+        for _x in range(width):
+            col = []
+            for _y in range(height):
+                col.append(
+                    {
+                        "terrain": {"kind": TERRAIN_TYPES["EMPTY"], "idx": 1},
+                        "building": None,
+                        "unit": None,
+                        "isHidden": True,
+                    }
+                )
+            field.append(col)
+        return field
+
+    def test_no_buildings(self):
+        """Empty field returns no building positions."""
+        field = self._create_empty_field(10, 10)
+        positions = get_building_positions(field, 10, 10)
+        assert positions == []
+
+    def test_player_buildings_not_included(self):
+        """Player-owned buildings are not included."""
+        field = self._create_empty_field(10, 10)
+        field[5][5]["building"] = {"player": 0, "_type": "base"}
+        field[7][7]["building"] = {"player": 1, "_type": "base"}
+        positions = get_building_positions(field, 10, 10)
+        assert positions == []
+
+    def test_neutral_buildings_included(self):
+        """Neutral buildings (player=None) are included."""
+        field = self._create_empty_field(10, 10)
+        field[3][3]["building"] = {"player": None, "_type": "temple"}
+        field[5][5]["building"] = {"player": 0, "_type": "base"}  # Player building
+        field[8][8]["building"] = {"player": None, "_type": "well"}
+        positions = get_building_positions(field, 10, 10)
+        assert len(positions) == 2
+        assert [3, 3] in positions
+        assert [8, 8] in positions
+
+    def test_multiple_building_types(self):
+        """All neutral building types are included."""
+        field = self._create_empty_field(10, 10)
+        field[1][1]["building"] = {"player": None, "_type": "habitation"}
+        field[2][2]["building"] = {"player": None, "_type": "temple"}
+        field[3][3]["building"] = {"player": None, "_type": "well"}
+        field[4][4]["building"] = {"player": None, "_type": "storage"}
+        field[5][5]["building"] = {"player": None, "_type": "obelisk"}
+        positions = get_building_positions(field, 10, 10)
+        assert len(positions) == 5
+
+
+class TestAllTargetsReached:
+    """Test checking if all targets are reachable."""
+
+    def test_all_reachable(self):
+        """All targets with wave value 0 are reachable."""
+        w_field = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+        targets = [[0, 0], [2, 2]]
+        assert all_targets_reached(w_field, targets) is True
+
+    def test_some_unreachable(self):
+        """Targets with wave value > 0 are not reachable."""
+        w_field = [[0, 1, 2], [1, 2, 3], [2, 3, 4]]
+        targets = [[0, 0], [2, 2]]
+        assert all_targets_reached(w_field, targets) is False
+
+    def test_all_unreachable(self):
+        """All targets unreachable."""
+        w_field = [[1, 2, 3], [2, 3, 4], [3, 4, 5]]
+        targets = [[0, 0], [2, 2]]
+        assert all_targets_reached(w_field, targets) is False
+
+
+class TestMakeFieldLinkedWithBuildings:
+    """Test make_field_linked with buildings as targets."""
+
+    def _create_empty_field(self, width, height):
+        """Create an empty field for testing."""
+        field = []
+        for _x in range(width):
+            col = []
+            for _y in range(height):
+                col.append(
+                    {
+                        "terrain": {"kind": TERRAIN_TYPES["EMPTY"], "idx": 1},
+                        "building": None,
+                        "unit": None,
+                        "isHidden": True,
+                    }
+                )
+            field.append(col)
+        return field
+
+    def test_removes_mountain_between_targets(self):
+        """Mountains blocking paths between targets should be removed."""
+        field = self._create_empty_field(5, 1)
+        # Create a wall of mountains between position 0 and position 4
+        field[1][0]["terrain"]["kind"] = TERRAIN_TYPES["MOUNTAIN"]
+        field[2][0]["terrain"]["kind"] = TERRAIN_TYPES["MOUNTAIN"]
+        field[3][0]["terrain"]["kind"] = TERRAIN_TYPES["MOUNTAIN"]
+
+        targets = [[0, 0], [4, 0]]
+        make_field_linked(field, 5, 1, targets)
+
+        # Check that a path exists now
+        w_field = wave(field, 5, 1, targets)
+        assert all_targets_reached(w_field, targets) is True
+
+    def test_building_becomes_reachable(self):
+        """Buildings blocked by mountains should become reachable."""
+        field = self._create_empty_field(5, 1)
+        # Create a wall of mountains between player start (0,0) and building (4,0)
+        field[1][0]["terrain"]["kind"] = TERRAIN_TYPES["MOUNTAIN"]
+        field[2][0]["terrain"]["kind"] = TERRAIN_TYPES["MOUNTAIN"]
+        field[3][0]["terrain"]["kind"] = TERRAIN_TYPES["MOUNTAIN"]
+
+        # Add a building
+        field[4][0]["building"] = {"player": None, "_type": "temple"}
+
+        # Targets include both player start and building
+        start_positions = [[0, 0]]
+        building_positions = get_building_positions(field, 5, 1)
+        all_targets = start_positions + building_positions
+
+        make_field_linked(field, 5, 1, all_targets)
+
+        # Verify building is now reachable
+        w_field = wave(field, 5, 1, all_targets)
+        assert all_targets_reached(w_field, all_targets) is True
+
+    def test_multiple_buildings_become_reachable(self):
+        """Multiple buildings should all become reachable."""
+        field = self._create_empty_field(7, 3)
+        # Create walls
+        for y in range(3):
+            field[2][y]["terrain"]["kind"] = TERRAIN_TYPES["MOUNTAIN"]
+            field[4][y]["terrain"]["kind"] = TERRAIN_TYPES["MOUNTAIN"]
+
+        # Add buildings
+        field[3][1]["building"] = {"player": None, "_type": "temple"}
+        field[6][1]["building"] = {"player": None, "_type": "well"}
+
+        start_positions = [[0, 1]]
+        building_positions = get_building_positions(field, 7, 3)
+        all_targets = start_positions + building_positions
+
+        make_field_linked(field, 7, 3, all_targets)
+
+        # All targets should be reachable
+        w_field = wave(field, 7, 3, all_targets)
+        assert all_targets_reached(w_field, all_targets) is True
+
+
+class TestGenerateFieldBuildingReachability:
+    """Test that generated fields have all buildings reachable."""
+
+    def test_buildings_are_reachable(self):
+        """All buildings in generated field should be reachable from player starts."""
+        settings = {
+            "humanPlayersNum": 2,
+            "botPlayersNum": 0,
+            "width": 16,
+            "height": 16,
+            "sectorsNum": 4,
+            "buildingRates": {
+                "habitation": 4,
+                "temple": 2,
+                "well": 1,
+            },
+        }
+        field = generate_field(settings)
+
+        # Find all start positions (player units)
+        start_positions = []
+        for x in range(16):
+            for y in range(16):
+                cell = field[x][y]
+                if cell.get("unit") and cell["unit"].get("player") is not None:
+                    start_positions.append([x, y])
+
+        # Find all building positions
+        building_positions = get_building_positions(field, 16, 16)
+
+        # Combine all targets
+        all_targets = start_positions + building_positions
+
+        # Check all targets are reachable
+        if len(all_targets) > 1:
+            w_field = wave(field, 16, 16, all_targets)
+            assert all_targets_reached(w_field, all_targets) is True
+
+    def test_buildings_reachable_in_large_field(self):
+        """Buildings should be reachable even in larger fields with more obstacles."""
+        settings = {
+            "humanPlayersNum": 2,
+            "botPlayersNum": 2,
+            "width": 20,
+            "height": 20,
+            "sectorsNum": 4,
+            "buildingRates": {
+                "base": 3,
+                "habitation": 4,
+                "temple": 2,
+                "well": 1,
+                "storage": 2,
+                "obelisk": 5,
+            },
+        }
+        field = generate_field(settings)
+
+        # Find all start positions
+        start_positions = []
+        for x in range(20):
+            for y in range(20):
+                cell = field[x][y]
+                if cell.get("unit") and cell["unit"].get("player") is not None:
+                    start_positions.append([x, y])
+
+        # Find all building positions
+        building_positions = get_building_positions(field, 20, 20)
+
+        # Combine all targets
+        all_targets = start_positions + building_positions
+
+        # Check all targets are reachable
+        if len(all_targets) > 1:
+            w_field = wave(field, 20, 20, all_targets)
+            assert all_targets_reached(w_field, all_targets) is True

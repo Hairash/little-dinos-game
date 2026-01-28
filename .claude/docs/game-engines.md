@@ -207,14 +207,18 @@ new CreateFieldEngine(
 ### Generation Algorithm
 
 ```
-1. Create empty field grid
+1. Create empty field grid with random mountains
 2. Divide into sectors (for player placement)
-3. Place player starting bases (one per sector)
+3. Place player starting bases (one per sector edge)
 4. Place initial units at bases
-5. Randomly place neutral buildings
-6. Add mountains (ensure path exists)
-7. Validate all players can reach each other
+5. Randomly place neutral buildings (on empty cells)
+6. Validate all players AND buildings are reachable
+7. Remove mountains as needed to create paths
 ```
+
+**Reachability Guarantee:** The algorithm ensures all buildings (player bases and neutral buildings) are reachable from any player's starting position. Mountains are automatically removed to create paths if needed. This uses a BFS wave algorithm that counts mountains to cross, then removes the minimum necessary to connect all targets.
+
+> **Note:** The backend (`backend/game/services/field.py`) uses the same algorithm for multiplayer field generation, ensuring consistent behavior between single-player and multiplayer games.
 
 ### Building Distribution
 

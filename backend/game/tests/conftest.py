@@ -55,6 +55,16 @@ def game(db, user):
 
 
 @pytest.fixture
+def game_without_player(db, user):
+    """Create a test game without any players (for testing GamePlayer creation)."""
+    from game.models import Game
+
+    return Game.objects.create(
+        game_code="test456", status="ready", turn_player=user, settings={"width": 20, "height": 20}
+    )
+
+
+@pytest.fixture
 def small_field():
     """Create a small test field (5x5) for easier testing."""
     from game.services.visibility import TERRAIN_TYPES

@@ -94,10 +94,8 @@ class CreateFieldEngine {
       this.startPositions.push([x, y]);
     }
     // console.log('start positions', this.startPositions);
-    if (this.playersNum > 1) {
-      this.makeFieldLinked(field);
-    }
-    // Set buildings
+
+    // Set buildings (placed BEFORE makeFieldLinked so all buildings are included in reachability check)
     let minDistance = 5;
     for (let buildingType in this.buildingRates) {
       if (this.buildingRates[buildingType] === 0) continue;
@@ -135,6 +133,11 @@ class CreateFieldEngine {
           field[x][y].building = new Models.Building(null, buildingType);
         }
       }
+    }
+
+    // Ensure all players AND all buildings are reachable from each other
+    if (this.playersNum > 1) {
+      this.makeFieldLinked(field);
     }
     // console.log(field);
     // for (let x = 0; x < this.width; x++) {
@@ -202,20 +205,36 @@ class CreateFieldEngine {
     return this.startPositions.some(el => el[0] === x && el[1] === y);
   }
 
-  // Make field linked methods
+  // Get all building positions from the field
+  getBuildingPositions(field) {
+    const positions = [];
+    for (let x = 0; x < this.width; x++) {
+      for (let y = 0; y < this.height; y++) {
+        if (field[x][y].building) {
+          positions.push([x, y]);
+        }
+      }
+    }
+    return positions;
+  }
+
+  // Make field linked - ensure all targets (start positions + buildings) are reachable
   makeFieldLinked(field) {
     // console.log('makeFieldLinked');
+    // Collect all targets: player start positions + all buildings
+    const targets = this.getBuildingPositions(field);
+
     let wField = this.wave(field, this.width, this.height);
-    let maxNumCell = this.getMaxNumCell(wField, field);
+    let maxNumCell = this.getMaxNumCell(wField, field, targets);
     // console.log('maxNumCell', maxNumCell);
     let maxNum = maxNumCell.num;
     let [startX, startY] = maxNumCell.cell;
-    while (!this.allPlayersReached(wField) && maxNum > 0) {
+    while (!this.allTargetsReached(wField, targets) && maxNum > 0) {
       // console.log('fixWave', maxNum, startX, startY);
       this.fixWave(wField, field, this.width, this.height, maxNum, startX, startY);
       // console.log('wave');
       wField = this.wave(field, this.width, this.height);
-      maxNumCell = this.getMaxNumCell(wField, field);
+      maxNumCell = this.getMaxNumCell(wField, field, targets);
       // console.log('maxNumCell', maxNumCell);
       maxNum = maxNumCell.num;
       [startX, startY] = maxNumCell.cell;
@@ -263,11 +282,11 @@ class CreateFieldEngine {
     return neighbours;
   }
 
-  // Get player with max number of walls on the path to them
-  getMaxNumCell(wField, field) {
+  // Get target with max number of walls on the path to it
+  getMaxNumCell(wField, field, targets) {
     let max = 0;
     let maxCell = [];
-    for (let [x, y] of this.startPositions) {
+    for (let [x, y] of targets) {
       const cell = wField[x][y];
       if (field[x][y].terrain.kind !== Models.TerrainTypes.MOUNTAIN) {
         if (cell > max) {
@@ -323,9 +342,9 @@ class CreateFieldEngine {
     return false;
   }
 
-  // Check that every player has path to each other
-  allPlayersReached(wField) {
-    for (let [x, y] of this.startPositions) {
+  // Check that all targets are reachable (wave value = 0)
+  allTargetsReached(wField, targets) {
+    for (let [x, y] of targets) {
       if (wField[x][y] > 0) return false;
     }
     return true;
