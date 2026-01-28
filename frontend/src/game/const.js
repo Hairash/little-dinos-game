@@ -1,5 +1,10 @@
 export const TRANSITION_DELAY = 1;
-// export const CELL_SIZE = 30;
+
+// Cell size constants for zoom levels
+export const MIN_CELL_SIZE = 10;
+export const MAX_CELL_SIZE = 70;
+export const DEFAULT_CELL_SIZE = 30;
+export const DEFAULT_BORDER_WIDTH = 3;  // Border width at default cell size
 export const GAME_STATUS_FIELDS = [
   'winPhase',
   'winner',

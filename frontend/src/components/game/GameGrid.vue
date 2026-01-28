@@ -41,6 +41,16 @@
             </template>
           </div>
         </div>
+        <VisibilityFrame
+          v-if="visibilityFrameUnit"
+          :x="visibilityFrameUnit.x"
+          :y="visibilityFrameUnit.y"
+          :radius="visibilityFrameUnit.visibility"
+          :cellSize="cellSize"
+          :playerIndex="visibilityFrameUnit.player"
+          :fieldWidth="width"
+          :fieldHeight="height"
+        />
         <CellContextHelp
           :visible="contextHelpVisible"
           :x="contextHelpX"
@@ -72,6 +82,7 @@ import { ACTIONS } from '@/game/const'
 import emitter from '@/game/eventBus';
 import ActionHint from "@/components/game/ActionHint.vue";
 import CellContextHelp from "@/components/game/CellContextHelp.vue";
+import VisibilityFrame from "@/components/game/VisibilityFrame.vue";
 
 export default {
   name: "GameGrid",
@@ -79,6 +90,7 @@ export default {
     ActionHint,
     GameCell,
     CellContextHelp,
+    VisibilityFrame,
   },
   props: {
     isHidden: Boolean,
@@ -128,6 +140,8 @@ export default {
       contextHelpY: 0,
       contextHelpCell: null,
       infoPanelContextHelpVisible: false,
+      // Visibility frame state: {x, y, visibility, player} or null (shown on right-click)
+      visibilityFrameUnit: null,
     }
   },
   computed: {
@@ -280,6 +294,7 @@ export default {
       // console.log(scrollCoords);
       this.selectedCoords = null;
       this.selectedAction = null;
+      this.visibilityFrameUnit = null;
       this.removeHighlights();
       if (scrollCoords) {
         this.$refs.gameGridContainer.scrollTo(...scrollCoords);
@@ -426,11 +441,25 @@ export default {
           this.contextHelpY = y;
           this.contextHelpCell = cell;
           this.contextHelpVisible = true;
+
+          // Show visibility frame if fog of war is enabled and the cell has a unit
+          if (this.enableFogOfWar && cell.unit) {
+            this.visibilityFrameUnit = {
+              x,
+              y,
+              visibility: cell.unit.visibility,
+              player: cell.unit.player,
+            };
+          } else {
+            this.visibilityFrameUnit = null;
+          }
         }
       }
     },
     hideContextHelp() {
       this.contextHelpVisible = false;
+      // Clear visibility frame (only shown via right-click context menu)
+      this.visibilityFrameUnit = null;
     },
     hideContextHelpOnOutsideClick(event) {
       // Hide context help if clicking outside the board

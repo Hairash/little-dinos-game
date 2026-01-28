@@ -210,6 +210,17 @@ Bottom HUD showing stats and controls.
 ### ReadyLabel.vue / MultiplayerReadyLabel.vue
 Turn transition overlay.
 
+### VisibilityFrame.vue
+Displays unit visibility radius as a colored frame overlay.
+
+**Props:** `x`, `y`, `radius`, `cellSize`, `playerIndex`, `fieldWidth`, `fieldHeight`
+
+**Behavior:**
+- Shows when a unit is selected or right-clicked
+- Frame color matches player color (blue for P1, mint for P2, etc.)
+- Border width scales with zoom (1px at min, 3px at default, 7px at max)
+- Clips to map boundaries
+
 ---
 
 ## Event Flow Example
