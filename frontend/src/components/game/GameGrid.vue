@@ -369,7 +369,13 @@ export default {
       if (unit) {
         // Select unit if it belongs to current player and hasn't moved
         if (unit.player === this.currentPlayer && !unit.hasMoved) {
-          this.selectUnit(x, y, unit.movePoints);
+          // If clicking on already selected unit, deselect it
+          if (this.selectedCoords && this.selectedCoords[0] === x && this.selectedCoords[1] === y) {
+            this.selectedCoords = null;
+            this.removeHighlights();
+          } else {
+            this.selectUnit(x, y, unit.movePoints);
+          }
         }
       }
       else if (this.selectedCoords && this.waveEngine.canMove(this.selectedCoords, [x, y])) {
