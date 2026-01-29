@@ -37,6 +37,8 @@
                 :selectedUnitOnStorage="selectedUnitOnStorage"
                 @click="processClick($event, x, y)"
                 @contextMenu="handleContextMenu"
+                @mouseEnter="handleCellMouseEnter"
+                @mouseLeave="handleCellMouseLeave"
               />
             </template>
           </div>
@@ -50,6 +52,17 @@
           :playerIndex="visibilityFrameUnit.player"
           :fieldWidth="width"
           :fieldHeight="height"
+        />
+        <VisibilityFrame
+          v-if="scoutPreviewFrame"
+          :x="scoutPreviewFrame.x"
+          :y="scoutPreviewFrame.y"
+          :radius="scoutPreviewFrame.radius"
+          :cellSize="cellSize"
+          :playerIndex="scoutPreviewFrame.player"
+          :fieldWidth="width"
+          :fieldHeight="height"
+          :showCenterMarker="true"
         />
         <CellContextHelp
           :visible="contextHelpVisible"
@@ -142,6 +155,8 @@ export default {
       infoPanelContextHelpVisible: false,
       // Visibility frame state: {x, y, visibility, player} or null (shown on right-click)
       visibilityFrameUnit: null,
+      // Scout preview state: {x, y} or null (shown on hover/right-click in scout mode)
+      scoutPreviewCoords: null,
     }
   },
   computed: {
@@ -190,6 +205,18 @@ export default {
         return false;
       }
       return cell.building._type === Models.BuildingTypes.STORAGE;
+    },
+    scoutPreviewFrame() {
+      // Returns scout preview frame config when in scout mode and coords are set
+      if (this.selectedAction !== ACTIONS.scouting || !this.scoutPreviewCoords) {
+        return null;
+      }
+      return {
+        x: this.scoutPreviewCoords.x,
+        y: this.scoutPreviewCoords.y,
+        radius: this.fogOfWarRadius,
+        player: this.currentPlayer,
+      };
     },
   },
   created() {
@@ -295,6 +322,7 @@ export default {
       this.selectedCoords = null;
       this.selectedAction = null;
       this.visibilityFrameUnit = null;
+      this.scoutPreviewCoords = null;
       this.removeHighlights();
       if (scrollCoords) {
         this.$refs.gameGridContainer.scrollTo(...scrollCoords);
@@ -363,6 +391,7 @@ export default {
         // In multiplayer, send scout message to server
         emitter.emit('scoutArea', {x: x, y: y, fogRadius: this.fogOfWarRadius});
         this.selectedAction = null;
+        this.scoutPreviewCoords = null;
         return;
       }
       const unit = this.field[x][y].unit;
@@ -395,6 +424,10 @@ export default {
     },
     setAction(action) {
       this.selectedAction = action;
+      // Clear scout preview when action is cleared
+      if (!action) {
+        this.scoutPreviewCoords = null;
+      }
     },
     saveCoords(player) {
       const container = this.$refs.gameGridContainer;
@@ -448,16 +481,22 @@ export default {
           this.contextHelpCell = cell;
           this.contextHelpVisible = true;
 
-          // Show visibility frame if fog of war is enabled and the cell has a unit
-          if (this.enableFogOfWar && cell.unit) {
-            this.visibilityFrameUnit = {
-              x,
-              y,
-              visibility: cell.unit.visibility,
-              player: cell.unit.player,
-            };
-          } else {
+          // In scout mode: show scout preview instead of unit visibility
+          if (this.selectedAction === ACTIONS.scouting) {
+            this.scoutPreviewCoords = { x, y };
             this.visibilityFrameUnit = null;
+          } else {
+            // Show visibility frame if fog of war is enabled and the cell has a unit
+            if (this.enableFogOfWar && cell.unit) {
+              this.visibilityFrameUnit = {
+                x,
+                y,
+                visibility: cell.unit.visibility,
+                player: cell.unit.player,
+              };
+            } else {
+              this.visibilityFrameUnit = null;
+            }
           }
         }
       }
@@ -477,6 +516,19 @@ export default {
     },
     onInfoPanelContextHelpChanged(visible) {
       this.infoPanelContextHelpVisible = visible;
+    },
+    handleCellMouseEnter(coords) {
+      // Show scout preview on hover when in scout mode
+      if (this.selectedAction === ACTIONS.scouting) {
+        this.scoutPreviewCoords = { x: coords.x, y: coords.y };
+      }
+    },
+    handleCellMouseLeave() {
+      // Clear scout preview on mouse leave (only if set via hover, not right-click)
+      // We clear it on any leave since right-click will re-set it anyway
+      if (this.selectedAction === ACTIONS.scouting) {
+        this.scoutPreviewCoords = null;
+      }
     },
   }
 }
