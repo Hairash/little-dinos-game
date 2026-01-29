@@ -3,6 +3,8 @@
     :class="{'hidden': hidden, 'selected': selected, 'highlighted': highlighted}"
     :style="{ width: `${width}px`, height: `${height}px` }"
     @contextmenu.prevent="handleContextMenu"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
   >
     <img
       class="terrainImg"
@@ -162,6 +164,12 @@ export default {
     handleContextMenu(_event) {
       // Right-click handler (also triggered by long press on mobile)
       this.$emit('contextMenu', { x: this.cellX, y: this.cellY });
+    },
+    handleMouseEnter() {
+      this.$emit('mouseEnter', { x: this.cellX, y: this.cellY });
+    },
+    handleMouseLeave() {
+      this.$emit('mouseLeave', { x: this.cellX, y: this.cellY });
     },
   },
 }

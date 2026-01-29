@@ -2,7 +2,13 @@
   <div
     class="visibility-frame"
     :style="frameStyle"
-  ></div>
+  >
+    <div
+      v-if="showCenterMarker"
+      class="center-marker"
+      :style="centerMarkerStyle"
+    ></div>
+  </div>
 </template>
 
 <script>
@@ -40,6 +46,10 @@ export default {
       type: Number,
       required: true,
     },
+    showCenterMarker: {
+      type: Boolean,
+      default: false,
+    },
   },
   computed: {
     borderWidth() {
@@ -76,6 +86,31 @@ export default {
         borderColor: this.playerColor,
       };
     },
+    centerMarkerStyle() {
+      // Position the cross marker at the center cell of the frame
+      // The center cell is at (radius, radius) within the frame's coordinate system
+      const frameLeft = Math.max(0, this.x - this.radius);
+      const frameTop = Math.max(0, this.y - this.radius);
+
+      // Calculate offset from frame's top-left to the center cell
+      const offsetX = (this.x - frameLeft) * this.cellSize;
+      const offsetY = (this.y - frameTop) * this.cellSize;
+
+      // Cross line length: 60% of cell diagonal (cellSize * sqrt(2) * 0.6)
+      const lineLength = Math.round(this.cellSize * 1.414 * 0.6);
+      // Line thickness scales with cell size (minimum 2px)
+      const lineThickness = Math.max(1, Math.round(this.cellSize / 10));
+
+      return {
+        left: `${offsetX}px`,
+        top: `${offsetY}px`,
+        width: `${this.cellSize}px`,
+        height: `${this.cellSize}px`,
+        '--cross-color': this.playerColor,
+        '--cross-length': `${lineLength}px`,
+        '--cross-thickness': `${lineThickness}px`,
+      };
+    },
   },
 };
 </script>
@@ -88,5 +123,31 @@ export default {
   background-color: transparent;
   pointer-events: none;
   z-index: 5;
+}
+
+.center-marker {
+  position: absolute;
+  pointer-events: none;
+}
+
+.center-marker::before,
+.center-marker::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--cross-length);
+  height: var(--cross-thickness);
+  margin-left: calc(var(--cross-length) / -2 - var(--cross-thickness));
+  margin-top: calc(var(--cross-thickness) / -2 - var(--cross-thickness));
+  background-color: var(--cross-color);
+}
+
+.center-marker::before {
+  transform: rotate(45deg);
+}
+
+.center-marker::after {
+  transform: rotate(-45deg);
 }
 </style>

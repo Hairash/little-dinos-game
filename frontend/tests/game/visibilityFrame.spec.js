@@ -212,4 +212,70 @@ describe('VisibilityFrame', () => {
       expect(wrapper.classes()).toContain('visibility-frame');
     });
   });
+
+  describe('center marker', () => {
+    it('does not render cross marker when showCenterMarker is false (default)', () => {
+      const wrapper = mountFrame();
+      const marker = wrapper.find('.center-marker');
+      expect(marker.exists()).toBe(false);
+    });
+
+    it('renders cross marker when showCenterMarker is true', () => {
+      const wrapper = mountFrame({ showCenterMarker: true });
+      const marker = wrapper.find('.center-marker');
+      expect(marker.exists()).toBe(true);
+    });
+
+    it('uses correct player color for cross marker', () => {
+      const wrapper = mountFrame({ showCenterMarker: true, playerIndex: 0 });
+      const style = wrapper.vm.centerMarkerStyle;
+      expect(style['--cross-color']).toBe('#4A90E2');
+    });
+
+    it('scales cross line length with cell size (60% of diagonal)', () => {
+      // cellSize 30 -> lineLength = 30 * 1.414 * 0.6 ≈ 25
+      const wrapper30 = mountFrame({ showCenterMarker: true, cellSize: 30 });
+      expect(wrapper30.vm.centerMarkerStyle['--cross-length']).toBe('25px');
+
+      // cellSize 50 -> lineLength = 50 * 1.414 * 0.6 ≈ 42
+      const wrapper50 = mountFrame({ showCenterMarker: true, cellSize: 50 });
+      expect(wrapper50.vm.centerMarkerStyle['--cross-length']).toBe('42px');
+    });
+
+    it('scales cross line thickness with cell size (minimum 2px)', () => {
+      // cellSize 30 -> thickness = 30/10 = 3
+      const wrapper30 = mountFrame({ showCenterMarker: true, cellSize: 30 });
+      expect(wrapper30.vm.centerMarkerStyle['--cross-thickness']).toBe('3px');
+
+      // cellSize 10 -> thickness would be 1, but minimum is 2
+      const wrapper10 = mountFrame({ showCenterMarker: true, cellSize: 10 });
+      expect(wrapper10.vm.centerMarkerStyle['--cross-thickness']).toBe('1px');
+    });
+
+    it('positions cross marker at center cell within frame', () => {
+      // Unit at (5, 5) with radius 3
+      // Frame starts at (2, 2) in grid coords
+      // Center cell is at offset (5-2, 5-2) = (3, 3) cells from frame top-left
+      // With cellSize 30, position is (3*30, 3*30) = (90, 90) pixels
+      const wrapper = mountFrame({ showCenterMarker: true, x: 5, y: 5, radius: 3, cellSize: 30 });
+      const style = wrapper.vm.centerMarkerStyle;
+
+      expect(style.left).toBe('90px');
+      expect(style.top).toBe('90px');
+      expect(style.width).toBe('30px');
+      expect(style.height).toBe('30px');
+    });
+
+    it('positions cross marker correctly when frame is clipped at edge', () => {
+      // Unit at (1, 1) with radius 3
+      // Frame is clipped, starts at (0, 0) in grid coords
+      // Center cell is at offset (1-0, 1-0) = (1, 1) cells from frame top-left
+      // With cellSize 30, position is (1*30, 1*30) = (30, 30) pixels
+      const wrapper = mountFrame({ showCenterMarker: true, x: 1, y: 1, radius: 3, cellSize: 30 });
+      const style = wrapper.vm.centerMarkerStyle;
+
+      expect(style.left).toBe('30px');
+      expect(style.top).toBe('30px');
+    });
+  });
 });
