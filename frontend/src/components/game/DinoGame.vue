@@ -47,7 +47,18 @@
     :handle-cancel="() => state = STATES.play"
     :handle-confirm="exitGame"
   />
-  <!-- Debug: Current state is {{ state }} -->
+  <!-- Notifications -->
+  <div id="notifications-container">
+    <div
+      v-for="notification in notifications"
+      :key="notification.id"
+      :class="['notification', `notification-${notification.type}`]"
+      :style="notification.type === 'turn' ? { '--player-color': getPlayerColor(notification.playerOrder) } : {}"
+      @click="dismissNotification(notification.id)"
+    >
+      {{ notification.message }}
+    </div>
+  </div>
 </template>
 
 <script>
@@ -64,7 +75,7 @@ import { CreateFieldEngine } from "@/game/createFieldEngine";
 import { WaveEngine } from "@/game/waveEngine";
 import { FieldEngine } from "@/game/fieldEngine";
 import { BotEngine } from "@/game/botEngine";
-import { createPlayers } from "@/game/helpers";
+import { createPlayers, getPlayerColor } from "@/game/helpers";
 import { FIELDS_TO_SAVE, GAME_STATUS_FIELDS, SCORE_MOD } from "@/game/const";
 import { gameCoreMixin } from "@/game/mixins/gameCoreMixin";
 
@@ -151,6 +162,7 @@ export default {
       contextmenuHandlerRef: null,
       mouseupHandlerRef: null,
       menuOpen: false,
+      notifications: [],  // Array of notification objects: { id, message, type, playerOrder }
     }
   },
   created() {
@@ -262,6 +274,9 @@ export default {
       this.state = this.STATES.exitDialog;
     },
     startTurn() {
+      // Show turn notification for all players (human and bot)
+      this.showTurnNotification(this.currentPlayer);
+
       // const killedBefore = this.players[this.currentPlayer].killed;
       const counters = this.fieldEngine.restoreAndProduceUnits(this.currentPlayer);
       // this.updatePlayerScore(
@@ -655,6 +670,83 @@ export default {
     exitGame() {
       window.location.reload();
     },
+    showNotification(message, type = 'info', playerOrder = null) {
+      const id = Date.now() + Math.random();
+      this.notifications.push({ id, message, type, playerOrder });
+
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        this.dismissNotification(id);
+      }, 5000);
+    },
+    showTurnNotification(playerOrder) {
+      const message = `Player ${playerOrder + 1} turn`;
+      this.showNotification(message, 'turn', playerOrder);
+    },
+    dismissNotification(id) {
+      const index = this.notifications.findIndex(n => n.id === id);
+      if (index !== -1) {
+        this.notifications.splice(index, 1);
+      }
+    },
+    getPlayerColor,
   },
 }
 </script>
+
+<style scoped>
+#notifications-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.notification {
+  padding: 12px 20px;
+  background-color: #222222;
+  border: 2px solid #d8a67e;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  pointer-events: auto;
+  min-width: 200px;
+  max-width: 300px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.3s, transform 0.3s;
+  animation: slideIn 0.3s ease-out;
+}
+
+.notification:hover {
+  background-color: #333333;
+  border-color: #ae7b62;
+}
+
+.notification-turn {
+  background-color: var(--player-color);
+  border-color: var(--player-color);
+  color: #000000;
+}
+
+.notification-turn:hover {
+  filter: brightness(1.1);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+</style>

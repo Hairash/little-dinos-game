@@ -68,13 +68,16 @@ Controls single-player games with bot opponents. Manages local game state, AI tu
 
 | Method | Purpose |
 |--------|---------|
-| `startTurn()` | Restore units, produce new units, set visibility |
+| `startTurn()` | Restore units, produce new units, set visibility, show turn notification |
 | `processEndTurn()` | End turn, check win conditions, advance to next player |
 | `moveUnit(from, to)` | Execute unit movement with combat and capture |
 | `makeBotMove()` | Execute AI turn |
 | `checkEndOfGame()` | Check victory conditions |
 | `saveState()` | Save to localStorage |
 | `restoreField()` | Undo last move |
+| `showTurnNotification(playerOrder)` | Display "Player {n} turn" notification with player color |
+| `showNotification(message, type, playerOrder)` | Add notification to display queue |
+| `dismissNotification(id)` | Remove notification by ID |
 
 ### Engines Used
 
@@ -149,10 +152,13 @@ Controls multiplayer games. Syncs with server via WebSocket, handles reconnectio
 |--------|---------|
 | `connectGameWebSocket()` | Establish WebSocket connection |
 | `sendMoveToServer(payload)` | Send move with clientSeq |
-| `initializeFromServerState(state)` | Apply full state from server |
-| `applyStatePatch(patch)` | Apply incremental update |
+| `initializeFromServerState(state)` | Apply full state from server, show initial turn notification |
+| `applyStatePatch(patch)` | Apply incremental update, show turn notification on turn change |
 | `recalculateVisibilityForClient()` | Rebuild visibility after turn change |
-| `showNotification(msg, type)` | Display toast notification |
+| `showNotification(msg, type, playerOrder)` | Display toast notification (types: disconnect, reconnect, turn) |
+| `showTurnNotification(playerOrder)` | Display "{playerName} turn" notification with player color |
+| `dismissNotification(id)` | Remove notification by ID |
+| `getPlayerNameByOrder(order)` | Get player username from stored playersData |
 
 ### WebSocket Callbacks
 
