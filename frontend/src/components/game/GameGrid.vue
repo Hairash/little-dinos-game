@@ -2,10 +2,17 @@
   <ActionHint v-if="selectedAction" :action="selectedAction" />
 <!--  <div class="main-wrapper">-->
     <div ref="gameGridContainer" class="game-grid-container">
-      <div
-        class="board-wrapper"
-        :style="{ width: boardWrapperWidth, height: boardWrapperHeight }"
+      <div 
+        class="board-wrapper-container"
+        :style="{ 
+          '--board-width': boardWrapperWidth,
+          '--board-height': boardWrapperHeight
+        }"
       >
+        <div
+          class="board-wrapper"
+          :style="{ width: boardWrapperWidth, height: boardWrapperHeight }"
+        >
         <div
           class="board"
           :style="{ width: boardWidth, height: boardHeight }"
@@ -80,6 +87,7 @@
           :currentPlayer="currentPlayer"
           :selectedUnitOnStorage="selectedUnitOnStorage"
         />
+        </div>
       </div>
     </div>
 <!--  </div>-->
@@ -555,6 +563,16 @@ export default {
   background-size: cover;
 }
 
+.board-wrapper-container {
+  display: flex;
+  justify-content: center;    /* Centers horizontally */
+  align-items: center;        /* Centers vertically when content fits */
+  position: relative;
+  /* Use max() to ensure container is at least viewport size OR board size, whichever is larger */
+  min-width: max(100vw, var(--board-width, 100vw));
+  min-height: max(100vh, var(--board-height, 100vh));
+}
+
 .game-grid-container::-webkit-scrollbar {
   display: none; /* Safari and Chrome */
 }
@@ -562,6 +580,7 @@ export default {
 div.board-wrapper {
   position: relative;
   display: inline-block;
+  flex-shrink: 0;  /* Prevents shrinking, ensures container expands to fit */
 }
 
 div.board {
