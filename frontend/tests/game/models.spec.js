@@ -48,6 +48,52 @@ describe('models', () => {
       const cell = new Models.Cell({ kind: 'mountain', idx: 2 });
       expect(cell.isHidden).toBe(true);
     });
+
+    describe('fromJSON', () => {
+      it('returns null for null input', () => {
+        expect(Models.Cell.fromJSON(null)).toBeNull();
+      });
+
+      it('creates Cell instance from plain object', () => {
+        const plainObj = {
+          terrain: { kind: 'empty', idx: 1 },
+          building: null,
+          unit: null,
+          isHidden: false,
+        };
+        const cell = Models.Cell.fromJSON(plainObj);
+
+        expect(cell).toBeInstanceOf(Models.Cell);
+        expect(cell.terrain).toEqual({ kind: 'empty', idx: 1 });
+        expect(cell.building).toBeNull();
+        expect(cell.unit).toBeNull();
+        expect(cell.isHidden).toBe(false);
+      });
+
+      it('reconstructs nested Building and Unit', () => {
+        const plainObj = {
+          terrain: { kind: 'empty', idx: 1 },
+          building: { player: 0, _type: 'base' },
+          unit: { player: 1, _type: 'dino1', movePoints: 5, visibility: 3, hasMoved: true },
+          isHidden: true,
+        };
+        const cell = Models.Cell.fromJSON(plainObj);
+
+        expect(cell).toBeInstanceOf(Models.Cell);
+        expect(cell.building).toBeInstanceOf(Models.Building);
+        expect(cell.building.player).toBe(0);
+        expect(cell.building._type).toBe('base');
+        expect(cell.unit).toBeInstanceOf(Models.Unit);
+        expect(cell.unit.player).toBe(1);
+        expect(cell.unit.hasMoved).toBe(true);
+      });
+
+      it('defaults isHidden to true when missing', () => {
+        const plainObj = { terrain: { kind: 'empty', idx: 1 } };
+        const cell = Models.Cell.fromJSON(plainObj);
+        expect(cell.isHidden).toBe(true);
+      });
+    });
   });
 
   describe('Unit', () => {
@@ -75,6 +121,36 @@ describe('models', () => {
       expect(unit1.player).toBe(1);
       expect(unit2.player).toBe(2);
     });
+
+    describe('fromJSON', () => {
+      it('returns null for null input', () => {
+        expect(Models.Unit.fromJSON(null)).toBeNull();
+      });
+
+      it('creates Unit instance from plain object', () => {
+        const plainObj = {
+          player: 2,
+          _type: 'dino3',
+          movePoints: 4,
+          visibility: 2,
+          hasMoved: true,
+        };
+        const unit = Models.Unit.fromJSON(plainObj);
+
+        expect(unit).toBeInstanceOf(Models.Unit);
+        expect(unit.player).toBe(2);
+        expect(unit._type).toBe('dino3');
+        expect(unit.movePoints).toBe(4);
+        expect(unit.visibility).toBe(2);
+        expect(unit.hasMoved).toBe(true);
+      });
+
+      it('defaults hasMoved to false when missing', () => {
+        const plainObj = { player: 0, _type: 'dino1', movePoints: 3, visibility: 2 };
+        const unit = Models.Unit.fromJSON(plainObj);
+        expect(unit.hasMoved).toBe(false);
+      });
+    });
   });
 
   describe('Building', () => {
@@ -93,6 +169,21 @@ describe('models', () => {
       expect(base._type).toBe('base');
       expect(temple._type).toBe('temple');
       expect(well._type).toBe('well');
+    });
+
+    describe('fromJSON', () => {
+      it('returns null for null input', () => {
+        expect(Models.Building.fromJSON(null)).toBeNull();
+      });
+
+      it('creates Building instance from plain object', () => {
+        const plainObj = { player: 1, _type: 'temple' };
+        const building = Models.Building.fromJSON(plainObj);
+
+        expect(building).toBeInstanceOf(Models.Building);
+        expect(building.player).toBe(1);
+        expect(building._type).toBe('temple');
+      });
     });
   });
 
@@ -126,6 +217,93 @@ describe('models', () => {
       expect(player.killed).toBe(0);
       expect(player.lost).toBe(0);
       expect(player.score).toBe(0);
+    });
+
+    describe('fromJSON', () => {
+      it('returns null for null input', () => {
+        expect(Models.Player.fromJSON(null)).toBeNull();
+      });
+
+      it('creates Player instance from plain object', () => {
+        const plainObj = {
+          _type: 'human',
+          killed: 5,
+          lost: 2,
+          score: 100,
+          active: true,
+          informed_lose: false,
+          scrollCoords: [10, 20],
+        };
+        const player = Models.Player.fromJSON(plainObj);
+
+        expect(player).toBeInstanceOf(Models.Player);
+        expect(player._type).toBe('human');
+        expect(player.killed).toBe(5);
+        expect(player.lost).toBe(2);
+        expect(player.score).toBe(100);
+        expect(player.active).toBe(true);
+        expect(player.informed_lose).toBe(false);
+        expect(player.scrollCoords).toEqual([10, 20]);
+      });
+
+      it('defaults missing properties', () => {
+        const plainObj = { _type: 'bot' };
+        const player = Models.Player.fromJSON(plainObj);
+
+        expect(player.killed).toBe(0);
+        expect(player.lost).toBe(0);
+        expect(player.score).toBe(0);
+        expect(player.active).toBe(true);
+        expect(player.informed_lose).toBe(false);
+        expect(player.scrollCoords).toEqual([0, 0]);
+      });
+
+      it('restores inactive player state', () => {
+        const plainObj = { _type: 'human', active: false, informed_lose: true };
+        const player = Models.Player.fromJSON(plainObj);
+
+        expect(player.active).toBe(false);
+        expect(player.informed_lose).toBe(true);
+      });
+    });
+  });
+
+  describe('Serialization round-trip', () => {
+    it('Cell survives JSON round-trip', () => {
+      const original = new Models.Cell({ kind: 'empty', idx: 1 });
+      original.building = new Models.Building(0, 'base');
+      original.unit = new Models.Unit(1, 'dino2', 4, 3);
+      original.unit.hasMoved = true;
+      original.isHidden = false;
+
+      const serialized = JSON.stringify(original);
+      const parsed = JSON.parse(serialized);
+      const restored = Models.Cell.fromJSON(parsed);
+
+      expect(restored).toBeInstanceOf(Models.Cell);
+      expect(restored.building).toBeInstanceOf(Models.Building);
+      expect(restored.unit).toBeInstanceOf(Models.Unit);
+      expect(restored.terrain).toEqual(original.terrain);
+      expect(restored.building.player).toBe(original.building.player);
+      expect(restored.unit.hasMoved).toBe(true);
+      expect(restored.isHidden).toBe(false);
+    });
+
+    it('Player survives JSON round-trip', () => {
+      const original = new Models.Player('human');
+      original.killed = 3;
+      original.score = 50;
+      original.scrollCoords = [5, 10];
+
+      const serialized = JSON.stringify(original);
+      const parsed = JSON.parse(serialized);
+      const restored = Models.Player.fromJSON(parsed);
+
+      expect(restored).toBeInstanceOf(Models.Player);
+      expect(restored._type).toBe(original._type);
+      expect(restored.killed).toBe(original.killed);
+      expect(restored.score).toBe(original.score);
+      expect(restored.scrollCoords).toEqual(original.scrollCoords);
     });
   });
 });
