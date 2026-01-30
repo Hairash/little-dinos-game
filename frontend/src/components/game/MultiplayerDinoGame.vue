@@ -53,6 +53,7 @@
       v-for="notification in notifications"
       :key="notification.id"
       :class="['notification', `notification-${notification.type}`]"
+      :style="notification.type === 'turn' ? { '--player-color': getPlayerColor(notification.playerOrder) } : {}"
       @click="dismissNotification(notification.id)"
     >
       {{ notification.message }}
@@ -70,7 +71,7 @@ import { WaveEngine } from "@/game/waveEngine";
 import { FieldEngine } from "@/game/fieldEngine";
 import { GameWebSocket } from "@/game/websocket/gameWebSocket";
 import { whoami } from "@/services/auth";
-import { normalizeField } from "@/game/helpers";
+import { normalizeField, getPlayerColor } from "@/game/helpers";
 import { gameCoreMixin } from "@/game/mixins/gameCoreMixin";
 import emitter from '@/game/eventBus';
 import logger from '@/utils/logger';
@@ -144,6 +145,7 @@ export default {
       winnerUsername: null, // Username of the winner, or null if game not ended
       showReadyLabel: false, // Whether to show the ready label (can be closed while keeping game visible)
       menuOpen: false,
+      playersData: [], // Store original player data with usernames from server
     };
   },
   computed: {
@@ -289,14 +291,20 @@ export default {
       
       // Initialize engines with server data
       this.initializeEngines();
-      
+
       // Don't call initVisibility() here - the backend already filtered the field
       // with correct isHidden values based on player's visibility
+
+      // Show turn notification for initial turn
+      this.showTurnNotification(this.currentPlayer);
     },
     
     initializePlayers(playersData, turnPlayerUsername) {
       log.debug(`initializePlayers called with currentUserId=${this.currentUserId}, playersData:`, playersData);
-      
+
+      // Store original player data with usernames for turn notifications
+      this.playersData = playersData;
+
       this.players = playersData.map((p, idx) => {
         // Find my player order - use the order from server, not array index
         // Compare both id and check if currentUserId is set
@@ -561,6 +569,8 @@ export default {
           emitter.emit('initTurn');
           // Reset inactivity timer on turn change
           this.resetInactivityTimer();
+          // Show turn notification
+          this.showTurnNotification(this.currentPlayer);
         }
       }
       if (patch.players) {
@@ -899,14 +909,20 @@ export default {
       this.ensureScoutRevealedVisible();
     },
     
-    showNotification(message, type = 'info') {
+    showNotification(message, type = 'info', playerOrder = null) {
       const id = Date.now() + Math.random();
-      this.notifications.push({ id, message, type });
-      
+      this.notifications.push({ id, message, type, playerOrder });
+
       // Auto-dismiss after 5 seconds
       setTimeout(() => {
         this.dismissNotification(id);
       }, 5000);
+    },
+
+    showTurnNotification(playerOrder) {
+      const playerName = this.getPlayerNameByOrder(playerOrder);
+      const message = `${playerName} turn`;
+      this.showNotification(message, 'turn', playerOrder);
     },
     
     dismissNotification(id) {
@@ -915,7 +931,13 @@ export default {
         this.notifications.splice(index, 1);
       }
     },
-    
+
+    getPlayerNameByOrder(order) {
+      // Get player username by order from stored playersData
+      const player = this.playersData.find(p => p.order === order);
+      return player ? player.username : `Player ${order + 1}`;
+    },
+
     setupActivityTracking() {
       // Track mouse movement, clicks, and keyboard input
       const activityEvents = ['mousedown', 'mousemove', 'keydown', 'click', 'touchstart'];
@@ -962,6 +984,7 @@ export default {
       // Close the ready label but keep the game field visible
       this.showReadyLabel = false;
     },
+    getPlayerColor,
   },
 };
 </script>
@@ -1019,6 +1042,16 @@ export default {
 .notification-reconnect:hover {
   border-color: #66bb6a;
   background-color: #2a4a2a;
+}
+
+.notification-turn {
+  background-color: var(--player-color);
+  border-color: var(--player-color);
+  color: #000000;
+}
+
+.notification-turn:hover {
+  filter: brightness(1.1);
 }
 
 @keyframes slideIn {
