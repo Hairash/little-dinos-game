@@ -16,7 +16,7 @@
     :enable-fog-of-war="enableFogOfWar"
     :enable-scout-mode="enableScoutMode"
     :hide-enemy-speed="hideEnemySpeed"
-    :field="field"
+    :field="localField"
     :current-player="currentPlayer"
     :cellSize="cellSize"
     :unitModifier="unitModifier"
@@ -35,7 +35,7 @@
     :handle-change-cell-size="changeCellSize"
     :handle-exit-btn-click="() => this.state = this.STATES.exitDialog"
     :are-all-units-on-buildings="this.fieldEngine.areAllUnitsOnBuildings(this.currentPlayer)"
-    :field="field"
+    :field="localField"
     :field-engine="fieldEngine"
     :enable-fog-of-war="enableFogOfWar"
     :min-speed="minSpeed"
@@ -63,9 +63,8 @@
 
 <script>
 /* eslint-disable vue/no-mutating-props */
-// Note: This component intentionally shadows the 'field' prop with a data property.
-// The field is manipulated directly throughout the component for game state management.
-// This is a legacy design choice that would require significant refactoring to change.
+// Note: In single-player mode, the field is generated locally and stored in localField.
+// The field prop is used in multiplayer mode when field comes from the backend.
 import ReadyLabel from '@/components/game/ReadyLabel.vue';
 import GameGrid from '@/components/game/GameGrid.vue';
 import InfoPanel from '@/components/game/InfoPanel.vue';
@@ -75,7 +74,7 @@ import { CreateFieldEngine } from "@/game/createFieldEngine";
 import { WaveEngine } from "@/game/waveEngine";
 import { FieldEngine } from "@/game/fieldEngine";
 import { BotEngine } from "@/game/botEngine";
-import { createPlayers, getPlayerColor } from "@/game/helpers";
+import { createPlayers, getPlayerColor, normalizeField } from "@/game/helpers";
 import { FIELDS_TO_SAVE, GAME_STATUS_FIELDS, SCORE_MOD } from "@/game/const";
 import { gameCoreMixin } from "@/game/mixins/gameCoreMixin";
 
@@ -144,8 +143,14 @@ export default {
       playersNum,
       players: [],
       currentPlayer: 0,
-      // eslint-disable-next-line vue/no-dupe-keys
-      field: null,  // Intentionally shadows prop - used for local state in single-player
+      // Local field storage (used by gameCoreMixin._getField())
+      // In single-player mode, field is generated locally and stored here
+      // In multiplayer mode (when field prop is provided), a copy is stored here
+      // Always initialized in loadFieldOrGenerateNewField() during created()
+      localField: null,
+      // Mixin compatibility placeholders
+      localSettings: null,
+      settings: null,
       state: 'ready',  // Initial state (STATES.ready)
       winPhase: WIN_PHASES.progress,
       winner: null,
@@ -180,7 +185,7 @@ export default {
     );
     this.loadFieldOrGenerateNewField();
     this.waveEngine = new WaveEngine(
-      this.field,
+      this.localField,
       this.width,
       this.height,
       this.fogOfWarRadius,
@@ -191,7 +196,7 @@ export default {
       this.loadGameStatus()
     }
     this.fieldEngine = new FieldEngine(
-      this.field,
+      this.localField,
       this.width,
       this.height,
       this.fogOfWarRadius,
@@ -207,7 +212,7 @@ export default {
       this.visibilitySpeedRelation,
     );
     this.botEngine = new BotEngine(
-      this.field,
+      this.localField,
       this.width,
       this.height,
       this.enableFogOfWar,
@@ -311,7 +316,7 @@ export default {
 
       const [x0, y0] = fromCoords;
       const [x1, y1] = toCoords;
-      const unit = this.field[x0][y0].unit;
+      const unit = this.localField[x0][y0].unit;
 
       this.fieldEngine.moveUnit(x0, y0, x1, y1, unit);
       const buildingCaptured = this.fieldEngine.captureBuildingIfNeeded(x1, y1, unit.player);
@@ -423,7 +428,7 @@ export default {
       for (let curX = x - fogRadius; curX <= x + fogRadius; curX++) {
         for (let curY = y - fogRadius; curY <= y + fogRadius; curY++) {
           if (this.fieldEngine.areExistingCoords(curX, curY))
-            this.field[curX][curY].isHidden = false;
+            this.localField[curX][curY].isHidden = false;
         }
       }
     },
@@ -431,7 +436,7 @@ export default {
       for (let curX = x - fogRadius; curX <= x + fogRadius; curX++) {
         for (let curY = y - fogRadius; curY <= y + fogRadius; curY++) {
           if (this.fieldEngine.areExistingCoords(curX, curY)) {
-            this.field[curX][curY].isHidden = false;
+            this.localField[curX][curY].isHidden = false;
             this.tempVisibilityCoords.add(`${curX},${curY}`);
           }
         }
@@ -440,7 +445,7 @@ export default {
     removeVisibility() {
       for (let curX = 0; curX < this.width; curX++) {
         for (let curY = 0; curY < this.height; curY++) {
-          this.field[curX][curY].isHidden = true;
+          this.localField[curX][curY].isHidden = true;
         }
       }
       this.tempVisibilityCoords = new Set();
@@ -448,7 +453,7 @@ export default {
     showField() {
       for (let curX = 0; curX < this.width; curX++) {
         for (let curY = 0; curY < this.height; curY++) {
-          this.field[curX][curY].isHidden = false;
+          this.localField[curX][curY].isHidden = false;
         }
       }
     },
@@ -457,7 +462,7 @@ export default {
       const visibilitySet = this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer);
       for (const [curX, curY] of visibilitySet) {
         // console.log('setVisibility', curX, curY);
-        this.field[curX][curY].isHidden = false;
+        this.localField[curX][curY].isHidden = false;
       }
     },
     setVisibilityForArea(x, y, r) {
@@ -469,7 +474,7 @@ export default {
             this.fieldEngine.areExistingCoords(curX, curY) &&
             !this.tempVisibilityCoords.has(`${curX},${curY}`)
           ) {
-            this.field[curX][curY].isHidden = true;
+            this.localField[curX][curY].isHidden = true;
           }
         }
       }
@@ -513,7 +518,7 @@ export default {
       // TODO: Save only game situation, not game settings
       for (const field of FIELDS_TO_SAVE) {
         if (field === 'field') {
-          const _field = this.field.map(row => row.map(cell => ({ ...cell, isHidden: true })));
+          const _field = this.localField.map(row => row.map(cell => ({ ...cell, isHidden: true })));
           localStorage.setItem(field, JSON.stringify(_field));
         }
         else if (this[field] !== undefined) {
@@ -534,7 +539,8 @@ export default {
     loadFieldOrGenerateNewField() {
       if (this.field) {
         // Field provided as prop (from backend in multiplayer mode)
-        // Use it directly, no need to generate
+        // Make a deep copy and normalize to model instances to avoid mutating the prop
+        this.localField = normalizeField(JSON.parse(JSON.stringify(this.field)));
         return;
       }
       if (this.loadGame) {
@@ -542,15 +548,18 @@ export default {
         const parsedField = this.safeParseJSON(fieldFromStorage);
         // Validate field structure - must be a non-empty 2D array
         if (parsedField && Array.isArray(parsedField) && parsedField.length > 0) {
-          this.field = parsedField;
+          // Reconstruct Cell instances (with nested Building/Unit) from plain objects
+          this.localField = parsedField.map(row =>
+            row.map(cellData => Models.Cell.fromJSON(cellData))
+          );
         } else {
           console.warn('Invalid field data in localStorage, generating new field');
           this.loadGame = false; // Fall back to new game
-          this.field = this.engine.generateField();
+          this.localField = this.engine.generateField();
         }
       }
       else {
-        this.field = this.engine.generateField();
+        this.localField = this.engine.generateField();
       }
     },
     loadOrCreatePlayers() {
@@ -559,7 +568,8 @@ export default {
         const parsedPlayers = this.safeParseJSON(players);
         // Validate players structure - must be a non-empty array
         if (parsedPlayers && Array.isArray(parsedPlayers) && parsedPlayers.length > 0) {
-          this.players = parsedPlayers;
+          // Reconstruct Player instances from plain objects
+          this.players = parsedPlayers.map(p => Models.Player.fromJSON(p));
           // Choose current player
           for (let idx = 0; idx < this.players.length; idx++) {
             if (this.players[idx].active) {
@@ -600,18 +610,18 @@ export default {
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
           const prevCell = this.prevField[x][y];
-          const cell = this.field[x][y];
+          const cell = this.localField[x][y];
           // TODO: Some problem here with units and buildings - they are undefined
           cell.unit = prevCell.unit;
           cell.building = prevCell.building;
         }
       }
-      // this.field = structuredClone(this.prevField);
-      // console.log(this.field);
+      // this.localField = structuredClone(this.prevField);
+      // console.log(this.localField);
     },
     storeStateIfNeeded() {
       if (this.enableUndo) {
-        this.prevField = structuredClone(this.field);
+        this.prevField = structuredClone(this.localField);
         this.prevPlayer = this.currentPlayer;
       }
     },

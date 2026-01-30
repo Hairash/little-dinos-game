@@ -62,13 +62,13 @@ describe('DinoGame.setVisibilityForArea', () => {
       shallow: true,
     })
     const vm = wrapper.vm
-    vm.field = makeGrid(width, height, true)
-    vm.fieldEngine = makeFieldEngine(vm.field, width, height, fogOfWarRadius, minSpeed, maxSpeed)
+    vm.localField = makeGrid(width, height, true)
+    vm.fieldEngine = makeFieldEngine(vm.localField, width, height, fogOfWarRadius, minSpeed, maxSpeed)
     vm.setVisibilityForArea(2, 2, fogOfWarRadius)
 
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        expect(vm.field[x][y].isHidden).toBe(true)
+        expect(vm.localField[x][y].isHidden).toBe(true)
       }
     }
   })
@@ -112,12 +112,12 @@ describe('DinoGame.setVisibilityForArea', () => {
     })
 
     const vm = wrapper.vm
-    vm.field = makeGrid(width, height, true)
+    vm.localField = makeGrid(width, height, true)
 
-    vm.field[0][0].unit = new Models.Unit(0, 'dino1', 1, 1)
+    vm.localField[0][0].unit = new Models.Unit(0, 'dino1', 1, 1)
 
     vm.fieldEngine = makeFieldEngine(
-      vm.field,
+      vm.localField,
       width,
       height,
       fogOfWarRadius,
@@ -130,9 +130,9 @@ describe('DinoGame.setVisibilityForArea', () => {
     for (let x = 0; x < 5; x++) {
       for (let y = 0; y < 5; y++) {
         if (x < 2 && y < 2) {
-          expect(vm.field[x][y].isHidden).toBe(false)
+          expect(vm.localField[x][y].isHidden).toBe(false)
         } else {
-          expect(vm.field[x][y].isHidden).toBe(true)
+          expect(vm.localField[x][y].isHidden).toBe(true)
         }
       }
     }
@@ -176,9 +176,9 @@ describe('DinoGame.setVisibilityForArea', () => {
     })
 
     const vm = wrapper.vm
-    vm.field = makeGrid(width, height, false)
-    vm.field[0][0].unit = new Models.Unit(0, 'dino1', 1, 1)
-    vm.fieldEngine = makeFieldEngine(vm.field, width, height, fogOfWarRadius, minSpeed, maxSpeed)
+    vm.localField = makeGrid(width, height, false)
+    vm.localField[0][0].unit = new Models.Unit(0, 'dino1', 1, 1)
+    vm.fieldEngine = makeFieldEngine(vm.localField, width, height, fogOfWarRadius, minSpeed, maxSpeed)
     vm.setVisibilityForArea(2, 2, fogOfWarRadius)
 
     for (let x = 2 - fogOfWarRadius; x < 2 + fogOfWarRadius; x++) {
@@ -187,9 +187,9 @@ describe('DinoGame.setVisibilityForArea', () => {
           continue;
         }
         if (x < 2 && y < 2) {
-          expect(vm.field[x][y].isHidden).toBe(false)
+          expect(vm.localField[x][y].isHidden).toBe(false)
         } else {
-          expect(vm.field[x][y].isHidden).toBe(true)
+          expect(vm.localField[x][y].isHidden).toBe(true)
         }
       }
     }
