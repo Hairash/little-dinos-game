@@ -48,6 +48,7 @@ import GameUnit from '@/components/game/GameUnit.vue'
 import GameBuilding from '@/components/game/GameBuilding.vue'
 import Models from '@/game/models.js'
 import { TRANSITION_DELAY } from '@/game/const.js'
+import { getImagePath } from '@/game/helpers.js'
 
 export default {
   name: "GameCell",
@@ -142,11 +143,11 @@ export default {
       if (this.terrain.kind === Models.TerrainTypes.MOUNTAIN) {
         let idx = this.terrain.idx;
         if (idx > 5) idx = 10 - idx;
-        return `/images/${this.terrain.kind}${idx}.png`
+        return getImagePath(`${this.terrain.kind}${idx}`)
       }
       // const idx = Math.ceil(Math.random() * 4);
       // console.log('terrain idx', idx);
-      return `/images/${this.terrain.kind}${this.terrain.idx}.png`
+      return getImagePath(`${this.terrain.kind}${this.terrain.idx}`)
     },
     getBuildingImg() {
       let buildingImg = this.building._type;

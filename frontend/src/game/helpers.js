@@ -170,3 +170,22 @@ const PLAYER_COLOR_MAP = {
 export function getPlayerColor(order) {
   return PLAYER_COLOR_MAP[order] || '#ffffff';
 }
+
+// WebP support detection (runs once at module load)
+let supportsWebP = false
+if (typeof window !== 'undefined') {
+  const canvas = document.createElement('canvas')
+  if (canvas.getContext && canvas.getContext('2d')) {
+    supportsWebP = canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0
+  }
+}
+
+/**
+ * Get the optimal image path (WebP if supported, PNG fallback)
+ * @param {string} baseName - Image name without extension
+ * @returns {string} Full image path
+ */
+export function getImagePath(baseName) {
+  const ext = supportsWebP ? 'webp' : 'png'
+  return `/images/${baseName}.${ext}`
+}

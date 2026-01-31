@@ -3,7 +3,7 @@
     <img
       class="unitImg"
       :style="{ width: calculatedWidth, height: calculatedHeight, left: left, top: top }"
-      :src="`/images/${image}.png`"
+      :src="getImagePath(image)"
     >
     <span
       v-if="width > 10"
@@ -18,9 +18,13 @@
 
 <script>
 import { TRANSITION_DELAY } from '@/game/const.js'
+import { getImagePath } from '@/game/helpers.js'
 
 export default {
   name: "GameUnit",
+  methods: {
+    getImagePath
+  },
   props: {
     hidden: Boolean,
     width: Number,

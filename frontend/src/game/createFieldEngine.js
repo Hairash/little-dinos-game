@@ -45,7 +45,7 @@ class CreateFieldEngine {
         const terrain = r > CreateFieldEngine.MOUNTAIN_RATIO ? Models.TerrainTypes.MOUNTAIN : Models.TerrainTypes.EMPTY;
         const cell = new Models.Cell({
           kind: terrain,
-          idx: Math.ceil(Math.random() * 9),
+          idx: Math.ceil(Math.random() * 9),  // 1-9
         });
         // if (r < 0.05) cell.unit = new Models.Unit(0, 'dino1', Math.round(r * 1000) % 10 + 1);
         // else if (r < 0.1) cell.unit = new Models.Unit(1, 'dino2', Math.round(r * 1000) % 10 + 1);

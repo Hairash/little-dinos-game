@@ -3,15 +3,19 @@
     class="buildingImg"
     :class="{'hidden': hidden}"
     :style="{ width: calculatedWidth, height: calculatedHeight, left: left, top: top, transition: transitionOpacity }"
-    :src="`/images/${image}.png`"
+    :src="getImagePath(image)"
   >
 </template>
 
 <script>
 import { TRANSITION_DELAY } from '@/game/const.js'
+import { getImagePath } from '@/game/helpers.js'
 
 export default {
   name: "GameBuilding",
+  methods: {
+    getImagePath
+  },
   props: {
     hidden: Boolean,
     width: Number,
