@@ -8,7 +8,7 @@
         <!-- Speed Range -->
         <div class="speed-range">
           <div class="speed-icon-wrapper">
-            <img class="speed-icon" :src="`/images/speed_icon.png`" alt="Speed">
+            <img class="speed-icon" :src="getImagePath('speed_icon')" alt="Speed" loading="lazy">
           </div>
           <span class="speed-number">{{ speedRangeMin }}</span>
           <span class="speed-dash">-</span>
@@ -22,10 +22,10 @@
               <tr>
                 <th class="player-header"></th>
                 <th class="dino-header">
-                  <img :src="`/images/dino_icon.png`" alt="Dinos" class="building-icon">
+                  <img :src="getImagePath('dino_icon')" alt="Dinos" class="building-icon" loading="lazy">
                 </th>
                 <th v-for="buildingType in buildingTypes" :key="buildingType.type" class="building-header">
-                  <img :src="`/images/${buildingType.icon}.png`" :alt="buildingType.name" class="building-icon">
+                  <img :src="getImagePath(buildingType.icon)" :alt="buildingType.name" class="building-icon" loading="lazy">
                 </th>
               </tr>
             </thead>
@@ -37,7 +37,7 @@
                 :style="playerIndex === currentPlayer ? { backgroundColor: getPlayerColor(playerIndex) } : {}"
               >
                 <td class="player-cell">
-                  <img :src="`/images/dino${playerIndex + 1}.png`" :alt="`Player ${playerIndex + 1}`" class="player-icon">
+                  <img :src="getImagePath('dino' + (playerIndex + 1))" :alt="`Player ${playerIndex + 1}`" class="player-icon" loading="lazy">
                 </td>
                 <td class="dino-cell">
                   <span>{{ allPlayersDinos[playerIndex] || 0 }}</span>
@@ -65,16 +65,16 @@
       <!-- Menu Buttons -->
       <div class="menu-buttons">
         <button @click="handleResume" class="menu-btn" title="Resume">
-          <img class="btn-icon btn-icon-resume" :src="`/images/arrow.png`" alt="Resume">
+          <img class="btn-icon btn-icon-resume" :src="getImagePath('arrow')" alt="Resume" loading="lazy">
         </button>
         <button @click="handleZoomIn" class="menu-btn" title="Zoom In">
-          <img class="btn-icon" :src="`/images/plus.png`" alt="Zoom In">
+          <img class="btn-icon" :src="getImagePath('plus')" alt="Zoom In" loading="lazy">
         </button>
         <button @click="handleZoomOut" class="menu-btn" title="Zoom Out">
-          <img class="btn-icon" :src="`/images/minus.png`" alt="Zoom Out">
+          <img class="btn-icon" :src="getImagePath('minus')" alt="Zoom Out" loading="lazy">
         </button>
         <button @click="handleExit" class="menu-btn" title="Exit">
-          <img class="btn-icon" :src="`/images/exit_icon.png`" alt="Exit">
+          <img class="btn-icon" :src="getImagePath('exit_icon')" alt="Exit" loading="lazy">
         </button>
       </div>
     </div>
@@ -84,6 +84,7 @@
 <script>
 import Models from "@/game/models";
 import { getPlayerColor } from "@/game/helpers";
+import { getImagePath } from '@/game/helpers.js'
 
 export default {
   name: 'GameMenuOverlay',
@@ -311,6 +312,8 @@ export default {
     document.removeEventListener('keydown', this.handleKeyDown);
   },
   methods: {
+    getPlayerColor,
+    getImagePath,
     countTemplesOccupied(player) {
       let count = 0;
       const width = this.field ? this.field.length : 0;
@@ -337,9 +340,6 @@ export default {
       }
 
       return count;
-    },
-    getPlayerColor(playerIndex) {
-      return getPlayerColor(playerIndex);
     },
     handleKeyDown(event) {
       if (event.key === 'Escape') {

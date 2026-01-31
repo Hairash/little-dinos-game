@@ -1,7 +1,7 @@
 <template>
   <div class="gameSetup" @click="clickOutside">
     <button type="button" class="goBackBtn" @click="handleBackBtnClick">
-      <img :src="`/images/arrow_white.png`">
+      <img :src="getImagePath('arrow_white')">
     </button>
     <h1>Game setup</h1>
     <div id="settings-wrapper">
@@ -10,7 +10,7 @@
           <MenuHint id="fieldSize" hint="Width and height of the game field" :currentHint=currentHint
             @click="toggleHint('fieldSize')" />
           <div class="icon">
-            <img :src="`/images/field_icon.png`">
+            <img :src="getImagePath('field_icon')">
           </div>
 
           <input type="number" id="width" class="inputNumber digits2" v-model.number="width" min="5" max="50" />
@@ -23,7 +23,7 @@
             <MenuHint id="humanPlayersNum" hint="Number of human players" :currentHint=currentHint
               @click="toggleHint('humanPlayersNum')" />
             <div class="icon">
-              <img :src="`/images/human_icon.png`">
+              <img :src="getImagePath('human_icon')">
             </div>
             <input type="number" id="humanPlayersNum" class="inputNumber digits2" v-model.number="humanPlayersNum"
               min="1" max="8" />
@@ -36,7 +36,7 @@
             <MenuHint id="botPlayersNum" hint="Number of bot players" :currentHint=currentHint
               @click="toggleHint('botPlayersNum')" hint-orientation="right" style="margin-left: 122px;" />
             <div class="icon">
-              <img :src="`/images/bot_icon.png`">
+              <img :src="getImagePath('bot_icon')">
             </div>
             <input type="number" id="botPlayersNum" class="inputNumber digits2" v-model.number="botPlayersNum" min="0"
               max="7" />
@@ -45,7 +45,7 @@
             <MenuHint id="maxUnitsNum" hint="Max units number" :currentHint=currentHint
               @click="toggleHint('maxUnitsNum')" />
             <div class="icon">
-              <img :src="`/images/dino_icon.png`">
+              <img :src="getImagePath('dino_icon')">
             </div>
             <input type="number" id="maxUnitsNum" class="inputNumber digits2" v-model.number="maxUnitsNum" min="0"
               max="50" />
@@ -54,7 +54,7 @@
             <MenuHint id="unitModifier" hint="Number of additional dinos per habitation" :currentHint=currentHint
               @click="toggleHint('unitModifier')" style="margin-left: 122px;" hint-orientation="right" />
             <div class="icon">
-              <img :src="`/images/dino_icon_plus.png`">
+              <img :src="getImagePath('dino_icon_plus')">
             </div>
             <input type="number" id="unitModifier" class="inputNumber digits2" v-model.number="unitModifier" min="1"
               max="20" />
@@ -63,7 +63,7 @@
             <MenuHint id="maxBasesNum" hint="Max towers number" :currentHint=currentHint
               @click="toggleHint('maxBasesNum')" />
             <div class="icon">
-              <img :src="`/images/tower_icon.png`">
+              <img :src="getImagePath('tower_icon')">
             </div>
             <input type="number" id="maxBasesNum" class="inputNumber digits2" v-model.number="maxBasesNum" min="0"
               max="50" />
@@ -72,7 +72,7 @@
             <MenuHint id="baseModifier" hint="Number of additional towers per storage" :currentHint=currentHint
               @click="toggleHint('baseModifier')" hint-orientation="right" style="margin-left: 122px;" />
             <div class="icon">
-              <img :src="`/images/tower_icon_plus.png`">
+              <img :src="getImagePath('tower_icon_plus')">
             </div>
             <input type="number" id="baseModifier" class="inputNumber digits2" v-model.number="baseModifier" min="1"
               max="20" />
@@ -84,7 +84,7 @@
           <div class="plate" style="display: inline-block; width: 182px;">
             <MenuHint id="speedRange" hint="Speed range" :currentHint=currentHint @click="toggleHint('speedRange')" />
             <div class="icon">
-              <img :src="`/images/speed_icon.png`">
+              <img :src="getImagePath('speed_icon')">
             </div>
             <input type="number" id="minSpeed" class="inputNumber digits2" v-model.number="minSpeed" min="1" max="20" />
             <span class="labelForInput" style="font-size: 45px; font-weight: bold; line-height: 38px">-</span>
@@ -108,7 +108,7 @@
             <MenuHint id="fogOfWarRadius" hint="Fog of war radius" :currentHint=currentHint
               @click="toggleHint('fogOfWarRadius')" hint-orientation="right" style="margin-left: 122px;" />
             <span class="icon">
-              <img :src="`/images/radius_icon.png`">
+              <img :src="getImagePath('radius_icon')">
             </span>
             <input type="number" id="fogOfWarRadius" class="inputNumber digits2" v-model.number="fogOfWarRadius" min="1"
               max="10" />
@@ -121,8 +121,8 @@
               :currentHint=currentHint @click="toggleHint('visibilitySpeedRelation')" style="margin-top: 18px;" />
             <input type="checkbox" id="scoutMode" v-model="visibilitySpeedRelation" class="hidden-checkbox" />
             <label for="scoutMode" class="checkboxImg">
-              <img v-if="!visibilitySpeedRelation" :src="`/images/visibility_speed_no_relation_icon.png`">
-              <img v-if="visibilitySpeedRelation" :src="`/images/visibility_speed_relation_icon.png`">
+              <img v-if="!visibilitySpeedRelation" :src="getImagePath('visibility_speed_no_relation_icon')">
+              <img v-if="visibilitySpeedRelation" :src="getImagePath('visibility_speed_relation_icon')">
             </label>
           </div>
           <div v-if="visibilitySpeedRelation" class="plate"
@@ -130,7 +130,7 @@
             <MenuHint id="speedMinVisibility" hint="Threshold speed for minimum visibility" :currentHint=currentHint
               @click="toggleHint('speedMinVisibility')" hint-orientation="right" style="margin-left: 122px;" />
             <div class="icon">
-              <img :src="`/images/speed_icon_max.png`">
+              <img :src="getImagePath('speed_icon_max')">
             </div>
             <input type="number" id="speedMinVisibility" class="inputNumber digits2" v-model.number="speedMinVisibility"
               min="1" max="20" />
@@ -150,8 +150,8 @@
             <MenuHint id="killAtBirth" hint="Kill or not surrounding enemies at birth" :currentHint=currentHint
               @click="toggleHint('killAtBirth')" style="margin-top: 18px;" />
             <label for="killAtBirth" class="checkboxImg" style="margin-right: 4px;">
-              <img v-if="!killAtBirth" :src="`/images/dino_birth_icon.png`">
-              <img v-if="killAtBirth" :src="`/images/dino_birth_kill_icon.png`">
+              <img v-if="!killAtBirth" :src="getImagePath('dino_birth_icon')">
+              <img v-if="killAtBirth" :src="getImagePath('dino_birth_kill_icon')">
             </label>
           </div>
 
@@ -161,8 +161,8 @@
               @click="toggleHint('hideEnemySpeed')" hint-orientation="right"
               style="margin-top: 18px; margin-left: 69px;" />
             <label for="hideEnemySpeed" class="checkboxImg">
-              <img v-if="!hideEnemySpeed" :src="`/images/show_speed_icon.png`">
-              <img v-if="hideEnemySpeed" :src="`/images/hide_speed_icon.png`">
+              <img v-if="!hideEnemySpeed" :src="getImagePath('show_speed_icon')">
+              <img v-if="hideEnemySpeed" :src="getImagePath('hide_speed_icon')">
             </label>
           </div>
         </div>
@@ -173,7 +173,7 @@
           <MenuHint id="baseRate" hint="Main building - generate dinos each turn" :currentHint=currentHint
             @click="toggleHint('baseRate')" style="margin-left: -5px;" />
           <div class="icon">
-            <img :src="`/images/base.png`">
+            <img :src="getImagePath('base')">
           </div>
           <vue3-slider id="baseRate" class="slider" v-model="buildingRates.base" :min="0" :max="5" :step="1"
             :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
@@ -183,7 +183,7 @@
           <MenuHint id="habitationRate" hint="Increase maximum number of dinos" :currentHint=currentHint
             @click="toggleHint('habitationRate')" style="margin-left: -5px;" />
           <div class="icon">
-            <img :src="`/images/habitation.png`">
+            <img :src="getImagePath('habitation')">
           </div>
           <vue3-slider id="baseRate" class="slider" v-model="buildingRates.habitation" :min="0" :max="5" :step="1"
             :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
@@ -193,7 +193,7 @@
           <MenuHint id="templeRate" hint="Increase speed of newly generated dinos by 1" :currentHint=currentHint
             @click="toggleHint('templeRate')" style="margin-left: -5px;" />
           <div class="icon">
-            <img :src="`/images/temple.png`">
+            <img :src="getImagePath('temple')">
           </div>
           <vue3-slider id="baseRate" class="slider" v-model="buildingRates.temple" :min="0" :max="5" :step="1"
             :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
@@ -203,7 +203,7 @@
           <MenuHint id="wellRate" hint="Increase speed of dino staying on it by 1" :currentHint=currentHint
             @click="toggleHint('wellRate')" style="margin-left: -5px;" />
           <div class="icon">
-            <img :src="`/images/well.png`">
+            <img :src="getImagePath('well')">
           </div>
           <vue3-slider id="baseRate" class="slider" v-model="buildingRates.well" :min="0" :max="5" :step="1"
             :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
@@ -213,7 +213,7 @@
           <MenuHint id="storageRate" hint="Increase maximum number of towers" :currentHint=currentHint
             @click="toggleHint('storageRate')" style="margin-left: -5px;" />
           <div class="icon">
-            <img :src="`/images/storage.png`">
+            <img :src="getImagePath('storage')">
           </div>
           <vue3-slider id="baseRate" class="slider" v-model="buildingRates.storage" :min="0" :max="5" :step="1"
             :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
@@ -223,7 +223,7 @@
           <MenuHint id="obeliskRate" hint="Instantly show any part of the map" :currentHint=currentHint
             @click="toggleHint('obeliskRate')" style="margin-left: -5px;" />
           <div class="icon">
-            <img :src="`/images/obelisk.png`">
+            <img :src="getImagePath('obelisk')">
           </div>
           <vue3-slider id="baseRate" class="slider" v-model="buildingRates.obelisk" :min="0" :max="5" :step="1"
             :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
@@ -262,6 +262,7 @@ import { DEFAULT_BUILDING_RATES, FIELDS_TO_SAVE, GAME_STATES, INITIAL_SETTINGS, 
 import emitter from "@/game/eventBus";
 import MenuHint from '@/components/ui/MenuHint.vue';
 import MenuError from '@/components/ui/MenuError.vue';
+import { getImagePath } from '@/game/helpers.js'
 
 export default {
   name: 'GameSetup',
@@ -394,6 +395,7 @@ export default {
     },
   },
   methods: {
+    getImagePath,
     handleBackBtnClick() {
       if (this.isMultiplayerMode) {
         // Return to lobby for multiplayer

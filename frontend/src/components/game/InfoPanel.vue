@@ -14,7 +14,7 @@
           <img
             style="margin-left: 1px; margin-top: 1px;"
             class="curPlayerImage"
-            :src="`/images/settings_icon.png`"
+            :src="getImagePath('settings_icon')"
           >
         </button>
       </span>
@@ -33,13 +33,13 @@
         >
           <img v-if="areAllUnitsOnBuildings && currentStats.units.active > 0"
             class="curPlayerImage"
-            :src="`/images/habitation.png`"
+            :src="getImagePath('habitation')"
             style="position: absolute;"
             title="Next unit"
           >
           <img
             class="curPlayerImage"
-            :src="`/images/dino${currentPlayer + 1}.png`"
+            :src="getImagePath('dino' + (currentPlayer + 1))"
             title="Next unit"
           >
         </button>
@@ -70,7 +70,7 @@
       <span class="infoItem center-group">
         <img
           class="towerImage"
-          :src="`/images/base${currentPlayer + 1}.png`"
+          :src="getImagePath('base' + (currentPlayer + 1))"
         >
         <span 
           class="infoLabel"
@@ -110,7 +110,7 @@
           <img
             style="margin-left: 4px; margin-top: 1px;"
             class="curPlayerImage"
-            :src="`/images/arrow.png`"
+            :src="getImagePath('arrow')"
           >
         </button>
       </span>
@@ -161,6 +161,7 @@ import Models from "@/game/models";
 import { getPlayerColor } from "@/game/helpers";
 import emitter from '@/game/eventBus';
 import GameMenuOverlay from '@/components/game/GameMenuOverlay.vue';
+import { getImagePath } from '@/game/helpers.js'
 
 export default {
   name: 'InfoPanel',
@@ -336,6 +337,7 @@ export default {
     emitter.off('infoPanelContextHelpChanged', this.onContextHelpChanged);
   },
   methods: {
+    getImagePath,
     toggleMenu() {
       this.menuOpen = !this.menuOpen;
       this.$emit('menuOpen', this.menuOpen);
