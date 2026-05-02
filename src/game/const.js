@@ -1,4 +1,5 @@
 export const TRANSITION_DELAY = 1;
+export const UNIT_MOVE_ANIMATION_DELAY_MS = 100;
 // export const CELL_SIZE = 30;
 export const GAME_STATUS_FIELDS = [
   'winPhase',

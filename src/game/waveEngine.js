@@ -92,6 +92,44 @@ class WaveEngine {
     return false;
   }
 
+  getPath(fromCoords, toCoords, movePoints) {
+    const [x0, y0] = fromCoords;
+    const [x1, y1] = toCoords;
+    const waveField = this.getWaveField();
+    const parentByCoords = new Map();
+    const wave = [[x0, y0]];
+    waveField[x0][y0] = 0;
+
+    while (wave.length > 0) {
+      const [x, y] = wave.shift();
+      const s = waveField[x][y] + 1;
+      if (s > movePoints) break;
+
+      for (const [curX, curY] of this.getNeighbours(waveField, x, y)) {
+        if (waveField[curX][curY] !== null && waveField[curX][curY] <= s) continue;
+        waveField[curX][curY] = s;
+        parentByCoords.set(`${curX},${curY}`, [x, y]);
+        if (curX === x1 && curY === y1) {
+          return this.buildPath(parentByCoords, fromCoords, toCoords);
+        }
+        wave.push([curX, curY]);
+      }
+    }
+    return [];
+  }
+
+  buildPath(parentByCoords, fromCoords, toCoords) {
+    const path = [toCoords];
+    const [x0, y0] = fromCoords;
+    let current = toCoords;
+    while (current[0] !== x0 || current[1] !== y0) {
+      current = parentByCoords.get(`${current[0]},${current[1]}`);
+      if (!current) return [];
+      path.push(current);
+    }
+    return path.reverse();
+  }
+
   getNeighbours(field, x, y) {
     // console.log('getNeighbours start');
     const neighbours = [];
