@@ -43,7 +43,7 @@ import GameCell from '@/components/GameCell.vue'
 import Models from '@/game/models'
 import { WaveEngine } from '@/game/waveEngine'
 import { FieldEngine } from '@/game/fieldEngine'
-import { ACTIONS } from '@/game/const'
+import { ACTIONS, UNIT_MOVE_ANIMATION_DELAY_MS } from '@/game/const'
 
 import emitter from '@/game/eventBus';
 import ActionHint from "@/components/ActionHint.vue";
@@ -185,14 +185,22 @@ export default {
         this.moveUnit(this.selectedCoords, [x, y]);
       }
     },
-    moveUnit(fromCoords, toCoords) {
+    async moveUnit(fromCoords, toCoords) {
       let [x, y] = fromCoords;
       // Save movePoints value for the further remove highlights
       const movePoints = this.field[x][y].unit.movePoints;
-      // Call game moveUnit function to change field
-      emitter.emit('moveUnit', {fromCoords: fromCoords, toCoords: toCoords});
+      const path = this.waveEngine.getPath(fromCoords, toCoords, movePoints);
+      for (let idx = 1; idx < path.length; idx++) {
+        emitter.emit('moveUnit', {fromCoords: path[idx - 1], toCoords: path[idx]});
+        if (idx < path.length - 1) {
+          await this.delay(UNIT_MOVE_ANIMATION_DELAY_MS);
+        }
+      }
       this.selectedCoords = null;
       this.removeHighlightsForArea(x, y, movePoints);
+    },
+    delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
     },
     setAction(action) {
       this.selectedAction = action;
