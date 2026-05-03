@@ -5,7 +5,12 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth.models import AnonymousUser
 
 from .models import Game, GamePlayer, Move
-from .services.game_logic import apply_end_turn_txn, apply_move_txn, apply_scout_txn
+from .services.game_logic import (
+    apply_end_turn_txn,
+    apply_move_txn,
+    apply_scout_txn,
+    apply_undo_txn,
+)
 from .services.visibility import filter_field_for_player
 
 # Get logger for this module
@@ -161,6 +166,21 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     "serverTick": res["server_tick"],
                 }
             )
+        elif payload.get("type") == "undo":
+            ok, res = await database_sync_to_async(apply_undo_txn)(
+                self.game_code, user_id, client_seq
+            )
+            # Scout-undo is per-player (re-hides scout reveals, re-arms scout-mode UI).
+            # Send to the initiator only — opponents must not see scout-mode signals.
+            if ok and res.get("private"):
+                return await self.send_json(
+                    {
+                        "t": "state",
+                        "gameCode": self.game_code,
+                        "patch": res["patch"],
+                        "serverTick": res["server_tick"],
+                    }
+                )
         else:
             # Regular move
             ok, res = await database_sync_to_async(apply_move_txn)(

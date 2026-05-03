@@ -17,6 +17,8 @@
 </template>
 
 <script>
+import { getPlayerColor } from '@/game/helpers';
+
 export default {
   name: 'MultiplayerReadyLabel',
   props: {
@@ -33,7 +35,7 @@ export default {
     handleOkClick() {
       this.$emit('close');
     },
-    
+    getPlayerColor,
   },
 };
 </script>

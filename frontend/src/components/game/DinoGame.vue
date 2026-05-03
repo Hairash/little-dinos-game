@@ -40,6 +40,8 @@
     :enable-fog-of-war="enableFogOfWar"
     :min-speed="minSpeed"
     :max-speed="maxSpeed"
+    :can-undo="canUndo"
+    :handle-undo-click="undoLastMove"
     @menuOpen="handleMenuOpen"
   />
   <ExitDialog
@@ -75,8 +77,9 @@ import { WaveEngine } from "@/game/waveEngine";
 import { FieldEngine } from "@/game/fieldEngine";
 import { BotEngine } from "@/game/botEngine";
 import { createPlayers, getPlayerColor, normalizeField } from "@/game/helpers";
-import { FIELDS_TO_SAVE, GAME_STATUS_FIELDS, SCORE_MOD } from "@/game/const";
+import { ACTIONS, FIELDS_TO_SAVE, GAME_STATUS_FIELDS, SCORE_MOD } from "@/game/const";
 import { gameCoreMixin } from "@/game/mixins/gameCoreMixin";
+import { computeFieldDiff, applyFieldDiff } from "@/game/fieldDiff";
 
 import emitter from '@/game/eventBus';
 
@@ -157,9 +160,12 @@ export default {
       humanPhase: HUMAN_PHASES.progress,
       lastPlayerPhase: LAST_PLAYER_PHASES.progress,
       lastPlayer: null,
-      // TODO: Make prevState object
-      prevField: null,
-      prevPlayer: 0,
+      // Undo states. Two independent stacked actions:
+      //   moveUndoState  — { diff, canUndo }: set on every move, cleared by undo or by next move
+      //   scoutUndoState — { revealedCoords, canUndo }: set on every scout; sits on top of moveUndoState
+      // The undo button reverts whichever is on top (scout first), preserving the layer underneath.
+      moveUndoState: null,
+      scoutUndoState: null,
       unitCoordsArr: [],
       tempVisibilityCoords: new Set(),  // Set of coord pairs (x, y) of obelisks that will be shown next turn
       // Handler references for cleanup (to prevent memory leaks)
@@ -169,6 +175,18 @@ export default {
       menuOpen: false,
       notifications: [],  // Array of notification objects: { id, message, type, playerOrder }
     }
+  },
+  computed: {
+    canUndo() {
+      // Game-over states lock undo: a player must not be able to revert the
+      // winning/losing move (or anything else once the game has been decided).
+      if (this.winPhase !== this.WIN_PHASES.progress) return false;
+      if (this.humanPhase !== this.HUMAN_PHASES.progress) return false;
+      if (this.players[this.currentPlayer]._type === Models.PlayerTypes.BOT) return false;
+      if (this.scoutUndoState) return this.scoutUndoState.canUndo;
+      if (this.moveUndoState) return this.moveUndoState.canUndo;
+      return false;
+    },
   },
   created() {
     this.engine = new CreateFieldEngine(
@@ -233,8 +251,8 @@ export default {
     };
     this.mouseupHandlerRef = (e) => {
       e.preventDefault();
-      if (this.enableUndo && e.button === 1 && this.prevField) {
-        this.restoreField();
+      if (e.button === 1 && this.canUndo) {
+        this.undoLastMove();
       }
     };
     window.addEventListener('keyup', this.keyupHandlerRef);
@@ -312,7 +330,17 @@ export default {
     },
     // Change field after unit's move
     moveUnit(fromCoords, toCoords) {
-      this.storeStateIfNeeded();
+      // Capture field state BEFORE the move (for undo diff)
+      // Note: Use JSON.parse/stringify instead of structuredClone because Vue reactive proxies cannot be cloned
+      const fieldSnapshot = JSON.parse(JSON.stringify(this.localField));
+
+      // Capture visibility BEFORE the move (if fog of war enabled)
+      // Convert to Set of strings for proper comparison (arrays use reference equality)
+      let visibleCoordsBefore = null;
+      if (this.doesVisibilityMakeSense()) {
+        const rawSet = this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer);
+        visibleCoordsBefore = new Set(Array.from(rawSet).map(coords => JSON.stringify(coords)));
+      }
 
       const [x0, y0] = fromCoords;
       const [x1, y1] = toCoords;
@@ -334,13 +362,34 @@ export default {
         // Add visibility to area unit moved to
         this.addVisibilityForCoords(x1, y1, visibility);
       }
-      // console.log('moveUnit finish');
+
+      // Compute diff (what changed) for undo functionality
+      const diff = computeFieldDiff(fieldSnapshot, this.localField, this.width, this.height);
+
+      // Check if new cells were revealed (undo is not allowed if so)
+      let canUndo = true;
+      if (this.doesVisibilityMakeSense()) {
+        const visibleCoordsAfter = this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer);
+        // If any new coords are visible, undo is not allowed
+        // Convert each coord to string for proper comparison (Set.has uses reference equality for arrays)
+        for (const coord of visibleCoordsAfter) {
+          if (!visibleCoordsBefore.has(JSON.stringify(coord))) {
+            canUndo = false;
+            break;
+          }
+        }
+      }
+
+      // A new move replaces the move-undo layer and invalidates any pending scout-undo.
+      this.moveUndoState = { diff, canUndo };
+      this.scoutUndoState = null;
     },
     processEndTurn() {
       if (this.state === this.STATES.ready) return;
       this.state = this.STATES.ready;
       emitter.emit('saveCoords', this.players[this.currentPlayer]);
-      this.storeStateIfNeeded();
+      this.moveUndoState = null;
+      this.scoutUndoState = null;
       this.selectNextPlayerAndCheckPhases();
       emitter.emit('startTurn');
     },
@@ -421,7 +470,27 @@ export default {
     // Visibility helpers
     // doesVisibilityMakeSense comes from gameCoreMixin
     handleScoutArea(data) {
+      // Capture which cells the scout will reveal so undo can re-hide exactly those.
+      // Scout-undo is independent of move-undo: a scout that reveals nothing is
+      // always undoable, even when the preceding move-to-obelisk revealed new cells.
+      const revealedCoords = [];
+      if (this.doesVisibilityMakeSense()) {
+        const { x, y, fogRadius } = data;
+        for (let curX = x - fogRadius; curX <= x + fogRadius; curX++) {
+          for (let curY = y - fogRadius; curY <= y + fogRadius; curY++) {
+            if (this.fieldEngine.areExistingCoords(curX, curY) && this.localField[curX][curY].isHidden) {
+              revealedCoords.push([curX, curY]);
+            }
+          }
+        }
+      }
+
       this.addTempVisibilityForCoords(data.x, data.y, data.fogRadius);
+
+      // Picking a scout target commits the move: from now on the only thing
+      // undo can revert is the scout choice itself.
+      this.scoutUndoState = { revealedCoords, canUndo: revealedCoords.length === 0 };
+      this.moveUndoState = null;
     },
     addVisibilityForCoords(x, y, fogRadius) {
       // TODO: Think about common naming (visibility instead of fogRadius)
@@ -604,26 +673,32 @@ export default {
         this.lastPlayerPhase = this.LAST_PLAYER_PHASES.last_player;
       }
     },
-    restoreField() {
-      this.currentPlayer = this.prevPlayer;
-      // TODO: What a hell?!
-      for (let x = 0; x < this.width; x++) {
-        for (let y = 0; y < this.height; y++) {
-          const prevCell = this.prevField[x][y];
-          const cell = this.localField[x][y];
-          // TODO: Some problem here with units and buildings - they are undefined
-          cell.unit = prevCell.unit;
-          cell.building = prevCell.building;
+    undoLastMove() {
+      // Scout-undo: revert the scout choice only and put the player back into
+      // scout-target-selection mode. Move-undo is null at this point because
+      // committing a scout target locked the move.
+      if (this.scoutUndoState) {
+        for (const [x, y] of this.scoutUndoState.revealedCoords) {
+          this.localField[x][y].isHidden = true;
+          this.tempVisibilityCoords.delete(`${x},${y}`);
         }
+        this.scoutUndoState = null;
+        // Deselect any selected unit and clear highlights, then re-arm scout
+        // mode so the player can pick another target. Order matters: initTurn
+        // wipes selectedAction, so setAction must follow it.
+        emitter.emit('initTurn');
+        emitter.emit('setAction', ACTIONS.scouting);
+        return;
       }
-      // this.localField = structuredClone(this.prevField);
-      // console.log(this.localField);
-    },
-    storeStateIfNeeded() {
-      if (this.enableUndo) {
-        this.prevField = structuredClone(this.localField);
-        this.prevPlayer = this.currentPlayer;
+
+      if (!this.moveUndoState) return;
+
+      applyFieldDiff(this.localField, this.moveUndoState.diff);
+      emitter.emit('initTurn');
+      if (this.doesVisibilityMakeSense()) {
+        this.setVisibility();
       }
+      this.moveUndoState = null;
     },
 
     // Bot move high level logic

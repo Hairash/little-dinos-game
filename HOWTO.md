@@ -62,3 +62,8 @@ DJANGO_DEBUG=True daphne -b 0.0.0.0 -p 8008 server.asgi:application
 
 1. Run tests
 `npm run test`
+
+# How to prepare new images
+
+1. Run script `optimize-images` with the images as arguments  
+`./optimize-images.sh all dino1.png dino2.png dino3.png`

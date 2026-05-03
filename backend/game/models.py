@@ -20,6 +20,9 @@ class Game(models.Model):
     turn_player = models.ForeignKey(
         User, null=True, blank=True, on_delete=models.SET_NULL, related_name="games_they_play"
     )
+    # Pending undo state (reset at turn end). Owned by game.services.undo_state;
+    # see that module for the JSON schema. None means "no undo pending".
+    undo_state = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

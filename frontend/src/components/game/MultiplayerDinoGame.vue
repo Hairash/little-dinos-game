@@ -40,6 +40,8 @@
     :enable-fog-of-war="enableFogOfWar"
     :min-speed="minSpeed"
     :max-speed="maxSpeed"
+    :can-undo="canUndo && isMyTurn && winner === null"
+    :handle-undo-click="undoLastMove"
     @menuOpen="handleMenuOpen"
   />
   <ExitDialog
@@ -72,6 +74,7 @@ import { FieldEngine } from "@/game/fieldEngine";
 import { GameWebSocket } from "@/game/websocket/gameWebSocket";
 import { whoami } from "@/services/auth";
 import { normalizeField, getPlayerColor } from "@/game/helpers";
+import { ACTIONS } from "@/game/const";
 import { gameCoreMixin } from "@/game/mixins/gameCoreMixin";
 import emitter from '@/game/eventBus';
 import logger from '@/utils/logger';
@@ -146,6 +149,8 @@ export default {
       showReadyLabel: false, // Whether to show the ready label (can be closed while keeping game visible)
       menuOpen: false,
       playersData: [], // Store original player data with usernames from server
+      // Undo state - received from server after each move
+      canUndo: false,
     };
   },
   computed: {
@@ -563,6 +568,8 @@ export default {
         if (previousPlayer !== undefined && previousPlayer !== this.currentPlayer && !gameEnded) {
           log.debug('Turn changed, clearing scout-revealed coordinates and recalculating visibility');
           this.scoutRevealedCoords.clear();
+          // Clear undo state on turn change
+          this.canUndo = false;
           // Recalculate visibility based on current player's units and buildings only (no scout-revealed coords)
           this.recalculateVisibilityForClient();
           // Clear selected unit and highlighted cells (but don't change scrollCoords)
@@ -607,8 +614,39 @@ export default {
         // Clear selected unit and highlighted cells
         emitter.emit('initTurn');
       }
+      // Scout-undo: re-hide the cells the server tells us to. These are coords
+      // the last scout had revealed; the move underneath is left intact.
+      if (Array.isArray(patch.unrevealedCoords)) {
+        for (const [x, y] of patch.unrevealedCoords) {
+          if (this.localField[x] && this.localField[x][y]) {
+            this.localField[x][y].isHidden = true;
+            this.localField[x][y].unit = null;
+            this.localField[x][y].building = null;
+          }
+          this.scoutRevealedCoords.delete(`${x},${y}`);
+        }
+      }
+      // Update undo state from server response
+      if (patch.canUndo !== undefined) {
+        this.canUndo = patch.canUndo;
+        log.debug(`Updated canUndo from patch: ${this.canUndo}`);
+      }
+      // Handle undo applied notification (if server sends this).
+      // For scout-undo, the server sets reenterScoutMode so the player can pick
+      // another target — in that case we must NOT emit initTurn (which would
+      // clear the action we are about to set) and instead re-arm scout mode.
+      if (patch.undoApplied) {
+        log.debug('Undo was applied by server');
+        // Always deselect the unit and clear highlights. For scout-undo, also
+        // re-arm scout-pick mode so the player can pick another target.
+        // Order matters: initTurn wipes selectedAction, so setAction follows.
+        emitter.emit('initTurn');
+        if (patch.reenterScoutMode) {
+          emitter.emit('setAction', ACTIONS.scouting);
+        }
+      }
     },
-    
+
     sendMoveToServer(payload) {
       if (!this.gameWs) {
         console.error('Game WebSocket not connected');
@@ -656,17 +694,31 @@ export default {
     
     processEndTurn() {
       if (this.state === this.STATES.ready || !this.isMyTurn || this.winner !== null) return;
-      
+
       this.resetInactivityTimer(); // Reset on end turn
-      
+
       // Send end turn to server
       const payload = {
         type: 'endTurn',
       };
       this.sendMoveToServer(payload);
-      
+
     //   this.state = this.STATES.ready;
       // Don't save scrollCoords - they should remain fixed after initial setup
+    },
+
+    undoLastMove() {
+      if (!this.canUndo || !this.isMyTurn || this.winner !== null) return;
+
+      this.resetInactivityTimer(); // Reset on undo
+
+      // Send undo request to server
+      const payload = {
+        type: 'undo',
+      };
+      this.sendMoveToServer(payload);
+
+      // Server will respond with updated field and canUndo: false
     },
     
     startTurn() {

@@ -55,14 +55,23 @@ Controls single-player games with bot opponents. Manages local game state, AI tu
   winner: null,
   lastPlayer: null,
 
-  // Undo system
-  prevField: null,
-  prevPlayer: 0,
+  // Undo system — two independent stacked layers (at most one is set at a time):
+  //   moveUndoState   — present after a move; cleared by undo or by picking a scout target
+  //   scoutUndoState  — present after picking a scout target; commits the move
+  // The undo button reverts whichever layer is set; scout takes priority by construction.
+  moveUndoState: null,   // { diff: [...], canUndo: boolean }
+  scoutUndoState: null,  // { revealedCoords: [[x,y], ...], canUndo: boolean }
 
   // Visibility
   tempVisibilityCoords: Set,
 }
 ```
+
+### Computed
+
+| Property | Description |
+|----------|-------------|
+| `canUndo` | True if undo is allowed: not a bot turn, game still in progress (winPhase/humanPhase=progress), and either scoutUndoState.canUndo or moveUndoState.canUndo is true. Scout layer is consulted first. |
 
 ### Methods (Component-Specific)
 
@@ -74,7 +83,8 @@ Controls single-player games with bot opponents. Manages local game state, AI tu
 | `makeBotMove()` | Execute AI turn |
 | `checkEndOfGame()` | Check victory conditions |
 | `saveState()` | Save to localStorage |
-| `restoreField()` | Undo last move |
+| `undoLastMove()` | Undo whichever layer is set: scoutUndoState re-hides the revealed cells and re-emits `setAction(scouting)` to re-arm scout-pick mode; moveUndoState applies the field diff and recalculates visibility. Always emits `initTurn` first to deselect the unit. |
+| `handleScoutArea(data)` | Apply scout reveal AND set `scoutUndoState`; drops `moveUndoState` (picking a scout target commits the move) |
 | `showTurnNotification(playerOrder)` | Display "Player {n} turn" notification with player color |
 | `showNotification(message, type, playerOrder)` | Add notification to display queue |
 | `dismissNotification(id)` | Remove notification by ID |
@@ -137,6 +147,10 @@ Controls multiplayer games. Syncs with server via WebSocket, handles reconnectio
 
   // Visibility
   scoutRevealedCoords: Set,
+
+  // Undo state — single flag pushed by the server. The server picks priority
+  // (scout layer first, else move) and sends the right value in each patch.
+  canUndo: false,
 }
 ```
 
@@ -145,6 +159,10 @@ Controls multiplayer games. Syncs with server via WebSocket, handles reconnectio
 | Property | Description |
 |----------|-------------|
 | `isMyTurn` | True if `myPlayerOrder === currentPlayer` |
+
+The undo button binding combines this with turn ownership and end-of-game gating:
+`canUndo && isMyTurn && winner === null`. The `undoLastMove()` method enforces the
+same triple-gate before sending an `undo` message to the server.
 
 ### Methods (Component-Specific)
 
@@ -155,6 +173,7 @@ Controls multiplayer games. Syncs with server via WebSocket, handles reconnectio
 | `initializeFromServerState(state)` | Apply full state from server, show initial turn notification |
 | `applyStatePatch(patch)` | Apply incremental update, show turn notification on turn change |
 | `recalculateVisibilityForClient()` | Rebuild visibility after turn change |
+| `undoLastMove()` | Send `{type: "undo"}` to server. Server's response carries either an updated `field` (move-undo) or `unrevealedCoords` + `reenterScoutMode: true` (scout-undo); `applyStatePatch` handles both. Scout-undo patches are sent only to the initiating player — opponents see nothing. |
 | `showNotification(msg, type, playerOrder)` | Display toast notification (types: disconnect, reconnect, turn) |
 | `showTurnNotification(playerOrder)` | Display "{playerName} turn" notification with player color |
 | `dismissNotification(id)` | Remove notification by ID |
