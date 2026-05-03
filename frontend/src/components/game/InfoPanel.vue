@@ -1,11 +1,11 @@
 <template>
   <div class="infoPanel">
     <div id="inner-info-panel">
-      <!-- Left group: Menu button -->
+      <!-- Left group: Menu button and Undo button -->
       <span class="infoBlock left-group">
-        <button 
-          type="button" 
-          class="infoBtn" 
+        <button
+          type="button"
+          class="infoBtn"
           @click="toggleMenu"
           @contextmenu.prevent="showContextHelp($event, 'Menu')"
           :disabled="menuOpen"
@@ -15,6 +15,20 @@
             style="margin-left: 1px; margin-top: 1px;"
             class="curPlayerImage"
             :src="getImagePath('settings_icon')"
+          >
+        </button>
+        <button
+          type="button"
+          class="infoBtn undoBtn"
+          @click="handleUndoClick"
+          @contextmenu.prevent="showContextHelp($event, 'Undo last move')"
+          :disabled="!canUndo || menuOpen"
+          title="Undo last move"
+        >
+          <img
+            style="margin-left: 1px; margin-top: 1px;"
+            class="curPlayerImage"
+            :src="getImagePath('undo')"
           >
         </button>
       </span>
@@ -187,6 +201,14 @@ export default {
     enableFogOfWar: Boolean,
     minSpeed: Number,
     maxSpeed: Number,
+    canUndo: {
+      type: Boolean,
+      default: false,
+    },
+    handleUndoClick: {
+      type: Function,
+      default: () => {},
+    },
   },
   emits: ['menuOpen'],
   data() {
@@ -513,6 +535,10 @@ button.infoBtn {
 button.infoBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+button.infoBtn.undoBtn {
+  margin-left: 4px;
 }
 
 button.infoBtn.endTurnBtn {

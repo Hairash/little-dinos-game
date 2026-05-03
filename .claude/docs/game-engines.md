@@ -312,3 +312,57 @@ makeBotTurn() {
   }
 }
 ```
+
+---
+
+## Field Diff Utilities
+
+**Location:** `frontend/src/game/fieldDiff.js`
+
+### Purpose
+
+Utility functions for computing and applying field state diffs. Used by the undo system to efficiently store and restore field state changes.
+
+### Functions
+
+| Function | Parameters | Returns | Description |
+|----------|------------|---------|-------------|
+| `computeFieldDiff(oldField, newField, width, height)` | two fields, dimensions | Array of `{x, y, cell}` | Compares fields, returns changed cells with original values |
+| `applyFieldDiff(field, diff)` | field, diff array | void | Restores cells from diff to field (in-place) |
+
+### Usage Example
+
+```javascript
+import { computeFieldDiff, applyFieldDiff } from '@/game/fieldDiff'
+
+// Before making a move, snapshot the field
+const fieldBefore = structuredClone(this.localField)
+
+// Apply move (modifies this.localField)
+this.fieldEngine.moveUnit(x0, y0, x1, y1, unit)
+
+// Compute what changed (stores original cell states)
+const diff = computeFieldDiff(fieldBefore, this.localField, width, height)
+
+// Later, to undo:
+applyFieldDiff(this.localField, diff)  // Restores original cells
+```
+
+### Diff Format
+
+Each diff entry contains the original cell state:
+```javascript
+[
+  { x: 0, y: 0, cell: { unit: {...}, building: null, ... } },  // Source cell
+  { x: 1, y: 0, cell: { unit: null, building: null, ... } },   // Destination cell
+  { x: 1, y: 1, cell: { unit: {...}, building: null, ... } },  // Killed enemy cell
+]
+```
+
+### Notes
+
+- Only compares `unit` and `building` properties (ignores `isHidden` for visibility)
+- Mirrored on the backend at `backend/game/services/field_diff.py` — same algorithm in Python, used by `apply_move_txn` to persist the diff for server-authoritative undo in multiplayer
+- Scout undo does **not** use field diffs (scout doesn't modify the field). It tracks revealed coords directly in `scoutUndoState.revealedCoords` (single-player) or `Game.undo_state["scout"]["coords"]` (multiplayer) and re-hides those cells on undo.
+- Typical diff size: 2-6 cells per move
+- Backend equivalent: `backend/game/services/field_diff.py`

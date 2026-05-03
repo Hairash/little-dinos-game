@@ -35,10 +35,14 @@ little-dinos-game/
 ├── backend/                     # Django + Channels
 │   ├── game/
 │   │   ├── services/            # Core game logic
-│   │   │   ├── general.py       # Game operations
-│   │   │   ├── field.py         # Field generation (multiplayer)
-│   │   │   └── visibility.py    # Fog of war calculations
-│   │   ├── consumers.py         # WebSocket handlers
+│   │   │   ├── game_logic.py        # apply_move_txn / apply_scout_txn / apply_undo_txn / apply_end_turn_txn
+│   │   │   ├── move_validation.py   # validate_move / apply_move_to_cell
+│   │   │   ├── unit_production.py   # restore_and_produce_units (turn start)
+│   │   │   ├── visibility.py        # calculate_visibility / filter_field_for_player
+│   │   │   ├── field.py             # Field generation (multiplayer)
+│   │   │   ├── field_diff.py        # compute/apply diff (Python twin of frontend/src/game/fieldDiff.js)
+│   │   │   └── undo_state.py        # Owns the schema of Game.undo_state JSONField
+│   │   ├── consumers.py         # WebSocket handlers (GameConsumer, LobbyConsumer)
 │   │   └── views.py             # REST API endpoints
 │   └── server/                  # Django settings
 └── .claude/docs/                # Documentation
