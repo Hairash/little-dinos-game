@@ -9,18 +9,14 @@
         <button @click="handleHelpBtnClick">Help</button>
       </div>
     </div>
-    <MenuError
-      v-if="error"
-      :error="error"
-      :setError="setError"
-    />
+    <MenuError v-if="error" :error="error" :set-error="setError" />
   </div>
 </template>
 
 <script>
-import emitter from "@/game/eventBus";
-import {GAME_STATES} from "@/game/const";
-import MenuError from '@/components/ui/MenuError.vue';
+import emitter from '@/game/eventBus'
+import { GAME_STATES } from '@/game/const'
+import MenuError from '@/components/ui/MenuError.vue'
 
 export default {
   name: 'GameMenu',
@@ -33,21 +29,20 @@ export default {
   },
   methods: {
     handleStartBtnClick() {
-      emitter.emit('goToPage', GAME_STATES.setup);
+      emitter.emit('goToPage', GAME_STATES.setup)
     },
     handleLoadBtnClick() {
-      emitter.emit('loadGame');
+      emitter.emit('loadGame')
     },
     handleMultiplayerBtnClick() {
-      emitter.emit('startMultiplayer');
+      emitter.emit('startMultiplayer')
     },
     handleHelpBtnClick() {
-      emitter.emit('goToPage', GAME_STATES.help);
-    }
+      emitter.emit('goToPage', GAME_STATES.help)
+    },
   },
 }
 </script>
-
 
 <style>
 #menu {
@@ -77,7 +72,11 @@ export default {
 
 #menu h1 {
   position: relative;
-  text-shadow: -3px 0 black, 0 2px black, 1px 0 black, 0 -1px black;
+  text-shadow:
+    -3px 0 black,
+    0 2px black,
+    1px 0 black,
+    0 -1px black;
   margin: 0;
   font-size: clamp(24px, 8vh, 48px);
   line-height: 1.2;
@@ -113,8 +112,10 @@ export default {
   text-shadow: 2px 2px 4px #000;
   cursor: pointer;
   outline: none;
-  transition: transform 0.1s, box-shadow 0.1s;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   border-radius: 12px;
   margin: 0 auto;
   flex-shrink: 0;
@@ -127,12 +128,12 @@ export default {
     gap: 4vw;
     max-width: 95vw;
   }
-  
+
   #menu h1 {
     font-size: clamp(20px, 6vh, 36px);
     margin-bottom: 0;
   }
-  
+
   #menu-content #buttons {
     margin-top: 0;
     flex-direction: row;
@@ -140,7 +141,7 @@ export default {
     justify-content: center;
     gap: clamp(8px, 1.5vh, 20px);
   }
-  
+
   #menu-content button {
     width: auto;
     min-width: clamp(120px, 20vw, 200px);
@@ -155,11 +156,11 @@ export default {
     font-size: clamp(18px, 6vh, 32px);
     white-space: normal; /* Allow wrapping on very small screens if needed */
   }
-  
+
   #menu-content #buttons {
     gap: clamp(5px, 1vh, 15px);
   }
-  
+
   #menu-content button {
     height: clamp(40px, 10vh, 60px);
     font-size: clamp(14px, 3vh, 20px);
@@ -178,7 +179,7 @@ export default {
   #menu-content {
     max-width: 500px;
   }
-  
+
   #menu-content button {
     max-width: 300px;
   }

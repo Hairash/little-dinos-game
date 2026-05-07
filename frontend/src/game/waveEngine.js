@@ -1,113 +1,143 @@
 // Contains functions related to path finding
 
-import Models from '@/game/models';
+import Models from '@/game/models'
 
 class WaveEngine {
   constructor(field, width, height, fogOfWarRadius, enableScoutMode) {
-    this.field = field;
-    this.width = width;
-    this.height = height;
-    this.fogOfWarRadius = fogOfWarRadius;
-    this.enableScoutMode = enableScoutMode;
+    this.field = field
+    this.width = width
+    this.height = height
+    this.fogOfWarRadius = fogOfWarRadius
+    this.enableScoutMode = enableScoutMode
   }
 
   getWaveField() {
-    const waveField = [];
+    const waveField = []
     for (let x = 0; x < this.width; x++) {
-      let col = [];
+      let col = []
       for (let y = 0; y < this.height; y++) {
         if (
           this.field[x][y].terrain.kind === Models.TerrainTypes.EMPTY &&
           !this.field[x][y].unit &&
           !(this.enableScoutMode && this.field[x][y].isHidden)
         )
-          col.push(null);
-        else
-          col.push(-1);
+          col.push(null)
+        else col.push(-1)
       }
-      waveField.push(col);
+      waveField.push(col)
     }
-    return waveField;
+    return waveField
   }
 
   getReachableCoordsArr(x0, y0, movePoints) {
-    const waveField = this.getWaveField();
-    const reachableCoordsArr = [];
-    waveField[x0][y0] = 0;
-    const wave = [[x0, y0]];
+    const waveField = this.getWaveField()
+    const reachableCoordsArr = []
+    waveField[x0][y0] = 0
+    const wave = [[x0, y0]]
     while (wave.length > 0) {
       // utils.showWave(wave);
       // utils.showField(waveField);
-      const curCell = wave.shift();
-      const [x, y] = curCell;
-      const s = waveField[x][y] + 1;
+      const curCell = wave.shift()
+      const [x, y] = curCell
+      const s = waveField[x][y] + 1
       // console.log(s);
-      if (s > movePoints) break;
+      if (s > movePoints) break
       for (const neighbour of this.getNeighbours(waveField, x, y)) {
-        const [curX, curY] = neighbour;
+        const [curX, curY] = neighbour
         if (waveField[curX][curY] === null) {
-          waveField[curX][curY] = s;
-          wave.push([curX, curY]);
-          reachableCoordsArr.push([curX, curY]);
+          waveField[curX][curY] = s
+          wave.push([curX, curY])
+          reachableCoordsArr.push([curX, curY])
         }
       }
     }
-    return reachableCoordsArr;
+    return reachableCoordsArr
   }
 
   // Check if unit can move from fromCoords to toCoords
   canMove(fromCoords, toCoords) {
     // console.log('canMove start');
-    const [x0, y0] = fromCoords;
-    const [x1, y1] = toCoords;
-    const unit = this.field[x0][y0].unit;
-    if (this.field[x1][y1].terrain.kind !== Models.TerrainTypes.EMPTY) return false;
+    const [x0, y0] = fromCoords
+    const [x1, y1] = toCoords
+    const unit = this.field[x0][y0].unit
+    if (this.field[x1][y1].terrain.kind !== Models.TerrainTypes.EMPTY) return false
 
-    const res = this.canReach(x0, y0, x1, y1, unit.movePoints);
+    const res = this.canReach(x0, y0, x1, y1, unit.movePoints)
     // console.log('canMove finish');
-    return res;
+    return res
   }
 
   canReach(x0, y0, x1, y1, movePoints) {
-    const waveField = this.getWaveField();
-    waveField[x0][y0] = 0;
-    const wave = [[x0, y0]];
+    const waveField = this.getWaveField()
+    waveField[x0][y0] = 0
+    const wave = [[x0, y0]]
     while (wave.length > 0) {
       // utils.showWave(wave);
       // utils.showField(waveField);
-      const curCell = wave.shift();
-      const [x, y] = curCell;
-      const s = waveField[x][y] + 1;
+      const curCell = wave.shift()
+      const [x, y] = curCell
+      const s = waveField[x][y] + 1
       // console.log(s);
-      if (s > movePoints) return false;
+      if (s > movePoints) return false
       for (const neighbour of this.getNeighbours(waveField, x, y)) {
-        const [curX, curY] = neighbour;
-        if (curX === x1 && curY === y1) return true;
+        const [curX, curY] = neighbour
+        if (curX === x1 && curY === y1) return true
         if (waveField[curX][curY] === null || waveField[curX][curY] > s) {
-          waveField[curX][curY] = s;
-          wave.push([curX, curY]);
+          waveField[curX][curY] = s
+          wave.push([curX, curY])
         }
       }
     }
-    return false;
+    return false
+  }
+
+  // BFS that records parents and reconstructs the cell-by-cell path from
+  // (x0, y0) to (x1, y1). Returns null if the destination is unreachable
+  // within `movePoints`. The returned list always includes both endpoints.
+  getPath(x0, y0, x1, y1, movePoints) {
+    if (x0 === x1 && y0 === y1) return [[x0, y0]]
+    const waveField = this.getWaveField()
+    waveField[x0][y0] = 0
+    const parents = new Map() // "x,y" -> "px,py"
+    const wave = [[x0, y0]]
+    while (wave.length > 0) {
+      const [x, y] = wave.shift()
+      const s = waveField[x][y] + 1
+      if (s > movePoints) break
+      for (const [nx, ny] of this.getNeighbours(waveField, x, y)) {
+        // Treat the destination as reachable even though it might be marked
+        // -1 in the wave field (e.g. dest contains an enemy unit / building).
+        if (nx === x1 && ny === y1) {
+          parents.set(`${nx},${ny}`, `${x},${y}`)
+          const out = [[nx, ny]]
+          let key = `${x},${y}`
+          while (key) {
+            const [px, py] = key.split(',').map(Number)
+            out.push([px, py])
+            key = parents.get(key)
+          }
+          return out.reverse()
+        }
+        if (waveField[nx][ny] === null) {
+          waveField[nx][ny] = s
+          parents.set(`${nx},${ny}`, `${x},${y}`)
+          wave.push([nx, ny])
+        }
+      }
+    }
+    return null
   }
 
   getNeighbours(field, x, y) {
     // console.log('getNeighbours start');
-    const neighbours = [];
-    if (x > 0 && field[x - 1][y] !== -1)
-      neighbours.push([x - 1, y]);
-    if (x < field.length - 1 && field[x + 1][y] !== -1)
-      neighbours.push([x + 1, y]);
-    if (y > 0 && field[x][y - 1] !== -1)
-      neighbours.push([x, y - 1]);
-    if (y < field[0].length - 1 && field[x][y + 1] !== -1)
-      neighbours.push([x, y + 1]);
+    const neighbours = []
+    if (x > 0 && field[x - 1][y] !== -1) neighbours.push([x - 1, y])
+    if (x < field.length - 1 && field[x + 1][y] !== -1) neighbours.push([x + 1, y])
+    if (y > 0 && field[x][y - 1] !== -1) neighbours.push([x, y - 1])
+    if (y < field[0].length - 1 && field[x][y + 1] !== -1) neighbours.push([x, y + 1])
     // console.log('getNeighbours finish');
-    return neighbours;
+    return neighbours
   }
 }
 
-export {
-  WaveEngine,
-};
+export { WaveEngine }

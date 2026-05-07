@@ -1,51 +1,50 @@
 <template>
   <ActionHint v-if="selectedAction" :action="selectedAction" />
-<!--  <div class="main-wrapper">-->
-    <div ref="gameGridContainer" class="game-grid-container">
-      <div 
-        class="board-wrapper-container"
-        :style="{ 
-          '--board-width': boardWrapperWidth,
-          '--board-height': boardWrapperHeight
-        }"
-      >
-        <div
-          class="board-wrapper"
-          :style="{ width: boardWrapperWidth, height: boardWrapperHeight }"
-        >
-        <div
-          class="board"
-          :style="{ width: boardWidth, height: boardHeight }"
-        >
+  <!--  <div class="main-wrapper">-->
+  <div ref="gameGridContainer" class="game-grid-container">
+    <div
+      class="board-wrapper-container"
+      :style="{
+        '--board-width': boardWrapperWidth,
+        '--board-height': boardWrapperHeight,
+      }"
+    >
+      <div class="board-wrapper" :style="{ width: boardWrapperWidth, height: boardWrapperHeight }">
+        <div class="board" :style="{ width: boardWidth, height: boardHeight }">
           <div
-              class="cell_line" v-for="(line, y) in fieldT"
-              :key="`row-${y}`"
-              :style="{ width: lineWidth, height: lineHeight }"
+            class="cell_line"
+            v-for="(line, y) in fieldT"
+            :key="`row-${y}`"
+            :style="{ width: lineWidth, height: lineHeight }"
           >
             <template v-for="(cellData, x) in line" :key="`cell-${x}-${y}`">
               <!-- TODO: Why do we have isHidden applied to field and not to fieldOutput? -->
               <GameCell
-                :hidden="field[x][y].isHidden"
+                :hidden="
+                  displayVisibilityCoords
+                    ? !displayVisibilityCoords.has(`${x},${y}`)
+                    : field[x][y].isHidden
+                "
                 :width="cellSize"
                 :height="cellSize"
-                :terrain=cellData.terrain
-                :unit=cellData.unit
-                :building=cellData.building
-                :selected="(selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y)"
+                :terrain="cellData.terrain"
+                :unit="cellData.unit"
+                :building="cellData.building"
+                :selected="selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y"
                 :highlighted="fieldOutput[x][y].isHighlighted"
-                :currentPlayer="currentPlayer"
-                :myPlayerOrder="myPlayerOrder"
-                :hideEnemySpeed="hideEnemySpeed"
-                :cellX="x"
-                :cellY="y"
-                :hasSelectedUnit="selectedCoords !== null"
-                :currentStats="currentStats"
-                :baseModifier="baseModifier"
-                :selectedUnitOnStorage="selectedUnitOnStorage"
+                :current-player="currentPlayer"
+                :my-player-order="myPlayerOrder"
+                :hide-enemy-speed="hideEnemySpeed"
+                :cell-x="x"
+                :cell-y="y"
+                :has-selected-unit="selectedCoords !== null"
+                :current-stats="currentStats"
+                :base-modifier="baseModifier"
+                :selected-unit-on-storage="selectedUnitOnStorage"
                 @click="processClick($event, x, y)"
-                @contextMenu="handleContextMenu"
-                @mouseEnter="handleCellMouseEnter"
-                @mouseLeave="handleCellMouseLeave"
+                @context-menu="handleContextMenu"
+                @mouse-enter="handleCellMouseEnter"
+                @mouse-leave="handleCellMouseLeave"
               />
             </template>
           </div>
@@ -55,42 +54,42 @@
           :x="visibilityFrameUnit.x"
           :y="visibilityFrameUnit.y"
           :radius="visibilityFrameUnit.visibility"
-          :cellSize="cellSize"
-          :playerIndex="visibilityFrameUnit.player"
-          :fieldWidth="width"
-          :fieldHeight="height"
+          :cell-size="cellSize"
+          :player-index="visibilityFrameUnit.player"
+          :field-width="width"
+          :field-height="height"
         />
         <VisibilityFrame
           v-if="scoutPreviewFrame"
           :x="scoutPreviewFrame.x"
           :y="scoutPreviewFrame.y"
           :radius="scoutPreviewFrame.radius"
-          :cellSize="cellSize"
-          :playerIndex="scoutPreviewFrame.player"
-          :fieldWidth="width"
-          :fieldHeight="height"
-          :showCenterMarker="true"
+          :cell-size="cellSize"
+          :player-index="scoutPreviewFrame.player"
+          :field-width="width"
+          :field-height="height"
+          :show-center-marker="true"
         />
         <CellContextHelp
           :visible="contextHelpVisible"
           :x="contextHelpX"
           :y="contextHelpY"
-          :cellSize="cellSize"
-          :fieldWidth="width"
-          :fieldHeight="height"
+          :cell-size="cellSize"
+          :field-width="width"
+          :field-height="height"
           :cell="contextHelpCell"
-          :unitModifier="unitModifier"
-          :baseModifier="baseModifier"
-          :fogOfWarRadius="fogOfWarRadius"
-          :hasSelectedUnit="selectedCoords !== null"
-          :currentStats="currentStats"
-          :currentPlayer="currentPlayer"
-          :selectedUnitOnStorage="selectedUnitOnStorage"
+          :unit-modifier="unitModifier"
+          :base-modifier="baseModifier"
+          :fog-of-war-radius="fogOfWarRadius"
+          :has-selected-unit="selectedCoords !== null"
+          :current-stats="currentStats"
+          :current-player="currentPlayer"
+          :selected-unit-on-storage="selectedUnitOnStorage"
         />
-        </div>
       </div>
     </div>
-<!--  </div>-->
+  </div>
+  <!--  </div>-->
 </template>
 
 <script>
@@ -100,13 +99,13 @@ import { WaveEngine } from '@/game/waveEngine'
 import { FieldEngine } from '@/game/fieldEngine'
 import { ACTIONS } from '@/game/const'
 
-import emitter from '@/game/eventBus';
-import ActionHint from "@/components/game/ActionHint.vue";
-import CellContextHelp from "@/components/game/CellContextHelp.vue";
-import VisibilityFrame from "@/components/game/VisibilityFrame.vue";
+import emitter from '@/game/eventBus'
+import ActionHint from '@/components/game/ActionHint.vue'
+import CellContextHelp from '@/components/game/CellContextHelp.vue'
+import VisibilityFrame from '@/components/game/VisibilityFrame.vue'
 
 export default {
-  name: "GameGrid",
+  name: 'GameGrid',
   components: {
     ActionHint,
     GameCell,
@@ -148,6 +147,14 @@ export default {
       type: Boolean,
       default: false,
     },
+    // Display-only visibility override. When provided, cells outside the set
+    // render as hidden regardless of `cell.isHidden`. Used in single-player
+    // bot turns so the human keeps their own fog while the field's
+    // `isHidden` (kept consistent with `currentPlayer`) drives bot AI.
+    displayVisibilityCoords: {
+      type: Set,
+      default: null,
+    },
   },
   data() {
     return {
@@ -155,7 +162,7 @@ export default {
       selectedAction: null,
       waveEngine: null,
       fieldEngine: null,
-      fieldOutput: null,  // Will be initialized in created()
+      fieldOutput: null, // Will be initialized in created()
       contextHelpVisible: false,
       contextHelpX: 0,
       contextHelpY: 0,
@@ -169,107 +176,105 @@ export default {
   },
   computed: {
     width() {
-      return this.field && this.field.length > 0 ? this.field.length : 0;
+      return this.field && this.field.length > 0 ? this.field.length : 0
     },
     height() {
-      return this.field && this.field.length > 0 && this.field[0] ? this.field[0].length : 0;
+      return this.field && this.field.length > 0 && this.field[0] ? this.field[0].length : 0
     },
     fieldT() {
       // Transpose field for rendering (convert from [x][y] to [y][x])
       if (!this.field || this.field.length === 0 || !this.field[0]) {
-        return [];
+        return []
       }
-      return this.field[0].map((x, i) => this.field.map(x => x[i]));
+      return this.field[0].map((x, i) => this.field.map(x => x[i]))
     },
     lineHeight() {
-      return `${this.cellSize}px`;
+      return `${this.cellSize}px`
     },
     lineWidth() {
-      return `${this.cellSize * this.width}px`;
+      return `${this.cellSize * this.width}px`
     },
     boardHeight() {
-      return `${this.cellSize * this.height}px`;
+      return `${this.cellSize * this.height}px`
     },
     boardWidth() {
-      return `${this.cellSize * this.width}px`;
+      return `${this.cellSize * this.width}px`
     },
     boardWrapperHeight() {
       return `${this.cellSize * this.height + 50}px`
     },
     boardWrapperWidth() {
-      return `${this.cellSize * this.width}px`;
+      return `${this.cellSize * this.width}px`
     },
     selectedUnitOnStorage() {
       // Check if the selected unit is standing on a storage building
       if (!this.selectedCoords) {
-        return false;
+        return false
       }
-      const [x, y] = this.selectedCoords;
+      const [x, y] = this.selectedCoords
       if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
-        return false;
+        return false
       }
-      const cell = this.field[x][y];
+      const cell = this.field[x][y]
       if (!cell || !cell.building) {
-        return false;
+        return false
       }
-      return cell.building._type === Models.BuildingTypes.STORAGE;
+      return cell.building._type === Models.BuildingTypes.STORAGE
     },
     scoutPreviewFrame() {
       // Returns scout preview frame config when in scout mode and coords are set
       if (this.selectedAction !== ACTIONS.scouting || !this.scoutPreviewCoords) {
-        return null;
+        return null
       }
       return {
         x: this.scoutPreviewCoords.x,
         y: this.scoutPreviewCoords.y,
         radius: this.fogOfWarRadius,
         player: this.currentPlayer,
-      };
+      }
     },
   },
   created() {
     // Initialize fieldOutput
     if (this.field && this.field.length > 0 && this.field[0]) {
-      const width = this.field.length;
-      const height = this.field[0].length;
+      const width = this.field.length
+      const height = this.field[0].length
       this.fieldOutput = Array.from({ length: width }, () =>
         Array.from({ length: height }, () => ({ isHidden: false, isHighlighted: false }))
-      );
+      )
     }
-    
+
     this.waveEngine = new WaveEngine(
       this.field,
       this.width,
       this.height,
       this.fogOfWarRadius,
-      this.enableScoutMode,
-    );
-    this.fieldEngine = new FieldEngine(
-      this.field,
-      this.width,
-      this.height,
-      this.fogOfWarRadius,
-    );
+      this.enableScoutMode
+    )
+    this.fieldEngine = new FieldEngine(this.field, this.width, this.height, this.fogOfWarRadius)
   },
   watch: {
     field: {
       handler(newField, oldField) {
         // Update engines when field prop changes
         if (newField && newField.length > 0 && newField[0]) {
-          const width = newField.length;
-          const height = newField[0].length;
+          const width = newField.length
+          const height = newField[0].length
 
           // Check if dimensions changed (more significant change requiring engine recreation)
-          const oldWidth = oldField?.length || 0;
-          const oldHeight = oldField?.[0]?.length || 0;
-          const dimensionsChanged = width !== oldWidth || height !== oldHeight;
+          const oldWidth = oldField?.length || 0
+          const oldHeight = oldField?.[0]?.length || 0
+          const dimensionsChanged = width !== oldWidth || height !== oldHeight
 
           // Update fieldOutput dimensions if needed
-          if (!this.fieldOutput || this.fieldOutput.length !== width ||
-              (this.fieldOutput[0] && this.fieldOutput[0].length !== height)) {
+          if (
+            !this.fieldOutput ||
+            this.fieldOutput.length !== width ||
+            (this.fieldOutput[0] && this.fieldOutput[0].length !== height)
+          ) {
             this.fieldOutput = Array.from({ length: width }, () =>
               Array.from({ length: height }, () => ({ isHidden: false, isHighlighted: false }))
-            );
+            )
           }
 
           // Only recreate engines if dimensions changed or field reference changed
@@ -282,18 +287,13 @@ export default {
               width,
               height,
               this.fogOfWarRadius,
-              this.enableScoutMode,
-            );
-            this.fieldEngine = new FieldEngine(
-              newField,
-              width,
-              height,
-              this.fogOfWarRadius,
-            );
+              this.enableScoutMode
+            )
+            this.fieldEngine = new FieldEngine(newField, width, height, this.fogOfWarRadius)
           } else {
             // Just update the field reference in existing engines
-            this.waveEngine.field = newField;
-            this.fieldEngine.field = newField;
+            this.waveEngine.field = newField
+            this.fieldEngine.field = newField
           }
         }
       },
@@ -304,156 +304,159 @@ export default {
     },
   },
   mounted() {
-    emitter.on('initTurn', this.initTurn);
-    emitter.on('selectNextUnit', this.selectNextUnit);
-    emitter.on('infoPanelContextHelpChanged', this.onInfoPanelContextHelpChanged);
-    emitter.on('closeGameGridContextHelp', this.hideContextHelp);
-    emitter.on('setAction', this.setAction);
-    emitter.on('saveCoords', this.saveCoords);
-    emitter.on('getScrollCoordsByCell', this.getScrollCoordsByCell);
+    emitter.on('initTurn', this.initTurn)
+    emitter.on('selectNextUnit', this.selectNextUnit)
+    emitter.on('infoPanelContextHelpChanged', this.onInfoPanelContextHelpChanged)
+    emitter.on('closeGameGridContextHelp', this.hideContextHelp)
+    emitter.on('setAction', this.setAction)
+    emitter.on('saveCoords', this.saveCoords)
+    emitter.on('getScrollCoordsByCell', this.getScrollCoordsByCell)
     // Hide context help when clicking outside
-    document.addEventListener('click', this.hideContextHelpOnOutsideClick);
+    document.addEventListener('click', this.hideContextHelpOnOutsideClick)
   },
   beforeUnmount() {
-    emitter.off('initTurn', this.initTurn);
-    emitter.off('selectNextUnit', this.selectNextUnit);
-    emitter.off('infoPanelContextHelpChanged', this.onInfoPanelContextHelpChanged);
-    emitter.off('closeGameGridContextHelp', this.hideContextHelp);
-    emitter.off('setAction', this.setAction);
-    emitter.off('saveCoords', this.saveCoords);
-    emitter.off('getScrollCoordsByCell', this.getScrollCoordsByCell);
-    document.removeEventListener('click', this.hideContextHelpOnOutsideClick);
+    emitter.off('initTurn', this.initTurn)
+    emitter.off('selectNextUnit', this.selectNextUnit)
+    emitter.off('infoPanelContextHelpChanged', this.onInfoPanelContextHelpChanged)
+    emitter.off('closeGameGridContextHelp', this.hideContextHelp)
+    emitter.off('setAction', this.setAction)
+    emitter.off('saveCoords', this.saveCoords)
+    emitter.off('getScrollCoordsByCell', this.getScrollCoordsByCell)
+    document.removeEventListener('click', this.hideContextHelpOnOutsideClick)
   },
   methods: {
-    initTurn(scrollCoords=null) {
+    initTurn(scrollCoords = null) {
       // console.log(scrollCoords);
-      this.selectedCoords = null;
-      this.selectedAction = null;
-      this.visibilityFrameUnit = null;
-      this.scoutPreviewCoords = null;
-      this.removeHighlights();
+      this.selectedCoords = null
+      this.selectedAction = null
+      this.visibilityFrameUnit = null
+      this.scoutPreviewCoords = null
+      this.removeHighlights()
       if (scrollCoords) {
-        this.$refs.gameGridContainer.scrollTo(...scrollCoords);
+        this.$refs.gameGridContainer.scrollTo(...scrollCoords)
       }
     },
     selectNextUnit(unitCoordsArr) {
-      if (unitCoordsArr.length === 0) return;
-      
-      let coords = unitCoordsArr[0];
+      if (unitCoordsArr.length === 0) return
+
+      let coords = unitCoordsArr[0]
 
       if (this.selectedCoords) {
-        const curIdx = unitCoordsArr.findIndex(el => el[0] === this.selectedCoords[0] && el[1] === this.selectedCoords[1]);
+        const curIdx = unitCoordsArr.findIndex(
+          el => el[0] === this.selectedCoords[0] && el[1] === this.selectedCoords[1]
+        )
         if (curIdx !== -1 && curIdx + 1 < unitCoordsArr.length) {
           // Selected unit is still in the array, select next one
-          coords = unitCoordsArr[curIdx + 1];
+          coords = unitCoordsArr[curIdx + 1]
         } else if (curIdx === -1) {
           // Selected unit was moved (no longer in array), continue with next unit
           // Find the first unit that comes after the previously selected position
           // If no such unit exists, wrap around to the first unit
           const nextIdx = unitCoordsArr.findIndex(el => {
             // Compare by position: find first unit that is "after" the selected one
-            return el[0] > this.selectedCoords[0] || 
-                   (el[0] === this.selectedCoords[0] && el[1] > this.selectedCoords[1]);
-          });
-          coords = nextIdx !== -1 ? unitCoordsArr[nextIdx] : unitCoordsArr[0];
+            return (
+              el[0] > this.selectedCoords[0] ||
+              (el[0] === this.selectedCoords[0] && el[1] > this.selectedCoords[1])
+            )
+          })
+          coords = nextIdx !== -1 ? unitCoordsArr[nextIdx] : unitCoordsArr[0]
         }
         // If curIdx is the last element, it will wrap to the first (coords already set to unitCoordsArr[0])
       }
-      const [x, y] = coords;
-      const unit = this.field[x][y].unit;
+      const [x, y] = coords
+      const unit = this.field[x][y].unit
       if (unit) {
-        this.selectUnit(x, y, unit.movePoints);
-        const scrollCoords = this.getScrollCoordsByCell([x, y]);
-        this.$refs.gameGridContainer.scrollTo(...scrollCoords);
+        this.selectUnit(x, y, unit.movePoints)
+        const scrollCoords = this.getScrollCoordsByCell([x, y])
+        this.$refs.gameGridContainer.scrollTo(...scrollCoords)
       }
     },
     selectUnit(x, y, movePoints) {
-      this.selectedCoords = [x, y];
-      this.removeHighlights();
-      this.setHighlights(x, y, movePoints);
+      this.selectedCoords = [x, y]
+      this.removeHighlights()
+      this.setHighlights(x, y, movePoints)
     },
     processClick(event, x, y) {
       // Don't process clicks if menu is open
       if (this.menuOpen) {
-        return;
+        return
       }
-      
+
       // Check if any context window is open
-      const wasContextHelpVisible = this.contextHelpVisible || this.infoPanelContextHelpVisible;
-      
+      const wasContextHelpVisible = this.contextHelpVisible || this.infoPanelContextHelpVisible
+
       // Hide context help on any click
-      this.hideContextHelp();
-      
+      this.hideContextHelp()
+
       // If a context window was open, just close it and don't perform any action
       if (wasContextHelpVisible) {
-        return;
+        return
       }
-      
+
       // In multiplayer mode, only process clicks if it's the player's turn
       if (!this.isMyTurn) {
-        console.log('Not my turn');
-        return;
+        console.log('Not my turn')
+        return
       }
-      
+
       if (this.selectedAction === ACTIONS.scouting) {
         // In multiplayer, send scout message to server
-        emitter.emit('scoutArea', {x: x, y: y, fogRadius: this.fogOfWarRadius});
-        this.selectedAction = null;
-        this.scoutPreviewCoords = null;
-        return;
+        emitter.emit('scoutArea', { x: x, y: y, fogRadius: this.fogOfWarRadius })
+        this.selectedAction = null
+        this.scoutPreviewCoords = null
+        return
       }
-      const unit = this.field[x][y].unit;
+      const unit = this.field[x][y].unit
       if (unit) {
         // Select unit if it belongs to current player and hasn't moved
         if (unit.player === this.currentPlayer && !unit.hasMoved) {
           // If clicking on already selected unit, deselect it
           if (this.selectedCoords && this.selectedCoords[0] === x && this.selectedCoords[1] === y) {
-            this.selectedCoords = null;
-            this.removeHighlights();
+            this.selectedCoords = null
+            this.removeHighlights()
           } else {
-            this.selectUnit(x, y, unit.movePoints);
+            this.selectUnit(x, y, unit.movePoints)
           }
         }
-      }
-      else if (this.selectedCoords && this.waveEngine.canMove(this.selectedCoords, [x, y])) {
+      } else if (this.selectedCoords && this.waveEngine.canMove(this.selectedCoords, [x, y])) {
         // Move unit to clicked cell - this will emit 'moveUnit' event
         // which will be handled by MultiplayerDinoGame to send to server
-        this.moveUnit(this.selectedCoords, [x, y]);
+        this.moveUnit(this.selectedCoords, [x, y])
       }
     },
     moveUnit(fromCoords, toCoords) {
-      let [x, y] = fromCoords;
+      let [x, y] = fromCoords
       // Save movePoints value for the further remove highlights
-      const movePoints = this.field[x][y].unit.movePoints;
+      const movePoints = this.field[x][y].unit.movePoints
       // Call game moveUnit function to change field
-      emitter.emit('moveUnit', {fromCoords: fromCoords, toCoords: toCoords});
-      this.selectedCoords = null;
-      this.removeHighlightsForArea(x, y, movePoints);
+      emitter.emit('moveUnit', { fromCoords: fromCoords, toCoords: toCoords })
+      this.selectedCoords = null
+      this.removeHighlightsForArea(x, y, movePoints)
     },
     setAction(action) {
-      this.selectedAction = action;
+      this.selectedAction = action
       // Clear scout preview when action is cleared
       if (!action) {
-        this.scoutPreviewCoords = null;
+        this.scoutPreviewCoords = null
       }
     },
     saveCoords(player) {
-      const container = this.$refs.gameGridContainer;
-      player.scrollCoords = [container.scrollLeft, container.scrollTop];
+      const container = this.$refs.gameGridContainer
+      player.scrollCoords = [container.scrollLeft, container.scrollTop]
     },
     getScrollCoordsByCell(coords) {
-      const [x, y] = coords;
-      const container = this.$refs.gameGridContainer;
-      const scrollX = (x * this.cellSize) - (container.clientWidth / 2) + (this.cellSize / 2);
-      const scrollY = (y * this.cellSize) - (container.clientHeight / 2) + (this.cellSize / 2);
-      return [scrollX, scrollY];
+      const [x, y] = coords
+      const container = this.$refs.gameGridContainer
+      const scrollX = x * this.cellSize - container.clientWidth / 2 + this.cellSize / 2
+      const scrollY = y * this.cellSize - container.clientHeight / 2 + this.cellSize / 2
+      return [scrollX, scrollY]
     },
 
     // Highlights helpers
     removeHighlights() {
       for (let curX = 0; curX < this.width; curX++) {
         for (let curY = 0; curY < this.height; curY++) {
-          this.fieldOutput[curX][curY].isHighlighted = false;
+          this.fieldOutput[curX][curY].isHighlighted = false
         }
       }
     },
@@ -461,38 +464,38 @@ export default {
       for (let curX = x - radius; curX <= x + radius; curX++) {
         for (let curY = y - radius; curY <= y + radius; curY++) {
           if (this.fieldEngine.areExistingCoords(curX, curY))
-            this.fieldOutput[curX][curY].isHighlighted = false;
+            this.fieldOutput[curX][curY].isHighlighted = false
         }
       }
     },
     setHighlights(x, y, radius) {
-      const highlightedCoordsArr = this.waveEngine.getReachableCoordsArr(x, y, radius);
+      const highlightedCoordsArr = this.waveEngine.getReachableCoordsArr(x, y, radius)
 
       for (const coords of highlightedCoordsArr) {
-        const curX = coords[0];
-        const curY = coords[1];
-        this.fieldOutput[curX][curY].isHighlighted = true;
+        const curX = coords[0]
+        const curY = coords[1]
+        this.fieldOutput[curX][curY].isHighlighted = true
       }
     },
     handleContextMenu(coords) {
-      const { x, y } = coords;
+      const { x, y } = coords
       if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
-        const cell = this.field[x][y];
+        const cell = this.field[x][y]
         // Only show context help for visible cells
         if (!cell.isHidden) {
           // Close InfoPanel context help if open
           if (this.infoPanelContextHelpVisible) {
-            emitter.emit('infoPanelContextHelpChanged', false);
+            emitter.emit('infoPanelContextHelpChanged', false)
           }
-          this.contextHelpX = x;
-          this.contextHelpY = y;
-          this.contextHelpCell = cell;
-          this.contextHelpVisible = true;
+          this.contextHelpX = x
+          this.contextHelpY = y
+          this.contextHelpCell = cell
+          this.contextHelpVisible = true
 
           // In scout mode: show scout preview instead of unit visibility
           if (this.selectedAction === ACTIONS.scouting) {
-            this.scoutPreviewCoords = { x, y };
-            this.visibilityFrameUnit = null;
+            this.scoutPreviewCoords = { x, y }
+            this.visibilityFrameUnit = null
           } else {
             // Show visibility frame if fog of war is enabled and the cell has a unit
             if (this.enableFogOfWar && cell.unit) {
@@ -501,44 +504,44 @@ export default {
                 y,
                 visibility: cell.unit.visibility,
                 player: cell.unit.player,
-              };
+              }
             } else {
-              this.visibilityFrameUnit = null;
+              this.visibilityFrameUnit = null
             }
           }
         }
       }
     },
     hideContextHelp() {
-      this.contextHelpVisible = false;
+      this.contextHelpVisible = false
       // Clear visibility frame (only shown via right-click context menu)
-      this.visibilityFrameUnit = null;
+      this.visibilityFrameUnit = null
     },
     hideContextHelpOnOutsideClick(event) {
       // Hide context help if clicking outside the board
       if (this.contextHelpVisible && this.$refs.gameGridContainer) {
         if (!this.$refs.gameGridContainer.contains(event.target)) {
-          this.hideContextHelp();
+          this.hideContextHelp()
         }
       }
     },
     onInfoPanelContextHelpChanged(visible) {
-      this.infoPanelContextHelpVisible = visible;
+      this.infoPanelContextHelpVisible = visible
     },
     handleCellMouseEnter(coords) {
       // Show scout preview on hover when in scout mode
       if (this.selectedAction === ACTIONS.scouting) {
-        this.scoutPreviewCoords = { x: coords.x, y: coords.y };
+        this.scoutPreviewCoords = { x: coords.x, y: coords.y }
       }
     },
     handleCellMouseLeave() {
       // Clear scout preview on mouse leave (only if set via hover, not right-click)
       // We clear it on any leave since right-click will re-set it anyway
       if (this.selectedAction === ACTIONS.scouting) {
-        this.scoutPreviewCoords = null;
+        this.scoutPreviewCoords = null
       }
     },
-  }
+  },
 }
 </script>
 
@@ -552,21 +555,21 @@ export default {
 }
 
 .game-grid-container {
-  width: 100vw;    /* Full viewport width */
-  height: 100vh;   /* Full viewport height */
-  overflow: auto;  /* Enables scroll when the content overflows */
+  width: 100vw; /* Full viewport width */
+  height: 100vh; /* Full viewport height */
+  overflow: auto; /* Enables scroll when the content overflows */
   position: relative;
   /* Hide scrollbars but keep scrolling */
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
   background-image: url('/images/background.png');
   background-size: cover;
 }
 
 .board-wrapper-container {
   display: flex;
-  justify-content: center;    /* Centers horizontally */
-  align-items: center;        /* Centers vertically when content fits */
+  justify-content: center; /* Centers horizontally */
+  align-items: center; /* Centers vertically when content fits */
   position: relative;
   /* Use max() to ensure container is at least viewport size OR board size, whichever is larger */
   min-width: max(100vw, var(--board-width, 100vw));
@@ -580,7 +583,7 @@ export default {
 div.board-wrapper {
   position: relative;
   display: inline-block;
-  flex-shrink: 0;  /* Prevents shrinking, ensures container expands to fit */
+  flex-shrink: 0; /* Prevents shrinking, ensures container expands to fit */
 }
 
 div.board {

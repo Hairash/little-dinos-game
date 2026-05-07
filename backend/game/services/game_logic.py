@@ -7,6 +7,7 @@ from game.models import Game, GamePlayer, Move
 from game.services import undo_state as undo
 from game.services.field_diff import apply_field_diff, compute_field_diff
 from game.services.move_validation import apply_move_to_cell, validate_move
+from game.services.path import compute_path
 from game.services.unit_production import restore_and_produce_units
 from game.services.visibility import calculate_visibility
 
@@ -161,6 +162,33 @@ def apply_move_txn(game_code: str, user_id: int, payload: dict, client_seq: int)
         # Capture field state BEFORE the move (for undo)
         field_before = copy.deepcopy(field)
 
+        # Capture the moving unit and compute the BFS path. We use the
+        # per-player `field_for_validation` (built above with correct
+        # `isHidden` for the moving player) — not raw `game.field`, which
+        # carries `isHidden=True` on every cell and would make the wave field
+        # treat everything as impassable in scout mode. Same input as
+        # `validate_move`, so any path it finds is one the move rules accept.
+        moving_unit = None
+        try:
+            src_cell = field_before[from_coords[0]][from_coords[1]]
+            if isinstance(src_cell, dict):
+                moving_unit = src_cell.get("unit")
+        except (IndexError, TypeError):
+            moving_unit = None
+        move_path = None
+        if moving_unit:
+            move_path = compute_path(
+                field_for_validation,
+                width,
+                height,
+                from_coords[0],
+                from_coords[1],
+                to_coords[0],
+                to_coords[1],
+                moving_unit.get("movePoints", 1),
+                enable_scout_mode,
+            )
+
         # Capture visibility BEFORE the move (for undo eligibility check)
         visible_coords_before = None
         if enable_fog_of_war:
@@ -214,6 +242,38 @@ def apply_move_txn(game_code: str, user_id: int, payload: dict, client_seq: int)
         }
         if building_captured:
             patch["buildingCaptured"] = True
+        # Animation hints. Stored on the patch as the FULL path; the consumer
+        # slices it per recipient before sending so we never leak cells the
+        # recipient can't see.
+        if move_path and len(move_path) >= 2 and moving_unit:
+            patch["path"] = move_path
+            patch["movingUnit"] = copy.deepcopy(moving_unit)
+            # Per-player PRE-MOVE visibility, used by the consumer to slice the
+            # path. Computing visibility against the post-move field would be
+            # wrong: if this move kills a recipient's unit, their post-move
+            # visibility shrinks past the very cells the killer just walked
+            # through, the slice comes out empty, and the recipient sees no
+            # animation at all — only their fog snapping shut. The pre-move
+            # snapshot keeps the slice meaningful in that case.
+            #
+            # Sent as `_visibilityByOrder` (string-keyed for JSON portability
+            # over the channel layer). The consumer strips this key from the
+            # outgoing patch before forwarding to the client.
+            if enable_fog_of_war:
+                visibility_by_order: dict[str, list[list[int]]] = {}
+                for gp in GamePlayer.objects.filter(game=game):
+                    other_scout = gp.scout_revealed_coords if gp.scout_revealed_coords else None
+                    other_visible = calculate_visibility(
+                        field_before,
+                        width,
+                        height,
+                        gp.order,
+                        fog_of_war_radius,
+                        enable_fog_of_war,
+                        other_scout,
+                    )
+                    visibility_by_order[str(gp.order)] = [[c[0], c[1]] for c in other_visible]
+                patch["_visibilityByOrder"] = visibility_by_order
 
         # Don't advance turn after a move - turn only advances on "End Turn"
         # Keep currentPlayer in patch so clients know it's still this player's turn

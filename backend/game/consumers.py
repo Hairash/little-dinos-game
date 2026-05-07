@@ -11,7 +11,7 @@ from .services.game_logic import (
     apply_scout_txn,
     apply_undo_txn,
 )
-from .services.visibility import filter_field_for_player
+from .services.visibility import calculate_visibility, filter_field_for_player
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -423,8 +423,10 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _filter_patch_for_player(self, patch, user_id):
-        """Filter patch field based on player's visibility."""
-        if "field" not in patch or not patch["field"]:
+        """Filter patch field and animation path based on player's visibility."""
+        has_field = "field" in patch and patch["field"]
+        has_path = "path" in patch
+        if not has_field and not has_path:
             return patch
 
         g = Game.objects.get(game_code=self.game_code)
@@ -455,7 +457,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         # If game ended, disable fog of war to show full field
         effective_fog_of_war = enable_fog_of_war and not game_ended
 
-        if player_order is not None and field:
+        if player_order is not None:
             # Get scout-revealed coordinates for this player (only relevant when fog of war is enabled)
             # IMPORTANT: Refresh from DB to get the latest cleared coordinates
             if effective_fog_of_war:
@@ -469,19 +471,71 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     # print(f"[DEBUG] _filter_patch_for_player: user_id={user_id}, player_order={player_order}, scout_revealed_coords={scout_revealed_coords}, game_ended={game_ended}")
                 except GamePlayer.DoesNotExist:
                     pass
-            field = filter_field_for_player(
-                field,
-                width,
-                height,
-                player_order,
-                fog_of_war_radius,
-                effective_fog_of_war,
-                scout_revealed_coords,
-            )
+            if has_field:
+                field = filter_field_for_player(
+                    field,
+                    width,
+                    height,
+                    player_order,
+                    fog_of_war_radius,
+                    effective_fog_of_war,
+                    scout_revealed_coords,
+                )
 
         # Return patch with filtered field
         filtered_patch = patch.copy()
-        filtered_patch["field"] = field
+        if has_field:
+            filtered_patch["field"] = field
+
+        # Slice the move path against the recipient's visibility. The full
+        # `path` is never sent to clients — only the per-recipient `pathSlice`.
+        # The move-maker is allowed to see their entire walk; opponents only
+        # see cells they can currently observe.
+        if has_path:
+            full_path = patch.get("path") or []
+            is_move_maker = user_id is not None and user_id == g.turn_player_id
+            # Pre-move visibility hint emitted by `apply_move_txn`. We MUST use
+            # this in preference to recomputing visibility against the post-move
+            # field — see the comment in `apply_move_txn` for the rationale (a
+            # move that kills the recipient's unit would otherwise produce an
+            # empty slice and the recipient would see no animation).
+            pre_visibility_by_order = patch.get("_visibilityByOrder") or {}
+
+            if is_move_maker or not effective_fog_of_war or game_ended:
+                path_slice = list(full_path)
+            elif player_order is not None and str(player_order) in pre_visibility_by_order:
+                visible_set = {tuple(c) for c in pre_visibility_by_order[str(player_order)]}
+                path_slice = [c for c in full_path if tuple(c) in visible_set]
+            elif player_order is not None and has_field:
+                # Defensive fallback used only if the pre-move hint is missing
+                # (e.g. fog-of-war off, or a patch from a code path that did
+                # not attach the hint). Compute against the post-move filtered
+                # field; this is correct as long as the recipient's visibility
+                # didn't shrink during the move.
+                visible_coords = calculate_visibility(
+                    field,
+                    width,
+                    height,
+                    player_order,
+                    fog_of_war_radius,
+                    effective_fog_of_war,
+                    scout_revealed_coords,
+                )
+                path_slice = [c for c in full_path if tuple(c) in visible_coords]
+            else:
+                path_slice = []
+
+            # Always strip the unfiltered path and the internal visibility hint
+            # before sending to clients.
+            filtered_patch.pop("path", None)
+            filtered_patch.pop("_visibilityByOrder", None)
+            if len(path_slice) >= 2 and patch.get("movingUnit"):
+                filtered_patch["pathSlice"] = path_slice
+                # movingUnit is already on filtered_patch via copy; keep it.
+            else:
+                # Nothing to animate — drop the moving-unit overlay too.
+                filtered_patch.pop("movingUnit", None)
+
         return filtered_patch
 
 

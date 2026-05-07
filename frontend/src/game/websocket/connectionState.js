@@ -3,7 +3,7 @@
  * based on the global application state.
  */
 
-import { GAME_STATES } from '../const';
+import { GAME_STATES } from '../const'
 
 /**
  * Determines if lobby WebSocket should be active/reconnect
@@ -13,7 +13,7 @@ import { GAME_STATES } from '../const';
  */
 export function shouldLobbyReconnect(appState, _gameCode) {
   // Lobby WS should only reconnect when we're in lobby state
-  return appState === GAME_STATES.lobby;
+  return appState === GAME_STATES.lobby
 }
 
 /**
@@ -24,7 +24,7 @@ export function shouldLobbyReconnect(appState, _gameCode) {
  */
 export function shouldGameReconnect(appState, gameCode) {
   // Game WS should only reconnect when we're in game state AND have a game code (multiplayer)
-  return appState === GAME_STATES.game && gameCode !== null;
+  return appState === GAME_STATES.game && gameCode !== null
 }
 
 /**
@@ -42,5 +42,5 @@ export function getConnectionState(appState, gameCode) {
     isMultiplayerGame: appState === GAME_STATES.game && gameCode !== null,
     shouldLobbyReconnect: shouldLobbyReconnect(appState, gameCode),
     shouldGameReconnect: shouldGameReconnect(appState, gameCode),
-  };
+  }
 }

@@ -1,6 +1,7 @@
 <template>
-  <div class="cell"
-    :class="{'hidden': hidden, 'selected': selected, 'highlighted': highlighted}"
+  <div
+    class="cell"
+    :class="{ hidden: hidden, selected: selected, highlighted: highlighted }"
     :style="{ width: `${width}px`, height: `${height}px` }"
     @contextmenu.prevent="handleContextMenu"
     @mouseenter="handleMouseEnter"
@@ -8,30 +9,31 @@
   >
     <img
       class="terrainImg"
-      :class="{'hidden': hidden}"
+      :class="{ hidden: hidden }"
       :src="getTerrainImg()"
       :style="{ width: `${width}px`, height: `${height}px`, transition: transitionOpacity }"
-    >
+    />
     <div
       class="cellSelection"
-      :class="{'selected': selected, 'highlighted': highlighted}"
+      :class="{ selected: selected, highlighted: highlighted }"
       :style="{ width: `${width}px`, height: `${height}px` }"
-    >
-    </div>
-    <GameBuilding v-if="building"
+    ></div>
+    <GameBuilding
+      v-if="building"
       :hidden="hidden"
       :image="getBuildingImg()"
       :width="width"
       :height="height"
     />
-    <GameUnit v-if="unit"
+    <GameUnit
+      v-if="unit"
       :hidden="hidden"
       :image="unit._type"
       :width="width"
       :height="height"
-      :movePoints="unit.movePoints"
+      :move-points="unit.movePoints"
       :has-moved="unit.hasMoved"
-      :showMovePoints="showMovePoints()"
+      :show-move-points="showMovePoints()"
     />
     <!-- Warning indicator for tower limit reached -->
     <img
@@ -51,7 +53,7 @@ import { TRANSITION_DELAY } from '@/game/const.js'
 import { getImagePath } from '@/game/helpers.js'
 
 export default {
-  name: "GameCell",
+  name: 'GameCell',
   components: {
     GameUnit,
     GameBuilding,
@@ -62,11 +64,11 @@ export default {
     terrain: Object,
     unit: {
       type: Object,
-      validator: (value) => value === null || value instanceof Models.Unit,
+      validator: value => value === null || value instanceof Models.Unit,
     },
     building: {
       type: Object,
-      validator: (value) => value === null || value instanceof Models.Building,
+      validator: value => value === null || value instanceof Models.Building,
     },
     selected: Boolean,
     highlighted: Boolean,
@@ -94,7 +96,7 @@ export default {
   },
   computed: {
     transitionOpacity() {
-      return `opacity ${TRANSITION_DELAY}s`;
+      return `opacity ${TRANSITION_DELAY}s`
     },
     showTowerLimitWarning() {
       // Show warning if:
@@ -104,45 +106,46 @@ export default {
       // 4. The tower is empty or enemy-owned
       // 5. Tower limit is reached
       if (!this.hasSelectedUnit || !this.highlighted) {
-        return false;
+        return false
       }
-      
+
       if (!this.building || this.building._type !== Models.BuildingTypes.BASE) {
-        return false;
+        return false
       }
-      
+
       // Check if tower is empty or enemy-owned
-      const isTowerEmpty = this.building.player === null;
-      const isTowerEnemy = this.building.player !== null && this.building.player !== this.currentPlayer;
-      
+      const isTowerEmpty = this.building.player === null
+      const isTowerEnemy =
+        this.building.player !== null && this.building.player !== this.currentPlayer
+
       if (!isTowerEmpty && !isTowerEnemy) {
-        return false;
+        return false
       }
-      
+
       // Check if tower limit is reached
-      const towersTotal = this.currentStats?.towers?.total || 0;
-      let towersMax = this.currentStats?.towers?.max || 0;
-      
+      const towersTotal = this.currentStats?.towers?.total || 0
+      let towersMax = this.currentStats?.towers?.max || 0
+
       // If max is 0, there's no limit
       if (towersMax === 0) {
-        return false;
+        return false
       }
-      
+
       // If the selected unit is standing on a storage building, subtract the modifier
       // because when the unit moves away, the storage bonus will be lost
       if (this.selectedUnitOnStorage) {
-        console.log('selectedUnitOnStorage', this.selectedUnitOnStorage);
-        towersMax = Math.max(0, towersMax - this.baseModifier);
+        console.log('selectedUnitOnStorage', this.selectedUnitOnStorage)
+        towersMax = Math.max(0, towersMax - this.baseModifier)
       }
-      
-      return towersTotal >= towersMax;
+
+      return towersTotal >= towersMax
     },
   },
   methods: {
     getTerrainImg() {
       if (this.terrain.kind === Models.TerrainTypes.MOUNTAIN) {
-        let idx = this.terrain.idx;
-        if (idx > 5) idx = 10 - idx;
+        let idx = this.terrain.idx
+        if (idx > 5) idx = 10 - idx
         return getImagePath(`${this.terrain.kind}${idx}`)
       }
       // const idx = Math.ceil(Math.random() * 4);
@@ -150,27 +153,27 @@ export default {
       return getImagePath(`${this.terrain.kind}${this.terrain.idx}`)
     },
     getBuildingImg() {
-      let buildingImg = this.building._type;
-      if (this.building.player !== null) buildingImg += `${this.building.player + 1}`;
-      return buildingImg;
+      let buildingImg = this.building._type
+      if (this.building.player !== null) buildingImg += `${this.building.player + 1}`
+      return buildingImg
     },
     showMovePoints() {
-      if (!this.hideEnemySpeed) return true;
+      if (!this.hideEnemySpeed) return true
       // In multiplayer mode, use myPlayerOrder to show speed only for own units
       // In single-player mode (myPlayerOrder is null), use currentPlayer
-      const playerToCheck = this.myPlayerOrder !== null ? this.myPlayerOrder : this.currentPlayer;
-      if (this.unit && this.unit.player === playerToCheck) return true;
-      return false;
+      const playerToCheck = this.myPlayerOrder !== null ? this.myPlayerOrder : this.currentPlayer
+      if (this.unit && this.unit.player === playerToCheck) return true
+      return false
     },
     handleContextMenu(_event) {
       // Right-click handler (also triggered by long press on mobile)
-      this.$emit('contextMenu', { x: this.cellX, y: this.cellY });
+      this.$emit('contextMenu', { x: this.cellX, y: this.cellY })
     },
     handleMouseEnter() {
-      this.$emit('mouseEnter', { x: this.cellX, y: this.cellY });
+      this.$emit('mouseEnter', { x: this.cellX, y: this.cellY })
     },
     handleMouseLeave() {
-      this.$emit('mouseLeave', { x: this.cellX, y: this.cellY });
+      this.$emit('mouseLeave', { x: this.cellX, y: this.cellY })
     },
   },
 }

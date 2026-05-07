@@ -7,14 +7,16 @@ import { ACTIONS } from '@/game/const.js'
 function makeGrid(w = 5, h = 5, hidden = false) {
   // GameGrid uses field[x][y] indexing
   const field = Array.from({ length: w }, () =>
-    Array.from({ length: h }, () =>
-      new Models.Cell({
-        terrain: { kind: 'empty', idx: 0 },
-        building: null,
-        unit: null,
-        isHidden: hidden,
-      }),
-    ),
+    Array.from(
+      { length: h },
+      () =>
+        new Models.Cell({
+          terrain: { kind: 'empty', idx: 0 },
+          building: null,
+          unit: null,
+          isHidden: hidden,
+        })
+    )
   )
   return field
 }

@@ -13,7 +13,7 @@ function makeGrid(w, h, hidden = true) {
       building: null,
       unit: null,
       isHidden: hidden,
-    })),
+    }))
   )
 }
 
@@ -46,8 +46,20 @@ function makeWrapper(width = 5, height = 5, fogOfWarRadius = 1) {
   const vm = wrapper.vm
   vm.localField = makeGrid(width, height, true)
   vm.fieldEngine = new FieldEngine(
-    vm.localField, width, height, fogOfWarRadius, [],
-    1, 1, 0, 99, 99, 0, 0, true, true,
+    vm.localField,
+    width,
+    height,
+    fogOfWarRadius,
+    [],
+    1,
+    1,
+    0,
+    99,
+    99,
+    0,
+    0,
+    true,
+    true
   )
   vm.players = [{ _type: Models.PlayerTypes.HUMAN, active: true }]
   vm.currentPlayer = 0
@@ -79,7 +91,7 @@ describe('DinoGame stacked undo (move + scout)', () => {
 
     const events = []
     const initTurn = () => events.push(['initTurn'])
-    const setAction = (a) => events.push(['setAction', a])
+    const setAction = a => events.push(['setAction', a])
     emitter.on('initTurn', initTurn)
     emitter.on('setAction', setAction)
     try {
@@ -103,12 +115,12 @@ describe('DinoGame stacked undo (move + scout)', () => {
     for (let x = 1; x <= 3; x++) for (let y = 1; y <= 3; y++) vm.localField[x][y].isHidden = false
 
     vm.handleScoutArea({ x: 2, y: 2, fogRadius: 1 })
-    expect(vm.canUndo).toBe(true)             // scout flag wins, ignores move
-    expect(vm.moveUndoState).toBeNull()       // scout commit dropped move
+    expect(vm.canUndo).toBe(true) // scout flag wins, ignores move
+    expect(vm.moveUndoState).toBeNull() // scout commit dropped move
 
     vm.undoLastMove()
     expect(vm.scoutUndoState).toBeNull()
-    expect(vm.canUndo).toBe(false)            // move is committed, no chained undo
+    expect(vm.canUndo).toBe(false) // move is committed, no chained undo
   })
 
   it('scout that reveals new cells → undo button disabled', () => {
@@ -120,13 +132,13 @@ describe('DinoGame stacked undo (move + scout)', () => {
     expect(vm.scoutUndoState.revealedCoords.length).toBeGreaterThan(0)
     expect(vm.scoutUndoState.canUndo).toBe(false)
     expect(vm.canUndo).toBe(false)
-    expect(vm.moveUndoState).toBeNull()        // scout still commits the move
+    expect(vm.moveUndoState).toBeNull() // scout still commits the move
   })
 
   it('scout-undo re-hides exactly the cells the scout revealed', () => {
     const vm = makeWrapper()
-    vm.localField[2][2].isHidden = false       // already visible — should stay visible
-    vm.localField[3][3].isHidden = true        // hidden — scout will reveal it
+    vm.localField[2][2].isHidden = false // already visible — should stay visible
+    vm.localField[3][3].isHidden = true // hidden — scout will reveal it
 
     vm.handleScoutArea({ x: 3, y: 3, fogRadius: 0 })
     expect(vm.scoutUndoState.revealedCoords).toEqual([[3, 3]])

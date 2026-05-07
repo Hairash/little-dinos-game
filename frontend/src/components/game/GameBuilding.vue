@@ -1,10 +1,16 @@
 <template>
   <img
     class="buildingImg"
-    :class="{'hidden': hidden}"
-    :style="{ width: calculatedWidth, height: calculatedHeight, left: left, top: top, transition: transitionOpacity }"
+    :class="{ hidden: hidden }"
+    :style="{
+      width: calculatedWidth,
+      height: calculatedHeight,
+      left: left,
+      top: top,
+      transition: transitionOpacity,
+    }"
     :src="getImagePath(image)"
-  >
+  />
 </template>
 
 <script>
@@ -12,9 +18,9 @@ import { TRANSITION_DELAY } from '@/game/const.js'
 import { getImagePath } from '@/game/helpers.js'
 
 export default {
-  name: "GameBuilding",
+  name: 'GameBuilding',
   methods: {
-    getImagePath
+    getImagePath,
   },
   props: {
     hidden: Boolean,
@@ -35,21 +41,21 @@ export default {
   // },
   computed: {
     calculatedWidth() {
-      return `${this.width * 0.9}px`;
+      return `${this.width * 0.9}px`
     },
     calculatedHeight() {
-      return `${this.height * 0.9}px`;
+      return `${this.height * 0.9}px`
     },
     left() {
-      return `${this.width * 0.05}px`;
+      return `${this.width * 0.05}px`
     },
     top() {
-      return `${this.height * 0.05}px`;
+      return `${this.height * 0.05}px`
     },
     transitionOpacity() {
-      return `opacity ${TRANSITION_DELAY}s`;
-    }
-  }
+      return `opacity ${TRANSITION_DELAY}s`
+    },
+  },
 }
 </script>
 

@@ -2,43 +2,39 @@
   <div class="fixed-label">
     <div>
       <div v-if="isActivePlayer">
-        Player {{currentPlayer + 1}}, get ready!<br>
+        Player {{ currentPlayer + 1 }}, get ready!<br />
         Your color:
-        <img class="curPlayerImage" :src="`/images/dino${currentPlayer + 1}.png`">
+        <img class="curPlayerImage" :src="`/images/dino${currentPlayer + 1}.png`" />
       </div>
       <div v-if="!isActivePlayer && !isPlayerInformedLose">
-        Player {{currentPlayer + 1}}, sorry, you lose<br>
+        Player {{ currentPlayer + 1 }}, sorry, you lose<br />
         Your color:
-        <img class="curPlayerImage" :src="`/images/dino${currentPlayer + 1}.png`">
+        <img class="curPlayerImage" :src="`/images/dino${currentPlayer + 1}.png`" />
       </div>
 
-      <div v-if="areAllHumanPlayersEliminated">
-        All human players were defeated
-      </div>
-      <div v-if="winner !== null">
-        Player {{ winner + 1}} wins!
-      </div>
-      <div v-if="lastPlayer !== null">
-        Player {{ lastPlayer + 1}} is the only left
-      </div>
+      <div v-if="areAllHumanPlayersEliminated">All human players were defeated</div>
+      <div v-if="winner !== null">Player {{ winner + 1 }} wins!</div>
+      <div v-if="lastPlayer !== null">Player {{ lastPlayer + 1 }} is the only left</div>
 
       <div
-          v-if="areAllHumanPlayersEliminated || winner !== null || lastPlayer !== null"
-          class="note"
+        v-if="areAllHumanPlayersEliminated || winner !== null || lastPlayer !== null"
+        class="note"
       >
         Press exit icon on the panel to start new game
       </div>
-      <div v-if="lastPlayer === null && areAllHumanPlayersEliminated" class="note">Or you may watch bot fighting</div>
+      <div v-if="lastPlayer === null && areAllHumanPlayersEliminated" class="note">
+        Or you may watch bot fighting
+      </div>
       <div
-          v-if="lastPlayer === null && !areAllHumanPlayersEliminated && winner !== null"
-          class="note"
+        v-if="lastPlayer === null && !areAllHumanPlayersEliminated && winner !== null"
+        class="note"
       >
         Or you may continue playing
       </div>
 
       <div>
         <button type="button" @click="onClickAction">
-          <div style="position: relative; top: -2px;">Ready</div>
+          <div style="position: relative; top: -2px">Ready</div>
         </button>
       </div>
     </div>
@@ -57,7 +53,7 @@ export default {
     winner: Number,
     lastPlayer: Number,
   },
-};
+}
 </script>
 
 <style scoped>
@@ -90,7 +86,7 @@ img.curPlayerImage {
 
 button {
   background-color: transparent;
-  background-image: url("/images/long_setup_btn_clean.png");
+  background-image: url('/images/long_setup_btn_clean.png');
   background-size: 100% 100%;
   border: 0;
   padding: 8px 20px;

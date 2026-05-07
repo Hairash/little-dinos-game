@@ -2,13 +2,13 @@
   <div class="game-menu-overlay" @click.self="handleResume">
     <div class="menu-content">
       <h2>Game Statistics</h2>
-      
+
       <!-- Game Statistics -->
       <div class="statistics-section">
         <!-- Speed Range -->
         <div class="speed-range">
           <div class="speed-icon-wrapper">
-            <img class="speed-icon" :src="getImagePath('speed_icon')" alt="Speed" loading="lazy">
+            <img class="speed-icon" :src="getImagePath('speed_icon')" alt="Speed" loading="lazy" />
           </div>
           <span class="speed-number">{{ speedRangeMin }}</span>
           <span class="speed-dash">-</span>
@@ -22,27 +22,54 @@
               <tr>
                 <th class="player-header"></th>
                 <th class="dino-header">
-                  <img :src="getImagePath('dino_icon')" alt="Dinos" class="building-icon" loading="lazy">
+                  <img
+                    :src="getImagePath('dino_icon')"
+                    alt="Dinos"
+                    class="building-icon"
+                    loading="lazy"
+                  />
                 </th>
-                <th v-for="buildingType in buildingTypes" :key="buildingType.type" class="building-header">
-                  <img :src="getImagePath(buildingType.icon)" :alt="buildingType.name" class="building-icon" loading="lazy">
+                <th
+                  v-for="buildingType in buildingTypes"
+                  :key="buildingType.type"
+                  class="building-header"
+                >
+                  <img
+                    :src="getImagePath(buildingType.icon)"
+                    :alt="buildingType.name"
+                    class="building-icon"
+                    loading="lazy"
+                  />
                 </th>
               </tr>
             </thead>
             <tbody>
-              <tr 
-                v-for="(playerBuildings, playerIndex) in allPlayersBuildings" 
+              <tr
+                v-for="(playerBuildings, playerIndex) in allPlayersBuildings"
                 :key="playerIndex"
                 :class="{ 'current-player-row': playerIndex === currentPlayer }"
-                :style="playerIndex === currentPlayer ? { backgroundColor: getPlayerColor(playerIndex) } : {}"
+                :style="
+                  playerIndex === currentPlayer
+                    ? { backgroundColor: getPlayerColor(playerIndex) }
+                    : {}
+                "
               >
                 <td class="player-cell">
-                  <img :src="getImagePath('dino' + (playerIndex + 1))" :alt="`Player ${playerIndex + 1}`" class="player-icon" loading="lazy">
+                  <img
+                    :src="getImagePath('dino' + (playerIndex + 1))"
+                    :alt="`Player ${playerIndex + 1}`"
+                    class="player-icon"
+                    loading="lazy"
+                  />
                 </td>
                 <td class="dino-cell">
                   <span>{{ allPlayersDinos[playerIndex] || 0 }}</span>
                 </td>
-                <td v-for="buildingType in buildingTypes" :key="buildingType.type" class="building-cell">
+                <td
+                  v-for="buildingType in buildingTypes"
+                  :key="buildingType.type"
+                  class="building-cell"
+                >
                   <span>
                     {{ playerBuildings[buildingType.type] || 0 }}
                   </span>
@@ -51,7 +78,11 @@
               <tr class="total-row">
                 <td class="player-cell total-label">TOTAL</td>
                 <td class="dino-cell"></td>
-                <td v-for="buildingType in buildingTypes" :key="buildingType.type" class="building-cell">
+                <td
+                  v-for="buildingType in buildingTypes"
+                  :key="buildingType.type"
+                  class="building-cell"
+                >
                   <span>
                     {{ totalBuildings[buildingType.type] || 0 }}
                   </span>
@@ -65,16 +96,21 @@
       <!-- Menu Buttons -->
       <div class="menu-buttons">
         <button @click="handleResume" class="menu-btn" title="Resume">
-          <img class="btn-icon btn-icon-resume" :src="getImagePath('arrow')" alt="Resume" loading="lazy">
+          <img
+            class="btn-icon btn-icon-resume"
+            :src="getImagePath('arrow')"
+            alt="Resume"
+            loading="lazy"
+          />
         </button>
         <button @click="handleZoomIn" class="menu-btn" title="Zoom In">
-          <img class="btn-icon" :src="getImagePath('plus')" alt="Zoom In" loading="lazy">
+          <img class="btn-icon" :src="getImagePath('plus')" alt="Zoom In" loading="lazy" />
         </button>
         <button @click="handleZoomOut" class="menu-btn" title="Zoom Out">
-          <img class="btn-icon" :src="getImagePath('minus')" alt="Zoom Out" loading="lazy">
+          <img class="btn-icon" :src="getImagePath('minus')" alt="Zoom Out" loading="lazy" />
         </button>
         <button @click="handleExit" class="menu-btn" title="Exit">
-          <img class="btn-icon" :src="getImagePath('exit_icon')" alt="Exit" loading="lazy">
+          <img class="btn-icon" :src="getImagePath('exit_icon')" alt="Exit" loading="lazy" />
         </button>
       </div>
     </div>
@@ -82,8 +118,8 @@
 </template>
 
 <script>
-import Models from "@/game/models";
-import { getPlayerColor } from "@/game/helpers";
+import Models from '@/game/models'
+import { getPlayerColor } from '@/game/helpers'
 import { getImagePath } from '@/game/helpers.js'
 
 export default {
@@ -143,97 +179,104 @@ export default {
         { type: Models.BuildingTypes.WELL, icon: 'well', name: 'Well' },
         { type: Models.BuildingTypes.STORAGE, icon: 'storage', name: 'Storage' },
         { type: Models.BuildingTypes.OBELISK, icon: 'obelisk', name: 'Obelisk' },
-      ];
+      ]
     },
     speedRangeMin() {
-      const templesOccupied = this.countTemplesOccupied(this.currentPlayer);
-      return this.minSpeed + templesOccupied;
+      const templesOccupied = this.countTemplesOccupied(this.currentPlayer)
+      return this.minSpeed + templesOccupied
     },
     speedRangeMax() {
-      const templesOccupied = this.countTemplesOccupied(this.currentPlayer);
-      return this.maxSpeed + templesOccupied;
+      const templesOccupied = this.countTemplesOccupied(this.currentPlayer)
+      return this.maxSpeed + templesOccupied
     },
     allPlayersDinos() {
-      const dinosCounts = [];
-      const width = this.field ? this.field.length : 0;
-      const height = this.field && this.field[0] ? this.field[0].length : 0;
+      const dinosCounts = []
+      const width = this.field ? this.field.length : 0
+      const height = this.field && this.field[0] ? this.field[0].length : 0
 
       for (let playerIndex = 0; playerIndex < this.players.length; playerIndex++) {
-        let dinoCount = 0;
+        let dinoCount = 0
 
         for (let x = 0; x < width; x++) {
-          if (!this.field[x]) continue;
+          if (!this.field[x]) continue
           for (let y = 0; y < height; y++) {
-            if (!this.field[x][y]) continue;
+            if (!this.field[x][y]) continue
 
-            const cell = this.field[x][y];
-            const unit = cell.unit;
+            const cell = this.field[x][y]
+            const unit = cell.unit
 
             // Check if cell is visible
-            const isVisible = !this.enableFogOfWar || !cell.isHidden;
+            const isVisible = !this.enableFogOfWar || !cell.isHidden
 
-            if (!isVisible) continue;
+            if (!isVisible) continue
 
             // Count units (dinos) for this player
             if (unit && unit.player === playerIndex) {
-              dinoCount++;
+              dinoCount++
             }
           }
         }
 
-        dinosCounts.push(dinoCount);
+        dinosCounts.push(dinoCount)
       }
 
-      return dinosCounts;
+      return dinosCounts
     },
     allPlayersBuildings() {
-      const allBuildings = [];
-      const width = this.field ? this.field.length : 0;
-      const height = this.field && this.field[0] ? this.field[0].length : 0;
+      const allBuildings = []
+      const width = this.field ? this.field.length : 0
+      const height = this.field && this.field[0] ? this.field[0].length : 0
 
       for (let playerIndex = 0; playerIndex < this.players.length; playerIndex++) {
-        const playerBuildings = {};
+        const playerBuildings = {}
         // Initialize all building types to 0
         for (let _type in Models.BuildingTypes) {
-          playerBuildings[Models.BuildingTypes[_type]] = 0;
+          playerBuildings[Models.BuildingTypes[_type]] = 0
         }
 
         if (playerIndex === this.currentPlayer) {
           // For current player, use fieldEngine method to get all buildings
           if (this.fieldEngine && typeof this.fieldEngine.getBuildingsOccupied === 'function') {
-            const occupied = this.fieldEngine.getBuildingsOccupied(playerIndex);
+            const occupied = this.fieldEngine.getBuildingsOccupied(playerIndex)
             // Count towers owned by player (separate from occupied buildings)
             for (let x = 0; x < width; x++) {
-              if (!this.field[x]) continue;
+              if (!this.field[x]) continue
               for (let y = 0; y < height; y++) {
-                if (!this.field[x][y]) continue;
-                const building = this.field[x][y].building;
-                if (building && building._type === Models.BuildingTypes.BASE && building.player === playerIndex) {
-                  playerBuildings[Models.BuildingTypes.BASE]++;
+                if (!this.field[x][y]) continue
+                const building = this.field[x][y].building
+                if (
+                  building &&
+                  building._type === Models.BuildingTypes.BASE &&
+                  building.player === playerIndex
+                ) {
+                  playerBuildings[Models.BuildingTypes.BASE]++
                 }
               }
             }
             // Add occupied buildings (excluding bases which we count separately above)
             for (let type in occupied) {
               if (type !== Models.BuildingTypes.BASE) {
-                playerBuildings[type] = occupied[type];
+                playerBuildings[type] = occupied[type]
               }
             }
           } else {
             // Fallback: count manually if fieldEngine not available
             for (let x = 0; x < width; x++) {
-              if (!this.field[x]) continue;
+              if (!this.field[x]) continue
               for (let y = 0; y < height; y++) {
-                if (!this.field[x][y]) continue;
-                const cell = this.field[x][y];
-                const building = cell.building;
-                const unit = cell.unit;
+                if (!this.field[x][y]) continue
+                const cell = this.field[x][y]
+                const building = cell.building
+                const unit = cell.unit
 
                 if (building) {
-                  if (building._type === Models.BuildingTypes.BASE && building.player === playerIndex) {
-                    playerBuildings[Models.BuildingTypes.BASE]++;
+                  if (
+                    building._type === Models.BuildingTypes.BASE &&
+                    building.player === playerIndex
+                  ) {
+                    playerBuildings[Models.BuildingTypes.BASE]++
                   } else if (unit && unit.player === playerIndex) {
-                    playerBuildings[building._type]++;
+                    playerBuildings[building._type]++
                   }
                 }
               }
@@ -242,91 +285,91 @@ export default {
         } else {
           // For other players, count only visible buildings
           for (let x = 0; x < width; x++) {
-            if (!this.field[x]) continue;
+            if (!this.field[x]) continue
             for (let y = 0; y < height; y++) {
-              if (!this.field[x][y]) continue;
+              if (!this.field[x][y]) continue
 
-              const cell = this.field[x][y];
-              const building = cell.building;
-              const unit = cell.unit;
+              const cell = this.field[x][y]
+              const building = cell.building
+              const unit = cell.unit
 
               // Check if cell is visible
-              const isVisible = !this.enableFogOfWar || !cell.isHidden;
+              const isVisible = !this.enableFogOfWar || !cell.isHidden
 
-              if (!isVisible) continue;
+              if (!isVisible) continue
 
               if (building) {
                 if (building._type === Models.BuildingTypes.BASE) {
                   // Base is counted if owned by the player
                   if (building.player === playerIndex) {
-                    playerBuildings[Models.BuildingTypes.BASE]++;
+                    playerBuildings[Models.BuildingTypes.BASE]++
                   }
                 } else if (unit && unit.player === playerIndex) {
                   // Other buildings are counted if occupied by player's unit
-                  playerBuildings[building._type]++;
+                  playerBuildings[building._type]++
                 }
               }
             }
           }
         }
 
-        allBuildings.push(playerBuildings);
+        allBuildings.push(playerBuildings)
       }
 
-      return allBuildings;
+      return allBuildings
     },
     totalBuildings() {
-      const totals = {};
-      const width = this.field ? this.field.length : 0;
-      const height = this.field && this.field[0] ? this.field[0].length : 0;
+      const totals = {}
+      const width = this.field ? this.field.length : 0
+      const height = this.field && this.field[0] ? this.field[0].length : 0
 
       // Initialize all building types to 0
       for (let _type in Models.BuildingTypes) {
-        totals[Models.BuildingTypes[_type]] = 0;
+        totals[Models.BuildingTypes[_type]] = 0
       }
 
       // Count all buildings regardless of visibility
       for (let x = 0; x < width; x++) {
-        if (!this.field[x]) continue;
+        if (!this.field[x]) continue
         for (let y = 0; y < height; y++) {
-          if (!this.field[x][y]) continue;
+          if (!this.field[x][y]) continue
 
-          const cell = this.field[x][y];
-          const building = cell.building;
+          const cell = this.field[x][y]
+          const building = cell.building
 
           if (building) {
             // Count all buildings of each type
-            totals[building._type]++;
+            totals[building._type]++
           }
         }
       }
 
-      return totals;
+      return totals
     },
   },
   mounted() {
     // Close menu on Escape key
-    document.addEventListener('keydown', this.handleKeyDown);
+    document.addEventListener('keydown', this.handleKeyDown)
   },
   beforeUnmount() {
-    document.removeEventListener('keydown', this.handleKeyDown);
+    document.removeEventListener('keydown', this.handleKeyDown)
   },
   methods: {
     getPlayerColor,
     getImagePath,
     countTemplesOccupied(player) {
-      let count = 0;
-      const width = this.field ? this.field.length : 0;
-      const height = this.field && this.field[0] ? this.field[0].length : 0;
+      let count = 0
+      const width = this.field ? this.field.length : 0
+      const height = this.field && this.field[0] ? this.field[0].length : 0
 
       for (let x = 0; x < width; x++) {
-        if (!this.field[x]) continue;
+        if (!this.field[x]) continue
         for (let y = 0; y < height; y++) {
-          if (!this.field[x][y]) continue;
+          if (!this.field[x][y]) continue
 
-          const cell = this.field[x][y];
-          const building = cell.building;
-          const unit = cell.unit;
+          const cell = this.field[x][y]
+          const building = cell.building
+          const unit = cell.unit
 
           if (
             building &&
@@ -334,20 +377,20 @@ export default {
             unit &&
             unit.player === player
           ) {
-            count++;
+            count++
           }
         }
       }
 
-      return count;
+      return count
     },
     handleKeyDown(event) {
       if (event.key === 'Escape') {
-        this.handleResume();
+        this.handleResume()
       }
     },
   },
-};
+}
 </script>
 
 <style scoped>
@@ -384,7 +427,6 @@ export default {
   box-sizing: border-box;
   /* padding: 38px 40px 54px; */
 }
-
 
 .menu-content h2 {
   margin: 0;
@@ -559,7 +601,6 @@ export default {
   /* text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7); */
 }
 
-
 .menu-buttons {
   display: flex;
   flex-direction: row;
@@ -676,4 +717,3 @@ export default {
   }
 }
 </style>
-
