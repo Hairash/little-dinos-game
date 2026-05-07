@@ -1,76 +1,84 @@
 // Global mocks and utilities for tests
-import { vi, beforeEach } from 'vitest';
+import { vi, beforeEach } from 'vitest'
 
 // Mock localStorage
 const localStorageMock = (() => {
-  let store = {};
+  let store = {}
   return {
-    getItem: (key) => store[key] || null,
-    setItem: (key, value) => { store[key] = String(value); },
-    removeItem: (key) => { delete store[key]; },
-    clear: () => { store = {}; },
-    get length() { return Object.keys(store).length; },
-    key: (i) => Object.keys(store)[i] || null,
-  };
-})();
+    getItem: key => store[key] || null,
+    setItem: (key, value) => {
+      store[key] = String(value)
+    },
+    removeItem: key => {
+      delete store[key]
+    },
+    clear: () => {
+      store = {}
+    },
+    get length() {
+      return Object.keys(store).length
+    },
+    key: i => Object.keys(store)[i] || null,
+  }
+})()
 
 Object.defineProperty(globalThis, 'localStorage', {
   value: localStorageMock,
   writable: true,
-});
+})
 
 // Mock WebSocket
 class MockWebSocket {
-  static CONNECTING = 0;
-  static OPEN = 1;
-  static CLOSING = 2;
-  static CLOSED = 3;
+  static CONNECTING = 0
+  static OPEN = 1
+  static CLOSING = 2
+  static CLOSED = 3
 
   constructor(url) {
-    this.url = url;
-    this.readyState = MockWebSocket.CONNECTING;
-    this.onopen = null;
-    this.onclose = null;
-    this.onmessage = null;
-    this.onerror = null;
-    this._messageQueue = [];
+    this.url = url
+    this.readyState = MockWebSocket.CONNECTING
+    this.onopen = null
+    this.onclose = null
+    this.onmessage = null
+    this.onerror = null
+    this._messageQueue = []
 
     // Auto-open after microtask
     Promise.resolve().then(() => {
-      this.readyState = MockWebSocket.OPEN;
+      this.readyState = MockWebSocket.OPEN
       if (this.onopen) {
-        this.onopen({ type: 'open' });
+        this.onopen({ type: 'open' })
       }
-    });
+    })
   }
 
   send(data) {
-    this._messageQueue.push(data);
+    this._messageQueue.push(data)
   }
 
   close(code = 1000, reason = '') {
-    this.readyState = MockWebSocket.CLOSED;
+    this.readyState = MockWebSocket.CLOSED
     if (this.onclose) {
-      this.onclose({ code, reason, type: 'close' });
+      this.onclose({ code, reason, type: 'close' })
     }
   }
 
   // Test helper to simulate receiving a message
   _receiveMessage(data) {
     if (this.onmessage) {
-      this.onmessage({ data: JSON.stringify(data), type: 'message' });
+      this.onmessage({ data: JSON.stringify(data), type: 'message' })
     }
   }
 
   // Test helper to simulate an error
   _triggerError(error) {
     if (this.onerror) {
-      this.onerror({ error, type: 'error' });
+      this.onerror({ error, type: 'error' })
     }
   }
 }
 
-globalThis.WebSocket = MockWebSocket;
+globalThis.WebSocket = MockWebSocket
 
 // Mock fetch
 globalThis.fetch = vi.fn(() =>
@@ -80,7 +88,7 @@ globalThis.fetch = vi.fn(() =>
     text: () => Promise.resolve(''),
     status: 200,
   })
-);
+)
 
 // Test data factories
 export function createTestUnit(overrides = {}) {
@@ -91,7 +99,7 @@ export function createTestUnit(overrides = {}) {
     visibility: 3,
     hasMoved: false,
     ...overrides,
-  };
+  }
 }
 
 export function createTestBuilding(overrides = {}) {
@@ -99,7 +107,7 @@ export function createTestBuilding(overrides = {}) {
     player: 0,
     _type: 'base',
     ...overrides,
-  };
+  }
 }
 
 export function createTestCell(overrides = {}) {
@@ -109,7 +117,7 @@ export function createTestCell(overrides = {}) {
     unit: null,
     isHidden: false,
     ...overrides,
-  };
+  }
 }
 
 export function createTestPlayer(overrides = {}) {
@@ -122,23 +130,23 @@ export function createTestPlayer(overrides = {}) {
     informed_lose: false,
     scrollCoords: [0, 0],
     ...overrides,
-  };
+  }
 }
 
 export function createTestField(width, height, cellFactory = createTestCell) {
-  const field = [];
+  const field = []
   for (let x = 0; x < width; x++) {
-    const col = [];
+    const col = []
     for (let y = 0; y < height; y++) {
-      col.push(cellFactory());
+      col.push(cellFactory())
     }
-    field.push(col);
+    field.push(col)
   }
-  return field;
+  return field
 }
 
 // Reset mocks before each test
 beforeEach(() => {
-  localStorage.clear();
-  vi.clearAllMocks();
-});
+  localStorage.clear()
+  vi.clearAllMocks()
+})

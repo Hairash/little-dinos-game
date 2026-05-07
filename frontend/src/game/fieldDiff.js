@@ -15,12 +15,12 @@
  * @returns {Array} Array of { x, y, cell } objects representing original cell states
  */
 export function computeFieldDiff(oldField, newField, width, height) {
-  const diff = [];
+  const diff = []
 
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      const oldCell = oldField[x][y];
-      const newCell = newField[x][y];
+      const oldCell = oldField[x][y]
+      const newCell = newField[x][y]
 
       // Compare cells - check unit and building changes
       if (!cellsEqual(oldCell, newCell)) {
@@ -30,12 +30,12 @@ export function computeFieldDiff(oldField, newField, width, height) {
           x,
           y,
           cell: JSON.parse(JSON.stringify(oldCell)),
-        });
+        })
       }
     }
   }
 
-  return diff;
+  return diff
 }
 
 /**
@@ -48,31 +48,34 @@ export function computeFieldDiff(oldField, newField, width, height) {
  */
 function cellsEqual(cellA, cellB) {
   // Compare units
-  const unitA = cellA.unit;
-  const unitB = cellB.unit;
+  const unitA = cellA.unit
+  const unitB = cellB.unit
 
   if ((unitA === null || unitA === undefined) !== (unitB === null || unitB === undefined)) {
-    return false;
+    return false
   }
   if (unitA && unitB) {
-    if (unitA.player !== unitB.player) return false;
-    if (unitA.movePoints !== unitB.movePoints) return false;
-    if (unitA.hasMoved !== unitB.hasMoved) return false;
+    if (unitA.player !== unitB.player) return false
+    if (unitA.movePoints !== unitB.movePoints) return false
+    if (unitA.hasMoved !== unitB.hasMoved) return false
   }
 
   // Compare buildings
-  const buildingA = cellA.building;
-  const buildingB = cellB.building;
+  const buildingA = cellA.building
+  const buildingB = cellB.building
 
-  if ((buildingA === null || buildingA === undefined) !== (buildingB === null || buildingB === undefined)) {
-    return false;
+  if (
+    (buildingA === null || buildingA === undefined) !==
+    (buildingB === null || buildingB === undefined)
+  ) {
+    return false
   }
   if (buildingA && buildingB) {
-    if (buildingA.player !== buildingB.player) return false;
-    if (buildingA._type !== buildingB._type) return false;
+    if (buildingA.player !== buildingB.player) return false
+    if (buildingA._type !== buildingB._type) return false
   }
 
-  return true;
+  return true
 }
 
 /**
@@ -86,7 +89,7 @@ export function applyFieldDiff(field, diff) {
   for (const { x, y, cell } of diff) {
     // Restore the original cell (deep clone to avoid reference issues)
     // Use JSON.parse/stringify for compatibility with Vue reactive proxies
-    field[x][y].unit = cell.unit ? JSON.parse(JSON.stringify(cell.unit)) : null;
-    field[x][y].building = cell.building ? JSON.parse(JSON.stringify(cell.building)) : null;
+    field[x][y].unit = cell.unit ? JSON.parse(JSON.stringify(cell.unit)) : null
+    field[x][y].building = cell.building ? JSON.parse(JSON.stringify(cell.building)) : null
   }
 }

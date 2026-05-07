@@ -1,83 +1,82 @@
 <template>
   <LoginPage
     v-if="state === GAME_STATES.login"
-    @loginSuccess="loginSuccess"
-    @loginError="loginError"
+    @login-success="loginSuccess"
+    @login-error="loginError"
   />
   <LobbyPage
     v-if="state === GAME_STATES.lobby"
     ref="lobbyPageRef"
-    :gameCode="currentGameCode"
-    :getAppState="getAppState"
-    @gameStarted="handleGameStarted"
-    @connectToGame="connectToGame"
-    @signOut="handleSignOut"
-    @setupGame="handleSetupGame"
+    :game-code="currentGameCode"
+    :get-app-state="getAppState"
+    @game-started="handleGameStarted"
+    @connect-to-game="connectToGame"
+    @sign-out="handleSignOut"
+    @setup-game="handleSetupGame"
   />
-  <GameMenu
-    v-if="state === GAME_STATES.menu"
-    :error="currentError"
-    :setError="setError"
-  />
+  <GameMenu v-if="state === GAME_STATES.menu" :error="currentError" :set-error="setError" />
   <GameSetup
     v-if="state === GAME_STATES.setup"
-    :isMultiplayerMode="!!currentGameCode"
-    :savedMultiplayerSettings="multiplayerSettings"
+    :is-multiplayer-mode="!!currentGameCode"
+    :saved-multiplayer-settings="multiplayerSettings"
   />
   <DinoGame
     v-if="state === GAME_STATES.game && !currentGameCode"
-    :humanPlayersNum = "settings.humanPlayersNum"
-    :botPlayersNum = "settings.botPlayersNum"
-    :width = "settings.width"
-    :height = "settings.height"
-    :scoresToWin = "settings.scoresToWin"
-    :sectorsNum = "settings.sectorsNum"
-    :enableFogOfWar = "settings.enableFogOfWar"
-    :fogOfWarRadius = "settings.fogOfWarRadius"
-    :enableScoutMode = "settings.enableScoutMode"
-    :visibilitySpeedRelation = "settings.visibilitySpeedRelation"
-    :minSpeed = "settings.minSpeed"
-    :speedMinVisibility = "settings.speedMinVisibility"
-    :maxSpeed = "settings.maxSpeed"
+    :human-players-num="settings.humanPlayersNum"
+    :bot-players-num="settings.botPlayersNum"
+    :width="settings.width"
+    :height="settings.height"
+    :scores-to-win="settings.scoresToWin"
+    :sectors-num="settings.sectorsNum"
+    :enable-fog-of-war="settings.enableFogOfWar"
+    :fog-of-war-radius="settings.fogOfWarRadius"
+    :enable-scout-mode="settings.enableScoutMode"
+    :visibility-speed-relation="settings.visibilitySpeedRelation"
+    :min-speed="settings.minSpeed"
+    :speed-min-visibility="settings.speedMinVisibility"
+    :max-speed="settings.maxSpeed"
     :max-units-num="settings.maxUnitsNum"
     :max-bases-num="settings.maxBasesNum"
     :unit-modifier="settings.unitModifier"
     :base-modifier="settings.baseModifier"
     :building-rates="settings.buildingRates"
-    :enableUndo = "settings.enableUndo"
-    :hideEnemySpeed = "settings.hideEnemySpeed"
-    :killAtBirth = "settings.killAtBirth"
-    :loadGame = "settings.loadGame"
-    :field = "settings.field"
+    :enable-undo="settings.enableUndo"
+    :hide-enemy-speed="settings.hideEnemySpeed"
+    :kill-at-birth="settings.killAtBirth"
+    :load-game="settings.loadGame"
+    :field="settings.field"
   />
   <MultiplayerDinoGame
     v-if="state === GAME_STATES.game && currentGameCode"
     ref="multiplayerGameRef"
-    :gameCode="currentGameCode"
+    :game-code="currentGameCode"
     :field="settings.field"
     :settings="settings"
-    :gameState="currentGameState"
-    :getAppState="getAppState"
-    @exitGame="handleExitMultiplayerGame"
+    :game-state="currentGameState"
+    :get-app-state="getAppState"
+    @exit-game="handleExitMultiplayerGame"
   />
-  <GameHelp
-    v-if="state === GAME_STATES.help"
-  />
-
+  <GameHelp v-if="state === GAME_STATES.help" />
 </template>
 
 <script>
-import GameMenu from "@/components/game/GameMenu.vue";
+import GameMenu from '@/components/game/GameMenu.vue'
 import GameSetup from '@/components/game/GameSetup.vue'
 import DinoGame from '@/components/game/DinoGame.vue'
 import MultiplayerDinoGame from '@/components/game/MultiplayerDinoGame.vue'
-import GameHelp from "@/components/game/GameHelp.vue";
-import LoginPage from '@/components/pages/LoginPage.vue';
-import LobbyPage from '@/components/pages/LobbyPage.vue';
-import emitter from "@/game/eventBus";
-import {DEFAULT_BUILDING_RATES, FIELDS_TO_SAVE, GAME_STATES, INITIAL_SETTINGS, MULTIPLAYER_INITIAL_SETTINGS} from "@/game/const";
-import { whoami } from "@/services/auth";
-import { joinGame, createGame, startMultiplayerGame, leaveGame } from "@/game/service";
+import GameHelp from '@/components/game/GameHelp.vue'
+import LoginPage from '@/components/pages/LoginPage.vue'
+import LobbyPage from '@/components/pages/LobbyPage.vue'
+import emitter from '@/game/eventBus'
+import {
+  DEFAULT_BUILDING_RATES,
+  FIELDS_TO_SAVE,
+  GAME_STATES,
+  INITIAL_SETTINGS,
+  MULTIPLAYER_INITIAL_SETTINGS,
+} from '@/game/const'
+import { whoami } from '@/services/auth'
+import { joinGame, createGame, startMultiplayerGame, leaveGame } from '@/game/service'
 
 export default {
   name: 'App',
@@ -98,21 +97,21 @@ export default {
       currentError: null,
       currentGameCode: null,
       currentGameState: null,
-      multiplayerSettings: null,  // Store custom settings for multiplayer game
+      multiplayerSettings: null, // Store custom settings for multiplayer game
     }
   },
   mounted() {
-    emitter.on('startGame', this.startGame);
-    emitter.on('loadGame', this.loadGame);
-    emitter.on('goToPage', this.goToPage);
-    emitter.on('startMultiplayer', this.startMultiplayer);
+    emitter.on('startGame', this.startGame)
+    emitter.on('loadGame', this.loadGame)
+    emitter.on('goToPage', this.goToPage)
+    emitter.on('startMultiplayer', this.startMultiplayer)
 
-    emitter.on('joinGame', this.callJoinGame);
-    emitter.on('createGame', this.callCreateGame);
-    emitter.on('callStartMultiplayerGame', this.callStartMultiplayerGame);
-    emitter.on('multiplayerSettingsConfigured', this.handleMultiplayerSettingsConfigured);
+    emitter.on('joinGame', this.callJoinGame)
+    emitter.on('createGame', this.callCreateGame)
+    emitter.on('callStartMultiplayerGame', this.callStartMultiplayerGame)
+    emitter.on('multiplayerSettingsConfigured', this.handleMultiplayerSettingsConfigured)
 
-    this.state = GAME_STATES.menu;
+    this.state = GAME_STATES.menu
   },
   methods: {
     // State getter function for WebSocket reconnect logic
@@ -120,274 +119,282 @@ export default {
       return {
         state: this.state,
         gameCode: this.currentGameCode,
-      };
+      }
     },
     loginSuccess(response) {
-      console.log(response);
+      console.log(response)
       // After login, go to lobby (user came from multiplayer menu option)
-      this.state = this.GAME_STATES.lobby;
+      this.state = this.GAME_STATES.lobby
     },
     loginError(error) {
-      console.error(error);
+      console.error(error)
     },
     async callJoinGame(gameCode) {
-      console.log('Joining game', gameCode);
+      console.log('Joining game', gameCode)
       // Leave current game if we're in one
       if (this.currentGameCode && this.currentGameCode !== gameCode) {
-        await this.leaveCurrentGame();
+        await this.leaveCurrentGame()
       }
       // Temporarily clear gameCode to prevent watcher from reconnecting to old game
-      const oldGameCode = this.currentGameCode;
-      this.currentGameCode = null;
+      const oldGameCode = this.currentGameCode
+      this.currentGameCode = null
       // Close any existing WebSocket connections (both game and lobby)
-      this.closeAllWebSockets();
+      this.closeAllWebSockets()
       // Wait a tick to ensure WebSocket is fully closed
       this.$nextTick(() => {
-        joinGame(gameCode).then(response => {
-          console.log(response);
-          // Re-enable reconnection and set new gameCode
-          if (this.$refs.lobbyPageRef) {
-            this.$refs.lobbyPageRef.preventReconnect = false;
-          }
-          this.currentGameCode = gameCode;
-          // WebSocket will connect automatically via LobbyPage prop watch
-        }).catch(error => {
-          console.error(error);
-          // Re-enable reconnection and restore old gameCode on error
-          if (this.$refs.lobbyPageRef) {
-            this.$refs.lobbyPageRef.preventReconnect = false;
-          }
-          this.currentGameCode = oldGameCode;
-        });
-      });
+        joinGame(gameCode)
+          .then(response => {
+            console.log(response)
+            // Re-enable reconnection and set new gameCode
+            if (this.$refs.lobbyPageRef) {
+              this.$refs.lobbyPageRef.preventReconnect = false
+            }
+            this.currentGameCode = gameCode
+            // WebSocket will connect automatically via LobbyPage prop watch
+          })
+          .catch(error => {
+            console.error(error)
+            // Re-enable reconnection and restore old gameCode on error
+            if (this.$refs.lobbyPageRef) {
+              this.$refs.lobbyPageRef.preventReconnect = false
+            }
+            this.currentGameCode = oldGameCode
+          })
+      })
     },
     async callCreateGame() {
-      console.log('Creating game');
+      console.log('Creating game')
       // Leave current game if we're in one
       if (this.currentGameCode) {
-        await this.leaveCurrentGame();
+        await this.leaveCurrentGame()
       }
       // Temporarily clear gameCode to prevent watcher from reconnecting to old game
-      const oldGameCode = this.currentGameCode;
-      this.currentGameCode = null;
+      const oldGameCode = this.currentGameCode
+      this.currentGameCode = null
       // Close any existing WebSocket connections (both game and lobby)
-      this.closeAllWebSockets();
+      this.closeAllWebSockets()
       // Wait a tick to ensure WebSocket is fully closed
       this.$nextTick(() => {
-        createGame().then(response => {
-          console.log(response);
-          // Re-enable reconnection and set new gameCode
-          if (this.$refs.lobbyPageRef) {
-            this.$refs.lobbyPageRef.preventReconnect = false;
-          }
-          this.currentGameCode = response.gameCode;
-          // WebSocket will connect automatically via LobbyPage prop watch
-        }).catch(error => {
-          console.error(error);
-          // Re-enable reconnection and restore old gameCode on error
-          if (this.$refs.lobbyPageRef) {
-            this.$refs.lobbyPageRef.preventReconnect = false;
-          }
-          this.currentGameCode = oldGameCode;
-        });
-      });
+        createGame()
+          .then(response => {
+            console.log(response)
+            // Re-enable reconnection and set new gameCode
+            if (this.$refs.lobbyPageRef) {
+              this.$refs.lobbyPageRef.preventReconnect = false
+            }
+            this.currentGameCode = response.gameCode
+            // WebSocket will connect automatically via LobbyPage prop watch
+          })
+          .catch(error => {
+            console.error(error)
+            // Re-enable reconnection and restore old gameCode on error
+            if (this.$refs.lobbyPageRef) {
+              this.$refs.lobbyPageRef.preventReconnect = false
+            }
+            this.currentGameCode = oldGameCode
+          })
+      })
     },
     async leaveCurrentGame() {
       if (!this.currentGameCode) {
-        return;
+        return
       }
       try {
-        console.log('Leaving current game:', this.currentGameCode);
-        await leaveGame(this.currentGameCode);
+        console.log('Leaving current game:', this.currentGameCode)
+        await leaveGame(this.currentGameCode)
       } catch (error) {
         // Don't block on leave errors - just log them
-        console.warn('Error leaving game (non-blocking):', error);
+        console.warn('Error leaving game (non-blocking):', error)
       }
     },
     closeAllWebSockets() {
       // Set flag to prevent automatic reconnection in LobbyPage watcher
       if (this.$refs.lobbyPageRef) {
-        this.$refs.lobbyPageRef.preventReconnect = true;
+        this.$refs.lobbyPageRef.preventReconnect = true
       }
       // Close game WebSocket connection if there's an active game component
       if (this.$refs.multiplayerGameRef && this.$refs.multiplayerGameRef.gameWs) {
-        console.log('Closing existing game WebSocket connection');
-        this.$refs.multiplayerGameRef.gameWs.disconnect();
+        console.log('Closing existing game WebSocket connection')
+        this.$refs.multiplayerGameRef.gameWs.disconnect()
       }
       // Close lobby WebSocket connection if there's an active lobby component
       if (this.$refs.lobbyPageRef && this.$refs.lobbyPageRef.lobbyWs) {
-        console.log('Closing existing lobby WebSocket connection');
-        this.$refs.lobbyPageRef.lobbyWs.disconnect();
-        this.$refs.lobbyPageRef.lobbyWs = null;
+        console.log('Closing existing lobby WebSocket connection')
+        this.$refs.lobbyPageRef.lobbyWs.disconnect()
+        this.$refs.lobbyPageRef.lobbyWs = null
       }
     },
     callStartMultiplayerGame() {
-      console.log('Starting multiplayer game');
+      console.log('Starting multiplayer game')
       // Use custom settings if available, otherwise load from localStorage
-      let settings = this.multiplayerSettings;
-      
+      let settings = this.multiplayerSettings
+
       if (!settings) {
         // Load settings from localStorage if available
-        const storedSettings = this.loadStoredMultiplayerSettings();
+        const storedSettings = this.loadStoredMultiplayerSettings()
         if (storedSettings) {
-          settings = storedSettings;
+          settings = storedSettings
         } else {
           // Only use null (which triggers defaults) if no stored settings exist
-          settings = null;
+          settings = null
         }
       }
-      
-      startMultiplayerGame(this.currentGameCode, settings).then(response => {
-        console.log(response);
-        // Clear settings after starting
-        this.multiplayerSettings = null;
-        // Don't change state here - wait for game_started WebSocket message
-        // The state will change in handleGameStarted
-      }).catch(error => {
-        console.error(error);
-      });
+
+      startMultiplayerGame(this.currentGameCode, settings)
+        .then(response => {
+          console.log(response)
+          // Clear settings after starting
+          this.multiplayerSettings = null
+          // Don't change state here - wait for game_started WebSocket message
+          // The state will change in handleGameStarted
+        })
+        .catch(error => {
+          console.error(error)
+        })
     },
     loadStoredMultiplayerSettings() {
       // Load settings from localStorage (same logic as GameSetup.vue)
-      const storedSettings = { ...MULTIPLAYER_INITIAL_SETTINGS };
-      let hasAnyStoredValue = false;
-      
-      const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field');
+      const storedSettings = { ...MULTIPLAYER_INITIAL_SETTINGS }
+      let hasAnyStoredValue = false
+
+      const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field')
       for (const field of fieldsToLoad) {
-        const value = localStorage.getItem(field);
+        const value = localStorage.getItem(field)
         if (value) {
-          storedSettings[field] = JSON.parse(value);
-          hasAnyStoredValue = true;
+          storedSettings[field] = JSON.parse(value)
+          hasAnyStoredValue = true
         }
       }
-      
+
       // Return settings only if we found at least one stored value
       // This ensures we use stored settings if any exist, otherwise return null to use defaults
-      return hasAnyStoredValue ? storedSettings : null;
+      return hasAnyStoredValue ? storedSettings : null
     },
     handleGameStarted(gameState) {
-      console.log('Game started, received state:', gameState);
+      console.log('Game started, received state:', gameState)
       // Close lobby WebSocket before transitioning to game (lobby WS not needed during game)
       if (this.$refs.lobbyPageRef && this.$refs.lobbyPageRef.lobbyWs) {
-        console.log('Closing lobby WebSocket before starting game');
-        this.$refs.lobbyPageRef.lobbyWs.disconnect();
-        this.$refs.lobbyPageRef.lobbyWs = null;
+        console.log('Closing lobby WebSocket before starting game')
+        this.$refs.lobbyPageRef.lobbyWs.disconnect()
+        this.$refs.lobbyPageRef.lobbyWs = null
       }
       // Store game state and transition to game view
       // The game component will connect to GameConsumer to receive filtered field
-      this.state = this.GAME_STATES.game;
+      this.state = this.GAME_STATES.game
       // Store settings from backend (field will come from GameConsumer, not here)
       if (gameState.settings) {
-        this.settings = typeof gameState.settings === 'string' 
-          ? JSON.parse(gameState.settings) 
-          : gameState.settings;
+        this.settings =
+          typeof gameState.settings === 'string'
+            ? JSON.parse(gameState.settings)
+            : gameState.settings
       }
       // Don't store field from game_started - it will come from GameConsumer with proper filtering
       // Store game state for multiplayer component (without field)
-      this.currentGameState = gameState;
+      this.currentGameState = gameState
     },
     handleExitMultiplayerGame() {
       // Return to lobby when exiting multiplayer game
-      this.currentGameCode = null;
-      this.currentGameState = null;
-      this.state = this.GAME_STATES.lobby;
+      this.currentGameCode = null
+      this.currentGameState = null
+      this.state = this.GAME_STATES.lobby
     },
 
     startGame(settings) {
-      console.log(settings);
-      this.settings = settings;
-      this.state = this.GAME_STATES.game;
+      console.log(settings)
+      this.settings = settings
+      this.state = this.GAME_STATES.game
     },
     goToPage(page) {
-      this.state = page;
+      this.state = page
     },
     loadGame() {
-      const loadGamePossible = !!localStorage.getItem('field');
+      const loadGamePossible = !!localStorage.getItem('field')
       if (!loadGamePossible) {
         // TODO: Use dialog instead of alert
-        this.setError('No saved game found. Start a new game first.');
-        return;
+        this.setError('No saved game found. Start a new game first.')
+        return
       }
-      this.settings = INITIAL_SETTINGS;
-      const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field');
+      this.settings = INITIAL_SETTINGS
+      const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field')
       for (const field of fieldsToLoad) {
-        const value = localStorage.getItem(field);
+        const value = localStorage.getItem(field)
         // Dirty hack to set default values for buildingRates, because otherwise
         // vue3-slider displays default values instead of 0
         if (field === 'buildingRates' && !value) {
-          this.buildingRates = DEFAULT_BUILDING_RATES;
+          this.buildingRates = DEFAULT_BUILDING_RATES
         }
         if (value) {
-          this.settings[field] = JSON.parse(value);
+          this.settings[field] = JSON.parse(value)
         }
       }
-      this.settings.loadGame = true;
-      this.state = this.GAME_STATES.game;
-      console.log(this.settings);
+      this.settings.loadGame = true
+      this.state = this.GAME_STATES.game
+      console.log(this.settings)
     },
     setError(error) {
-      this.currentError = error;
+      this.currentError = error
     },
     connectToGame(game) {
-      console.log('Connecting to game:', game.gameCode);
+      console.log('Connecting to game:', game.gameCode)
       // Close any existing WebSocket connections (both game and lobby)
-      this.closeAllWebSockets();
+      this.closeAllWebSockets()
       // Set game code and state
-      this.currentGameCode = game.gameCode;
+      this.currentGameCode = game.gameCode
       // Store game state
       if (game.settings) {
-        this.settings = typeof game.settings === 'string' 
-          ? JSON.parse(game.settings) 
-          : game.settings;
+        this.settings =
+          typeof game.settings === 'string' ? JSON.parse(game.settings) : game.settings
       }
-      this.currentGameState = game;
+      this.currentGameState = game
       // Navigate to game
-      this.state = GAME_STATES.game;
+      this.state = GAME_STATES.game
     },
     handleSignOut() {
       // Close any existing WebSocket connections (both game and lobby)
-      this.closeAllWebSockets();
+      this.closeAllWebSockets()
       // Clear game state
-      this.currentGameCode = null;
-      this.currentGameState = null;
-      this.multiplayerSettings = null;
+      this.currentGameCode = null
+      this.currentGameState = null
+      this.multiplayerSettings = null
       // Redirect to login page
-      this.state = GAME_STATES.login;
+      this.state = GAME_STATES.login
     },
     handleSetupGame() {
       // Navigate to GameSetup page for multiplayer game configuration
-      this.state = GAME_STATES.setup;
+      this.state = GAME_STATES.setup
     },
     handleMultiplayerSettingsConfigured(settings) {
       // Store settings and return to lobby
-      this.multiplayerSettings = settings;
-      this.state = GAME_STATES.lobby;
+      this.multiplayerSettings = settings
+      this.state = GAME_STATES.lobby
     },
     startMultiplayer() {
       // Check if user is authenticated before going to lobby
-      whoami().then(data => {
-        if (data.auth) {
-          // User is authenticated, go directly to lobby
-          this.state = GAME_STATES.lobby;
-        } else {
-          // User needs to login first
-          this.state = GAME_STATES.login;
-        }
-      }).catch(error => {
-        // On error, go to login
-        console.error(error);
-        this.state = GAME_STATES.login;
-      });
+      whoami()
+        .then(data => {
+          if (data.auth) {
+            // User is authenticated, go directly to lobby
+            this.state = GAME_STATES.lobby
+          } else {
+            // User needs to login first
+            this.state = GAME_STATES.login
+          }
+        })
+        .catch(error => {
+          // On error, go to login
+          console.error(error)
+          this.state = GAME_STATES.login
+        })
     },
   },
   beforeUnmount() {
-    emitter.off('startGame', this.startGame);
-    emitter.off('loadGame', this.loadGame);
-    emitter.off('goToPage', this.goToPage);
-    emitter.off('startMultiplayer', this.startMultiplayer);
-    emitter.off('multiplayerSettingsConfigured', this.handleMultiplayerSettingsConfigured);
+    emitter.off('startGame', this.startGame)
+    emitter.off('loadGame', this.loadGame)
+    emitter.off('goToPage', this.goToPage)
+    emitter.off('startMultiplayer', this.startMultiplayer)
+    emitter.off('multiplayerSettingsConfigured', this.handleMultiplayerSettingsConfigured)
     // TODO: Check we didn't forget smth
-  }
+  },
 }
 </script>
 
@@ -399,7 +406,7 @@ body {
 }
 
 #app {
-  font-family: "RocknRoll One", Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'RocknRoll One', Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;

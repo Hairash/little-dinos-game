@@ -12,7 +12,7 @@ function makeGrid(w = 5, h = 5, hidden = true) {
       building: null,
       unit: null,
       isHidden: hidden,
-    })),
+    }))
   )
   return field
 }
@@ -32,7 +32,7 @@ function makeFieldEngine(field, width, height, fogOfWarRadius, minSpeed, maxSpee
     0, // unitModifier - not used in these tests
     0, // baseModifier - not used in these tests
     true, // killAtBirth
-    true, // visibilitySpeedRelation
+    true // visibilitySpeedRelation
   )
 }
 
@@ -49,7 +49,7 @@ describe('DinoGame.setVisibilityForArea', () => {
     const maxSpeed = 1
 
     DinoGame.methods.initPlayersScrollCoords = vi.fn()
-    
+
     const wrapper = mount(DinoGame, {
       props: {
         humanPlayersNum: 1,
@@ -63,7 +63,14 @@ describe('DinoGame.setVisibilityForArea', () => {
     })
     const vm = wrapper.vm
     vm.localField = makeGrid(width, height, true)
-    vm.fieldEngine = makeFieldEngine(vm.localField, width, height, fogOfWarRadius, minSpeed, maxSpeed)
+    vm.fieldEngine = makeFieldEngine(
+      vm.localField,
+      width,
+      height,
+      fogOfWarRadius,
+      minSpeed,
+      maxSpeed
+    )
     vm.setVisibilityForArea(2, 2, fogOfWarRadius)
 
     for (let x = 0; x < width; x++) {
@@ -72,7 +79,7 @@ describe('DinoGame.setVisibilityForArea', () => {
       }
     }
   })
-  
+
   it.each([
     { fogOfWarRadius: 1, description: 'with fogOfWarRadius 1' },
     { fogOfWarRadius: 2, description: 'with fogOfWarRadius 2' },
@@ -82,7 +89,7 @@ describe('DinoGame.setVisibilityForArea', () => {
     const height = 5
     const minSpeed = 1
     const maxSpeed = 1
-    
+
     DinoGame.methods.initPlayersScrollCoords = vi.fn()
 
     const wrapper = mount(DinoGame, {
@@ -122,7 +129,7 @@ describe('DinoGame.setVisibilityForArea', () => {
       height,
       fogOfWarRadius,
       minSpeed,
-      maxSpeed,
+      maxSpeed
     )
 
     vm.setVisibilityForArea(2, 2, fogOfWarRadius)
@@ -147,7 +154,7 @@ describe('DinoGame.setVisibilityForArea', () => {
     const height = 5
     const minSpeed = 1
     const maxSpeed = 1
-    
+
     DinoGame.methods.initPlayersScrollCoords = vi.fn()
 
     const wrapper = mount(DinoGame, {
@@ -178,13 +185,20 @@ describe('DinoGame.setVisibilityForArea', () => {
     const vm = wrapper.vm
     vm.localField = makeGrid(width, height, false)
     vm.localField[0][0].unit = new Models.Unit(0, 'dino1', 1, 1)
-    vm.fieldEngine = makeFieldEngine(vm.localField, width, height, fogOfWarRadius, minSpeed, maxSpeed)
+    vm.fieldEngine = makeFieldEngine(
+      vm.localField,
+      width,
+      height,
+      fogOfWarRadius,
+      minSpeed,
+      maxSpeed
+    )
     vm.setVisibilityForArea(2, 2, fogOfWarRadius)
 
     for (let x = 2 - fogOfWarRadius; x < 2 + fogOfWarRadius; x++) {
       for (let y = 2 - fogOfWarRadius; y < 2 + fogOfWarRadius; y++) {
         if (x < 0 || y < 0 || x >= width || y >= height) {
-          continue;
+          continue
         }
         if (x < 2 && y < 2) {
           expect(vm.localField[x][y].isHidden).toBe(false)

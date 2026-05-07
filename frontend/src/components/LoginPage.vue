@@ -2,22 +2,18 @@
 <template>
   <div id="login-page">
     <button type="button" class="goBackBtn" @click="handleBackBtnClick" title="Back to Menu">
-      <img :src="`/images/arrow_white.png`">
+      <img :src="`/images/arrow_white.png`" />
     </button>
     <h1 id="login-page-title">{{ isSignUp ? 'Sign Up' : 'Login' }}</h1>
     <div id="login-page-toggle">
-      <button 
-        id="login-page-toggle-button" 
+      <button
+        id="login-page-toggle-button"
         :class="{ active: !isSignUp }"
         @click="isSignUp = false"
       >
         Login
       </button>
-      <button 
-        id="login-page-toggle-button" 
-        :class="{ active: isSignUp }"
-        @click="isSignUp = true"
-      >
+      <button id="login-page-toggle-button" :class="{ active: isSignUp }" @click="isSignUp = true">
         Sign Up
       </button>
     </div>
@@ -39,9 +35,9 @@
 </template>
 
 <script>
-import { signin, signup } from '@/services/auth';
-import emitter from "@/game/eventBus";
-import { GAME_STATES } from "@/game/const";
+import { signin, signup } from '@/services/auth'
+import emitter from '@/game/eventBus'
+import { GAME_STATES } from '@/game/const'
 
 export default {
   name: 'LoginPage',
@@ -56,25 +52,25 @@ export default {
   methods: {
     async handleSubmit() {
       try {
-        this.error = null;
-        let response;
+        this.error = null
+        let response
         if (this.isSignUp) {
-          response = await signup(this.username, this.password);
+          response = await signup(this.username, this.password)
         } else {
-          response = await signin(this.username, this.password);
+          response = await signin(this.username, this.password)
         }
-        console.log(response);
-        this.$emit('loginSuccess', response);
-        this.error = null;
+        console.log(response)
+        this.$emit('loginSuccess', response)
+        this.error = null
       } catch (error) {
-        this.error = error.message;
-        this.$emit('loginError', error.message);
+        this.error = error.message
+        this.$emit('loginError', error.message)
       }
     },
     handleBackBtnClick() {
-      emitter.emit('goToPage', GAME_STATES.menu);
-    }
-  }
+      emitter.emit('goToPage', GAME_STATES.menu)
+    },
+  },
 }
 </script>
 

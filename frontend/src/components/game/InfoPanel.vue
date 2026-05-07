@@ -12,10 +12,10 @@
           title="Menu"
         >
           <img
-            style="margin-left: 1px; margin-top: 1px;"
+            style="margin-left: 1px; margin-top: 1px"
             class="curPlayerImage"
             :src="getImagePath('settings_icon')"
-          >
+          />
         </button>
         <button
           type="button"
@@ -26,10 +26,10 @@
           title="Undo last move"
         >
           <img
-            style="margin-left: 1px; margin-top: 1px;"
+            style="margin-left: 1px; margin-top: 1px"
             class="curPlayerImage"
             :src="getImagePath('undo')"
-          >
+          />
         </button>
       </span>
 
@@ -38,42 +38,48 @@
 
       <!-- Center-left: Units -->
       <span class="infoItem">
-        <button 
-          type="button" 
-          class="infoBtn" 
+        <button
+          type="button"
+          class="infoBtn"
           @click="handleUnitClick"
           @contextmenu.prevent="showContextHelp($event, 'Next unit')"
           :disabled="menuOpen"
         >
-          <img v-if="areAllUnitsOnBuildings && currentStats.units.active > 0"
+          <img
+            v-if="areAllUnitsOnBuildings && currentStats.units.active > 0"
             class="curPlayerImage"
             :src="getImagePath('habitation')"
-            style="position: absolute;"
+            style="position: absolute"
             title="Next unit"
-          >
+          />
           <img
             class="curPlayerImage"
             :src="getImagePath('dino' + (currentPlayer + 1))"
             title="Next unit"
-          >
+          />
         </button>
         <span
           class="infoLabel"
-          :class="{ 'units-overlimit': unitsOverLimit, 'units-overlimit-animate': animateUnitsOverlimit }"
+          :class="{
+            'units-overlimit': unitsOverLimit,
+            'units-overlimit-animate': animateUnitsOverlimit,
+          }"
           @contextmenu.prevent="showUnitsContextHelp($event)"
           title="Active / Total / Max dinos"
         >
-          {{ currentStats.units.active }}/<span 
-            :key="currentStats.units.total" 
+          {{ currentStats.units.active }}/<span
+            :key="currentStats.units.total"
             :class="{ 'limit-animate': animateUnitsTotal }"
             class="limit-number"
             :style="animateUnitsTotal ? { '--player-color': playerColor } : {}"
-          >{{ currentStats.units.total }}</span>/<span 
-            :key="maxUnitsNum" 
+            >{{ currentStats.units.total }}</span
+          >/<span
+            :key="maxUnitsNum"
             :class="{ 'limit-animate': animateUnitsLimit }"
             class="limit-number"
             :style="animateUnitsLimit ? { '--player-color': playerColor } : {}"
-          >{{ maxUnitsNum }}</span>
+            >{{ maxUnitsNum }}</span
+          >
         </span>
       </span>
 
@@ -82,27 +88,29 @@
 
       <!-- Center-right: Towers -->
       <span class="infoItem center-group">
-        <img
-          class="towerImage"
-          :src="getImagePath('base' + (currentPlayer + 1))"
-        >
-        <span 
+        <img class="towerImage" :src="getImagePath('base' + (currentPlayer + 1))" />
+        <span
           class="infoLabel"
-          :class="{ 'units-overlimit': towersOverLimit, 'units-overlimit-animate': animateTowersOverlimit }"
+          :class="{
+            'units-overlimit': towersOverLimit,
+            'units-overlimit-animate': animateTowersOverlimit,
+          }"
           @contextmenu.prevent="showTowersContextHelp($event)"
           title="Total / Max towers"
         >
-          <span 
-            :key="currentStats.towers.total" 
+          <span
+            :key="currentStats.towers.total"
             :class="{ 'limit-animate': animateTowersTotal }"
             class="limit-number"
             :style="animateTowersTotal ? { '--player-color': playerColor } : {}"
-          >{{ currentStats.towers.total }}</span>/<span 
-            :key="maxTowersNum" 
+            >{{ currentStats.towers.total }}</span
+          >/<span
+            :key="maxTowersNum"
             :class="{ 'limit-animate': animateTowersLimit }"
             class="limit-number"
             :style="animateTowersLimit ? { '--player-color': playerColor } : {}"
-          >{{ maxTowersNum }}</span>
+            >{{ maxTowersNum }}</span
+          >
         </span>
       </span>
 
@@ -111,7 +119,7 @@
       <!-- Right group: End turn button -->
       <span class="endTurnBtnWrapper right-group">
         <div v-if="showEndTurnTip" class="endTurnTip">
-          <span class="endTurnTipArrow">DONE?<br>⬇</span>  
+          <span class="endTurnTipArrow">DONE?<br />⬇</span>
         </div>
         <button
           type="button"
@@ -122,34 +130,30 @@
           title="End turn"
         >
           <img
-            style="margin-left: 4px; margin-top: 1px;"
+            style="margin-left: 4px; margin-top: 1px"
             class="curPlayerImage"
             :src="getImagePath('arrow')"
-          >
+          />
         </button>
       </span>
 
-<!--    <span class="infoTextLabel">Killed: {{ player.killed }} Lost: {{ player.lost }}</span>-->
-<!--    <span class="infoTextLabel" @click="showScore = !showScore">-->
-<!--      Score: {{ player.score }}-->
-<!--      <div v-if="showScore"-->
-<!--        class="tooltip"-->
-<!--      >-->
-<!--        <div v-for="(p, idx) in players" :key=idx>-->
-<!--          P{{ idx + 1 }}: {{ p.score }}-->
-<!--        </div>-->
-<!--      </div>-->
-<!--    </span>-->
+      <!--    <span class="infoTextLabel">Killed: {{ player.killed }} Lost: {{ player.lost }}</span>-->
+      <!--    <span class="infoTextLabel" @click="showScore = !showScore">-->
+      <!--      Score: {{ player.score }}-->
+      <!--      <div v-if="showScore"-->
+      <!--        class="tooltip"-->
+      <!--      >-->
+      <!--        <div v-for="(p, idx) in players" :key=idx>-->
+      <!--          P{{ idx + 1 }}: {{ p.score }}-->
+      <!--        </div>-->
+      <!--      </div>-->
+      <!--    </span>-->
     </div>
     <!-- Context help window - refactored to avoid v-html for XSS safety -->
-    <div
-      v-if="contextHelpVisible"
-      class="info-context-help"
-      :style="contextHelpStyle"
-    >
+    <div v-if="contextHelpVisible" class="info-context-help" :style="contextHelpStyle">
       <b>{{ contextHelpTitle }}</b>
       <template v-if="contextHelpWarning">
-        <br><span class="warning-text">❗Limit reached❗</span>
+        <br /><span class="warning-text">❗Limit reached❗</span>
       </template>
     </div>
     <!-- Game Menu Overlay -->
@@ -171,10 +175,10 @@
 </template>
 
 <script>
-import Models from "@/game/models";
-import { getPlayerColor } from "@/game/helpers";
-import emitter from '@/game/eventBus';
-import GameMenuOverlay from '@/components/game/GameMenuOverlay.vue';
+import Models from '@/game/models'
+import { getPlayerColor } from '@/game/helpers'
+import emitter from '@/game/eventBus'
+import GameMenuOverlay from '@/components/game/GameMenuOverlay.vue'
 import { getImagePath } from '@/game/helpers.js'
 
 export default {
@@ -239,210 +243,214 @@ export default {
     player() {
       // Guard: return null if players array is empty or currentPlayer is out of bounds
       if (!this.players || !Array.isArray(this.players) || this.players.length === 0) {
-        return null;
+        return null
       }
       if (this.currentPlayer < 0 || this.currentPlayer >= this.players.length) {
-        return null;
+        return null
       }
-      return this.players[this.currentPlayer];
+      return this.players[this.currentPlayer]
     },
     maxUnitsNum() {
-      return this.currentStats.units.max ? this.currentStats.units.max : '∞';
+      return this.currentStats.units.max ? this.currentStats.units.max : '∞'
     },
     maxTowersNum() {
-      return this.currentStats.towers.max ? this.currentStats.towers.max : '∞';
+      return this.currentStats.towers.max ? this.currentStats.towers.max : '∞'
     },
     botType() {
-      return Models.PlayerTypes.BOT;
+      return Models.PlayerTypes.BOT
     },
     playerColor() {
-      return getPlayerColor(this.currentPlayer);
+      return getPlayerColor(this.currentPlayer)
     },
     unitsOverLimit() {
-      if (!this.currentStats.units.max) return false;
-      const emptyBases = this.currentStats.towers.empty || 0;
-      return (this.currentStats.units.total + emptyBases) > this.currentStats.units.max;
+      if (!this.currentStats.units.max) return false
+      const emptyBases = this.currentStats.towers.empty || 0
+      return this.currentStats.units.total + emptyBases > this.currentStats.units.max
     },
     towersOverLimit() {
-      if (!this.currentStats.towers.max) return false;
-      return this.currentStats.towers.total >= this.currentStats.towers.max;
+      if (!this.currentStats.towers.max) return false
+      return this.currentStats.towers.total >= this.currentStats.towers.max
     },
     contextHelpStyle() {
-      if (!this.contextHelpVisible) return {};
+      if (!this.contextHelpVisible) return {}
       const style = {
         left: `${this.contextHelpX}px`,
         top: `${this.contextHelpY}px`,
-      };
-      if (this.contextHelpIsTowers) {
-        style.minWidth = '115px';
       }
-      return style;
+      if (this.contextHelpIsTowers) {
+        style.minWidth = '115px'
+      }
+      return style
     },
   },
   watch: {
     maxUnitsNum(newVal, _oldVal) {
       if (this.prevMaxUnitsNum !== null && newVal !== this.prevMaxUnitsNum) {
         // Limit changed - trigger animation
-        this.animateUnitsLimit = true;
+        this.animateUnitsLimit = true
         // Reset animation class after animation completes
         setTimeout(() => {
-          this.animateUnitsLimit = false;
-        }, 1000);
+          this.animateUnitsLimit = false
+        }, 1000)
       }
-      this.prevMaxUnitsNum = newVal;
+      this.prevMaxUnitsNum = newVal
     },
     maxTowersNum(newVal, _oldVal) {
       if (this.prevMaxTowersNum !== null && newVal !== this.prevMaxTowersNum) {
         // Limit changed - trigger animation
-        this.animateTowersLimit = true;
+        this.animateTowersLimit = true
         // Reset animation class after animation completes
         setTimeout(() => {
-          this.animateTowersLimit = false;
-        }, 1000);
+          this.animateTowersLimit = false
+        }, 1000)
       }
-      this.prevMaxTowersNum = newVal;
+      this.prevMaxTowersNum = newVal
     },
     'currentStats.units.total'(newVal, _oldVal) {
       if (this.prevUnitsTotal !== null && newVal !== this.prevUnitsTotal) {
         // Total units changed - trigger animation
-        this.animateUnitsTotal = true;
+        this.animateUnitsTotal = true
         // Reset animation class after animation completes
         setTimeout(() => {
-          this.animateUnitsTotal = false;
-        }, 1000);
+          this.animateUnitsTotal = false
+        }, 1000)
       }
-      this.prevUnitsTotal = newVal;
+      this.prevUnitsTotal = newVal
     },
     'currentStats.towers.total'(newVal, _oldVal) {
       if (this.prevTowersTotal !== null && newVal !== this.prevTowersTotal) {
         // Total towers changed - trigger animation
-        this.animateTowersTotal = true;
+        this.animateTowersTotal = true
         // Reset animation class after animation completes
         setTimeout(() => {
-          this.animateTowersTotal = false;
-        }, 1000);
+          this.animateTowersTotal = false
+        }, 1000)
       }
-      this.prevTowersTotal = newVal;
+      this.prevTowersTotal = newVal
     },
     unitsOverLimit(newVal) {
       if (newVal === true && this.prevUnitsOverLimit !== true) {
-        this.animateUnitsOverlimit = true;
-        setTimeout(() => { this.animateUnitsOverlimit = false; }, 500);
+        this.animateUnitsOverlimit = true
+        setTimeout(() => {
+          this.animateUnitsOverlimit = false
+        }, 500)
       }
-      this.prevUnitsOverLimit = newVal;
+      this.prevUnitsOverLimit = newVal
     },
     towersOverLimit(newVal) {
       if (newVal === true && this.prevTowersOverLimit !== true) {
-        this.animateTowersOverlimit = true;
-        setTimeout(() => { this.animateTowersOverlimit = false; }, 500);
+        this.animateTowersOverlimit = true
+        setTimeout(() => {
+          this.animateTowersOverlimit = false
+        }, 500)
       }
-      this.prevTowersOverLimit = newVal;
+      this.prevTowersOverLimit = newVal
     },
   },
   mounted() {
     // Initialize previous values
-    this.prevMaxUnitsNum = this.maxUnitsNum;
-    this.prevMaxTowersNum = this.maxTowersNum;
-    this.prevUnitsTotal = this.currentStats.units.total;
-    this.prevTowersTotal = this.currentStats.towers.total;
-    this.prevUnitsOverLimit = this.unitsOverLimit || false;
-    this.prevTowersOverLimit = this.towersOverLimit || false;
-    
+    this.prevMaxUnitsNum = this.maxUnitsNum
+    this.prevMaxTowersNum = this.maxTowersNum
+    this.prevUnitsTotal = this.currentStats.units.total
+    this.prevTowersTotal = this.currentStats.towers.total
+    this.prevUnitsOverLimit = this.unitsOverLimit || false
+    this.prevTowersOverLimit = this.towersOverLimit || false
+
     // Add click listener to hide context help when clicking outside
-    document.addEventListener('click', this.hideContextHelp);
-    
+    document.addEventListener('click', this.hideContextHelp)
+
     // Listen for events to close context help when GameGrid opens its own
-    emitter.on('infoPanelContextHelpChanged', this.onContextHelpChanged);
+    emitter.on('infoPanelContextHelpChanged', this.onContextHelpChanged)
   },
   beforeUnmount() {
-    document.removeEventListener('click', this.hideContextHelp);
-    emitter.off('infoPanelContextHelpChanged', this.onContextHelpChanged);
+    document.removeEventListener('click', this.hideContextHelp)
+    emitter.off('infoPanelContextHelpChanged', this.onContextHelpChanged)
   },
   methods: {
     getImagePath,
     toggleMenu() {
-      this.menuOpen = !this.menuOpen;
-      this.$emit('menuOpen', this.menuOpen);
+      this.menuOpen = !this.menuOpen
+      this.$emit('menuOpen', this.menuOpen)
     },
     handleMenuExit() {
-      this.menuOpen = false;
-      this.$emit('menuOpen', false);
-      this.handleExitBtnClick();
+      this.menuOpen = false
+      this.$emit('menuOpen', false)
+      this.handleExitBtnClick()
     },
     handleMenuZoomIn() {
-      this.handleChangeCellSize(10);
+      this.handleChangeCellSize(10)
     },
     handleMenuZoomOut() {
-      this.handleChangeCellSize(-10);
+      this.handleChangeCellSize(-10)
     },
     handleExitClick() {
-      console.log('Exit button clicked');
-      this.handleExitBtnClick();
+      console.log('Exit button clicked')
+      this.handleExitBtnClick()
     },
     showContextHelp(event, text) {
-      event.stopPropagation();
-      const rect = event.currentTarget.getBoundingClientRect();
-      const panelRect = this.$el.getBoundingClientRect();
+      event.stopPropagation()
+      const rect = event.currentTarget.getBoundingClientRect()
+      const panelRect = this.$el.getBoundingClientRect()
 
       // Position above the element, centered horizontally
-      this.contextHelpX = rect.left - panelRect.left + (rect.width / 2);
-      this.contextHelpY = rect.top - panelRect.top - 5; // 5px above
+      this.contextHelpX = rect.left - panelRect.left + rect.width / 2
+      this.contextHelpY = rect.top - panelRect.top - 5 // 5px above
 
       // Close GameGrid context help if open
-      emitter.emit('closeGameGridContextHelp');
+      emitter.emit('closeGameGridContextHelp')
 
-      this.contextHelpTitle = text;
-      this.contextHelpWarning = false;
-      this.contextHelpIsTowers = false;
-      this.contextHelpVisible = true;
-      emitter.emit('infoPanelContextHelpChanged', true);
+      this.contextHelpTitle = text
+      this.contextHelpWarning = false
+      this.contextHelpIsTowers = false
+      this.contextHelpVisible = true
+      emitter.emit('infoPanelContextHelpChanged', true)
     },
     showUnitsContextHelp(event) {
-      event.stopPropagation();
-      const rect = event.currentTarget.getBoundingClientRect();
-      const panelRect = this.$el.getBoundingClientRect();
+      event.stopPropagation()
+      const rect = event.currentTarget.getBoundingClientRect()
+      const panelRect = this.$el.getBoundingClientRect()
 
       // Position above the element, centered horizontally
-      this.contextHelpX = rect.left - panelRect.left + (rect.width / 2);
-      this.contextHelpY = rect.top - panelRect.top - 5; // 5px above
+      this.contextHelpX = rect.left - panelRect.left + rect.width / 2
+      this.contextHelpY = rect.top - panelRect.top - 5 // 5px above
 
       // Close GameGrid context help if open
-      emitter.emit('closeGameGridContextHelp');
+      emitter.emit('closeGameGridContextHelp')
 
-      this.contextHelpTitle = 'Active / Total / Max dinos';
-      this.contextHelpWarning = this.unitsOverLimit;
-      this.contextHelpIsTowers = false;
-      this.contextHelpVisible = true;
-      emitter.emit('infoPanelContextHelpChanged', true);
+      this.contextHelpTitle = 'Active / Total / Max dinos'
+      this.contextHelpWarning = this.unitsOverLimit
+      this.contextHelpIsTowers = false
+      this.contextHelpVisible = true
+      emitter.emit('infoPanelContextHelpChanged', true)
     },
     showTowersContextHelp(event) {
-      event.stopPropagation();
-      const rect = event.currentTarget.getBoundingClientRect();
-      const panelRect = this.$el.getBoundingClientRect();
+      event.stopPropagation()
+      const rect = event.currentTarget.getBoundingClientRect()
+      const panelRect = this.$el.getBoundingClientRect()
 
       // Position above the element, centered horizontally
-      this.contextHelpX = rect.left - panelRect.left + (rect.width / 2);
-      this.contextHelpY = rect.top - panelRect.top - 5; // 5px above
+      this.contextHelpX = rect.left - panelRect.left + rect.width / 2
+      this.contextHelpY = rect.top - panelRect.top - 5 // 5px above
 
       // Close GameGrid context help if open
-      emitter.emit('closeGameGridContextHelp');
+      emitter.emit('closeGameGridContextHelp')
 
-      this.contextHelpTitle = 'Total / Max towers';
-      this.contextHelpWarning = this.towersOverLimit;
-      this.contextHelpIsTowers = true;
-      this.contextHelpVisible = true;
-      emitter.emit('infoPanelContextHelpChanged', true);
+      this.contextHelpTitle = 'Total / Max towers'
+      this.contextHelpWarning = this.towersOverLimit
+      this.contextHelpIsTowers = true
+      this.contextHelpVisible = true
+      emitter.emit('infoPanelContextHelpChanged', true)
     },
     hideContextHelp(event) {
       // Don't hide if it's a right-click event
-      if (event && event.button === 2) return;
-      this.contextHelpVisible = false;
-      emitter.emit('infoPanelContextHelpChanged', false);
+      if (event && event.button === 2) return
+      this.contextHelpVisible = false
+      emitter.emit('infoPanelContextHelpChanged', false)
     },
     onContextHelpChanged(visible) {
       // This handles both our own changes and external requests to close
       if (!visible) {
-        this.contextHelpVisible = false;
+        this.contextHelpVisible = false
       }
     },
   },
@@ -453,7 +461,9 @@ export default {
 /* Panel shell stays the same */
 div.infoPanel {
   position: fixed;
-  bottom: 0; left: 0; right: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   margin: 0 auto;
   max-width: 400px;
   height: 40px;
@@ -494,25 +504,25 @@ div.infoPanel {
 
 .infoItem .infoBtn,
 .infoItem img {
-  flex: 0 0 auto;           /* fixed-size controls */
+  flex: 0 0 auto; /* fixed-size controls */
 }
 
 /* Labels scale with their container width */
 span.infoLabel {
-  flex: 1 1 0;              /* <-- key: label takes remaining space */
+  flex: 1 1 0; /* <-- key: label takes remaining space */
   min-width: 0;
   line-height: 26px;
   padding: 0 2px;
   margin: 0 1px;
   white-space: nowrap;
   overflow: visible;
-  text-overflow: clip;  /* or ellipsis */
+  text-overflow: clip; /* or ellipsis */
   /* 1cqw = 1% of .infoItem width */
   /* font-size: 16px; */
   font-size: clamp(1px, 3.9cqw, 16px);
-  font-weight: bold;   /* restore what you had in .infoBlock */
+  font-weight: bold; /* restore what you had in .infoBlock */
   color: black;
-  
+
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -613,7 +623,8 @@ div.tooltip {
 }
 
 @keyframes bounceDown {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(-50%) translateY(0);
   }
   50% {
@@ -658,8 +669,12 @@ div.tooltip {
 }
 
 @keyframes overlimitScale {
-  0% { transform: scale(2); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(2);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .info-context-help {
@@ -687,6 +702,14 @@ div.tooltip {
 </style>
 
 <style>
-@container (max-width: 120px) { .infoLabel { font-size: 8px; } }
-@container (max-width: 90px)  { .infoLabel { font-size: 6px; } }
+@container (max-width: 120px) {
+  .infoLabel {
+    font-size: 8px;
+  }
+}
+@container (max-width: 90px) {
+  .infoLabel {
+    font-size: 6px;
+  }
+}
 </style>

@@ -1,139 +1,296 @@
 <template>
   <div class="gameSetup" @click="clickOutside">
     <button type="button" class="goBackBtn" @click="handleBackBtnClick">
-      <img :src="getImagePath('arrow_white')">
+      <img :src="getImagePath('arrow_white')" />
     </button>
     <h1>Game setup</h1>
     <div id="settings-wrapper">
       <div id="main-settings">
-        <div class="plate" style="width: 178px;">
-          <MenuHint id="fieldSize" hint="Width and height of the game field" :currentHint=currentHint
-            @click="toggleHint('fieldSize')" />
+        <div class="plate" style="width: 178px">
+          <MenuHint
+            id="fieldSize"
+            hint="Width and height of the game field"
+            :current-hint="currentHint"
+            @click="toggleHint('fieldSize')"
+          />
           <div class="icon">
-            <img :src="getImagePath('field_icon')">
+            <img :src="getImagePath('field_icon')" />
           </div>
 
-          <input type="number" id="width" class="inputNumber digits2" v-model.number="width" min="5" max="50" />
+          <input
+            type="number"
+            id="width"
+            class="inputNumber digits2"
+            v-model.number="width"
+            min="5"
+            max="50"
+          />
           <span class="labelForInput">✘</span>
-          <input type="number" id="height" class="inputNumber digits2" v-model.number="height" min="5" max="50" />
+          <input
+            type="number"
+            id="height"
+            class="inputNumber digits2"
+            v-model.number="height"
+            min="5"
+            max="50"
+          />
         </div>
 
         <div class="upperGrid">
           <div v-if="!isMultiplayerMode" class="plate">
-            <MenuHint id="humanPlayersNum" hint="Number of human players" :currentHint=currentHint
-              @click="toggleHint('humanPlayersNum')" />
+            <MenuHint
+              id="humanPlayersNum"
+              hint="Number of human players"
+              :current-hint="currentHint"
+              @click="toggleHint('humanPlayersNum')"
+            />
             <div class="icon">
-              <img :src="getImagePath('human_icon')">
+              <img :src="getImagePath('human_icon')" />
             </div>
-            <input type="number" id="humanPlayersNum" class="inputNumber digits2" v-model.number="humanPlayersNum"
-              min="1" max="8" />
+            <input
+              type="number"
+              id="humanPlayersNum"
+              class="inputNumber digits2"
+              v-model.number="humanPlayersNum"
+              min="1"
+              max="8"
+            />
           </div>
           <!-- <div v-for="(player, index) in humanPlayerNames" :key="index">
             <label :for="'player' + index">Player {{ index + 1 }} name:</label>
             <input type="text" :id="'player' + index" v-model="humanPlayerNames[index]" />
           </div> -->
-          <div v-if="!isMultiplayerMode" class="botBlock plate" style="width: 112px;">
-            <MenuHint id="botPlayersNum" hint="Number of bot players" :currentHint=currentHint
-              @click="toggleHint('botPlayersNum')" hint-orientation="right" style="margin-left: 122px;" />
+          <div v-if="!isMultiplayerMode" class="botBlock plate" style="width: 112px">
+            <MenuHint
+              id="botPlayersNum"
+              hint="Number of bot players"
+              :current-hint="currentHint"
+              @click="toggleHint('botPlayersNum')"
+              hint-orientation="right"
+              style="margin-left: 122px"
+            />
             <div class="icon">
-              <img :src="getImagePath('bot_icon')">
+              <img :src="getImagePath('bot_icon')" />
             </div>
-            <input type="number" id="botPlayersNum" class="inputNumber digits2" v-model.number="botPlayersNum" min="0"
-              max="7" />
+            <input
+              type="number"
+              id="botPlayersNum"
+              class="inputNumber digits2"
+              v-model.number="botPlayersNum"
+              min="0"
+              max="7"
+            />
           </div>
           <div class="plate">
-            <MenuHint id="maxUnitsNum" hint="Max units number" :currentHint=currentHint
-              @click="toggleHint('maxUnitsNum')" />
+            <MenuHint
+              id="maxUnitsNum"
+              hint="Max units number"
+              :current-hint="currentHint"
+              @click="toggleHint('maxUnitsNum')"
+            />
             <div class="icon">
-              <img :src="getImagePath('dino_icon')">
+              <img :src="getImagePath('dino_icon')" />
             </div>
-            <input type="number" id="maxUnitsNum" class="inputNumber digits2" v-model.number="maxUnitsNum" min="0"
-              max="50" />
+            <input
+              type="number"
+              id="maxUnitsNum"
+              class="inputNumber digits2"
+              v-model.number="maxUnitsNum"
+              min="0"
+              max="50"
+            />
           </div>
           <div class="plate">
-            <MenuHint id="unitModifier" hint="Number of additional dinos per habitation" :currentHint=currentHint
-              @click="toggleHint('unitModifier')" style="margin-left: 122px;" hint-orientation="right" />
+            <MenuHint
+              id="unitModifier"
+              hint="Number of additional dinos per habitation"
+              :current-hint="currentHint"
+              @click="toggleHint('unitModifier')"
+              style="margin-left: 122px"
+              hint-orientation="right"
+            />
             <div class="icon">
-              <img :src="getImagePath('dino_icon_plus')">
+              <img :src="getImagePath('dino_icon_plus')" />
             </div>
-            <input type="number" id="unitModifier" class="inputNumber digits2" v-model.number="unitModifier" min="1"
-              max="20" />
+            <input
+              type="number"
+              id="unitModifier"
+              class="inputNumber digits2"
+              v-model.number="unitModifier"
+              min="1"
+              max="20"
+            />
           </div>
           <div class="plate">
-            <MenuHint id="maxBasesNum" hint="Max towers number" :currentHint=currentHint
-              @click="toggleHint('maxBasesNum')" />
+            <MenuHint
+              id="maxBasesNum"
+              hint="Max towers number"
+              :current-hint="currentHint"
+              @click="toggleHint('maxBasesNum')"
+            />
             <div class="icon">
-              <img :src="getImagePath('tower_icon')">
+              <img :src="getImagePath('tower_icon')" />
             </div>
-            <input type="number" id="maxBasesNum" class="inputNumber digits2" v-model.number="maxBasesNum" min="0"
-              max="50" />
+            <input
+              type="number"
+              id="maxBasesNum"
+              class="inputNumber digits2"
+              v-model.number="maxBasesNum"
+              min="0"
+              max="50"
+            />
           </div>
           <div class="plate">
-            <MenuHint id="baseModifier" hint="Number of additional towers per storage" :currentHint=currentHint
-              @click="toggleHint('baseModifier')" hint-orientation="right" style="margin-left: 122px;" />
+            <MenuHint
+              id="baseModifier"
+              hint="Number of additional towers per storage"
+              :current-hint="currentHint"
+              @click="toggleHint('baseModifier')"
+              hint-orientation="right"
+              style="margin-left: 122px"
+            />
             <div class="icon">
-              <img :src="getImagePath('tower_icon_plus')">
+              <img :src="getImagePath('tower_icon_plus')" />
             </div>
-            <input type="number" id="baseModifier" class="inputNumber digits2" v-model.number="baseModifier" min="1"
-              max="20" />
+            <input
+              type="number"
+              id="baseModifier"
+              class="inputNumber digits2"
+              v-model.number="baseModifier"
+              min="1"
+              max="20"
+            />
           </div>
         </div>
 
         <div>
           <!-- Common plate: 114 x 57 px -->
-          <div class="plate" style="display: inline-block; width: 182px;">
-            <MenuHint id="speedRange" hint="Speed range" :currentHint=currentHint @click="toggleHint('speedRange')" />
+          <div class="plate" style="display: inline-block; width: 182px">
+            <MenuHint
+              id="speedRange"
+              hint="Speed range"
+              :current-hint="currentHint"
+              @click="toggleHint('speedRange')"
+            />
             <div class="icon">
-              <img :src="getImagePath('speed_icon')">
+              <img :src="getImagePath('speed_icon')" />
             </div>
-            <input type="number" id="minSpeed" class="inputNumber digits2" v-model.number="minSpeed" min="1" max="20" />
-            <span class="labelForInput" style="font-size: 45px; font-weight: bold; line-height: 38px">-</span>
-            <input type="number" id="maxSpeed" class="inputNumber digits2" v-model.number="maxSpeed" min="1" max="20" />
+            <input
+              type="number"
+              id="minSpeed"
+              class="inputNumber digits2"
+              v-model.number="minSpeed"
+              min="1"
+              max="20"
+            />
+            <span
+              class="labelForInput"
+              style="font-size: 45px; font-weight: bold; line-height: 38px"
+              >-</span
+            >
+            <input
+              type="number"
+              id="maxSpeed"
+              class="inputNumber digits2"
+              v-model.number="maxSpeed"
+              min="1"
+              max="20"
+            />
           </div>
         </div>
 
-
-        <div style="height: 60px; margin: 4px auto;">
+        <div style="height: 60px; margin: 4px auto">
           <input type="checkbox" id="fogOfWar" v-model="enableFogOfWar" class="hidden-checkbox" />
-          <div style="display: inline-block;">
-            <MenuHint id="fogOfWar" hint="Toggle fog of war" :currentHint=currentHint @click="toggleHint('fogOfWar')"
-              style="margin-top: 18px;" />
+          <div style="display: inline-block">
+            <MenuHint
+              id="fogOfWar"
+              hint="Toggle fog of war"
+              :current-hint="currentHint"
+              @click="toggleHint('fogOfWar')"
+              style="margin-top: 18px"
+            />
             <label for="fogOfWar" class="checkboxImg">
-              <img v-if="!enableFogOfWar" :src="`images/open_eye.png`">
-              <img v-if="enableFogOfWar" :src="`images/closed_eye.png`">
+              <img v-if="!enableFogOfWar" :src="`images/open_eye.png`" />
+              <img v-if="enableFogOfWar" :src="`images/closed_eye.png`" />
             </label>
           </div>
-          <div v-if="enableFogOfWar" class="plate"
-            style="position: relative; display: inline-block; top: -5px; margin: 0 4px;">
-            <MenuHint id="fogOfWarRadius" hint="Fog of war radius" :currentHint=currentHint
-              @click="toggleHint('fogOfWarRadius')" hint-orientation="right" style="margin-left: 122px;" />
+          <div
+            v-if="enableFogOfWar"
+            class="plate"
+            style="position: relative; display: inline-block; top: -5px; margin: 0 4px"
+          >
+            <MenuHint
+              id="fogOfWarRadius"
+              hint="Fog of war radius"
+              :current-hint="currentHint"
+              @click="toggleHint('fogOfWarRadius')"
+              hint-orientation="right"
+              style="margin-left: 122px"
+            />
             <span class="icon">
-              <img :src="getImagePath('radius_icon')">
+              <img :src="getImagePath('radius_icon')" />
             </span>
-            <input type="number" id="fogOfWarRadius" class="inputNumber digits2" v-model.number="fogOfWarRadius" min="1"
-              max="10" />
+            <input
+              type="number"
+              id="fogOfWarRadius"
+              class="inputNumber digits2"
+              v-model.number="fogOfWarRadius"
+              min="1"
+              max="10"
+            />
           </div>
         </div>
 
-        <div v-if="enableFogOfWar" style="height: 60px; margin: 4px auto;">
-          <div style="display: inline-block;">
-            <MenuHint id="visibilitySpeedRelation" hint="Link / unlink dinos' speed and visibility"
-              :currentHint=currentHint @click="toggleHint('visibilitySpeedRelation')" style="margin-top: 18px;" />
-            <input type="checkbox" id="scoutMode" v-model="visibilitySpeedRelation" class="hidden-checkbox" />
+        <div v-if="enableFogOfWar" style="height: 60px; margin: 4px auto">
+          <div style="display: inline-block">
+            <MenuHint
+              id="visibilitySpeedRelation"
+              hint="Link / unlink dinos' speed and visibility"
+              :current-hint="currentHint"
+              @click="toggleHint('visibilitySpeedRelation')"
+              style="margin-top: 18px"
+            />
+            <input
+              type="checkbox"
+              id="scoutMode"
+              v-model="visibilitySpeedRelation"
+              class="hidden-checkbox"
+            />
             <label for="scoutMode" class="checkboxImg">
-              <img v-if="!visibilitySpeedRelation" :src="getImagePath('visibility_speed_no_relation_icon')">
-              <img v-if="visibilitySpeedRelation" :src="getImagePath('visibility_speed_relation_icon')">
+              <img
+                v-if="!visibilitySpeedRelation"
+                :src="getImagePath('visibility_speed_no_relation_icon')"
+              />
+              <img
+                v-if="visibilitySpeedRelation"
+                :src="getImagePath('visibility_speed_relation_icon')"
+              />
             </label>
           </div>
-          <div v-if="visibilitySpeedRelation" class="plate"
-            style="position: relative; display: inline-block; top: -5px; margin: 0 4px;">
-            <MenuHint id="speedMinVisibility" hint="Threshold speed for minimum visibility" :currentHint=currentHint
-              @click="toggleHint('speedMinVisibility')" hint-orientation="right" style="margin-left: 122px;" />
+          <div
+            v-if="visibilitySpeedRelation"
+            class="plate"
+            style="position: relative; display: inline-block; top: -5px; margin: 0 4px"
+          >
+            <MenuHint
+              id="speedMinVisibility"
+              hint="Threshold speed for minimum visibility"
+              :current-hint="currentHint"
+              @click="toggleHint('speedMinVisibility')"
+              hint-orientation="right"
+              style="margin-left: 122px"
+            />
             <div class="icon">
-              <img :src="getImagePath('speed_icon_max')">
+              <img :src="getImagePath('speed_icon_max')" />
             </div>
-            <input type="number" id="speedMinVisibility" class="inputNumber digits2" v-model.number="speedMinVisibility"
-              min="1" max="20" />
+            <input
+              type="number"
+              id="speedMinVisibility"
+              class="inputNumber digits2"
+              v-model.number="speedMinVisibility"
+              min="1"
+              max="20"
+            />
           </div>
         </div>
 
@@ -146,23 +303,38 @@
         <div>
           <!--      <label for="killAtBirth">Kill at birth:</label>-->
           <input type="checkbox" id="killAtBirth" v-model="killAtBirth" class="hidden-checkbox" />
-          <div style="display: inline-block;">
-            <MenuHint id="killAtBirth" hint="Kill or not surrounding enemies at birth" :currentHint=currentHint
-              @click="toggleHint('killAtBirth')" style="margin-top: 18px;" />
-            <label for="killAtBirth" class="checkboxImg" style="margin-right: 4px;">
-              <img v-if="!killAtBirth" :src="getImagePath('dino_birth_icon')">
-              <img v-if="killAtBirth" :src="getImagePath('dino_birth_kill_icon')">
+          <div style="display: inline-block">
+            <MenuHint
+              id="killAtBirth"
+              hint="Kill or not surrounding enemies at birth"
+              :current-hint="currentHint"
+              @click="toggleHint('killAtBirth')"
+              style="margin-top: 18px"
+            />
+            <label for="killAtBirth" class="checkboxImg" style="margin-right: 4px">
+              <img v-if="!killAtBirth" :src="getImagePath('dino_birth_icon')" />
+              <img v-if="killAtBirth" :src="getImagePath('dino_birth_kill_icon')" />
             </label>
           </div>
 
-          <input type="checkbox" id="hideEnemySpeed" v-model="hideEnemySpeed" class="hidden-checkbox" />
-          <div style="display: inline-block;">
-            <MenuHint id="hideEnemySpeed" hint="Show / hide enemy speed" :currentHint=currentHint
-              @click="toggleHint('hideEnemySpeed')" hint-orientation="right"
-              style="margin-top: 18px; margin-left: 69px;" />
+          <input
+            type="checkbox"
+            id="hideEnemySpeed"
+            v-model="hideEnemySpeed"
+            class="hidden-checkbox"
+          />
+          <div style="display: inline-block">
+            <MenuHint
+              id="hideEnemySpeed"
+              hint="Show / hide enemy speed"
+              :current-hint="currentHint"
+              @click="toggleHint('hideEnemySpeed')"
+              hint-orientation="right"
+              style="margin-top: 18px; margin-left: 69px"
+            />
             <label for="hideEnemySpeed" class="checkboxImg">
-              <img v-if="!hideEnemySpeed" :src="getImagePath('show_speed_icon')">
-              <img v-if="hideEnemySpeed" :src="getImagePath('hide_speed_icon')">
+              <img v-if="!hideEnemySpeed" :src="getImagePath('show_speed_icon')" />
+              <img v-if="hideEnemySpeed" :src="getImagePath('hide_speed_icon')" />
             </label>
           </div>
         </div>
@@ -170,68 +342,169 @@
 
       <div id="buildings-settings" :class="{ 'multiplayer-mode': isMultiplayerMode }">
         <div>
-          <MenuHint id="baseRate" hint="Main building - generate dinos each turn" :currentHint=currentHint
-            @click="toggleHint('baseRate')" style="margin-left: -5px;" />
+          <MenuHint
+            id="baseRate"
+            hint="Main building - generate dinos each turn"
+            :current-hint="currentHint"
+            @click="toggleHint('baseRate')"
+            style="margin-left: -5px"
+          />
           <div class="icon">
-            <img :src="getImagePath('base')">
+            <img :src="getImagePath('base')" />
           </div>
-          <vue3-slider id="baseRate" class="slider" v-model="buildingRates.base" :min="0" :max="5" :step="1"
-            :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
-            :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
+          <vue3-slider
+            id="baseRate"
+            class="slider"
+            v-model="buildingRates.base"
+            :min="0"
+            :max="5"
+            :step="1"
+            :color="'#ae7b62'"
+            :sticky="true"
+            :tooltip="true"
+            :format-tooltip="value => marks[value]"
+            :handle-scale="2.5"
+            :always-show-handle="true"
+            :tooltip-styles="{ zIndex: 2 }"
+          ></vue3-slider>
         </div>
         <div>
-          <MenuHint id="habitationRate" hint="Increase maximum number of dinos" :currentHint=currentHint
-            @click="toggleHint('habitationRate')" style="margin-left: -5px;" />
+          <MenuHint
+            id="habitationRate"
+            hint="Increase maximum number of dinos"
+            :current-hint="currentHint"
+            @click="toggleHint('habitationRate')"
+            style="margin-left: -5px"
+          />
           <div class="icon">
-            <img :src="getImagePath('habitation')">
+            <img :src="getImagePath('habitation')" />
           </div>
-          <vue3-slider id="baseRate" class="slider" v-model="buildingRates.habitation" :min="0" :max="5" :step="1"
-            :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
-            :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
+          <vue3-slider
+            id="baseRate"
+            class="slider"
+            v-model="buildingRates.habitation"
+            :min="0"
+            :max="5"
+            :step="1"
+            :color="'#ae7b62'"
+            :sticky="true"
+            :tooltip="true"
+            :format-tooltip="value => marks[value]"
+            :handle-scale="2.5"
+            :always-show-handle="true"
+            :tooltip-styles="{ zIndex: 2 }"
+          ></vue3-slider>
         </div>
         <div>
-          <MenuHint id="templeRate" hint="Increase speed of newly generated dinos by 1" :currentHint=currentHint
-            @click="toggleHint('templeRate')" style="margin-left: -5px;" />
+          <MenuHint
+            id="templeRate"
+            hint="Increase speed of newly generated dinos by 1"
+            :current-hint="currentHint"
+            @click="toggleHint('templeRate')"
+            style="margin-left: -5px"
+          />
           <div class="icon">
-            <img :src="getImagePath('temple')">
+            <img :src="getImagePath('temple')" />
           </div>
-          <vue3-slider id="baseRate" class="slider" v-model="buildingRates.temple" :min="0" :max="5" :step="1"
-            :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
-            :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
+          <vue3-slider
+            id="baseRate"
+            class="slider"
+            v-model="buildingRates.temple"
+            :min="0"
+            :max="5"
+            :step="1"
+            :color="'#ae7b62'"
+            :sticky="true"
+            :tooltip="true"
+            :format-tooltip="value => marks[value]"
+            :handle-scale="2.5"
+            :always-show-handle="true"
+            :tooltip-styles="{ zIndex: 2 }"
+          ></vue3-slider>
         </div>
         <div>
-          <MenuHint id="wellRate" hint="Increase speed of dino staying on it by 1" :currentHint=currentHint
-            @click="toggleHint('wellRate')" style="margin-left: -5px;" />
+          <MenuHint
+            id="wellRate"
+            hint="Increase speed of dino staying on it by 1"
+            :current-hint="currentHint"
+            @click="toggleHint('wellRate')"
+            style="margin-left: -5px"
+          />
           <div class="icon">
-            <img :src="getImagePath('well')">
+            <img :src="getImagePath('well')" />
           </div>
-          <vue3-slider id="baseRate" class="slider" v-model="buildingRates.well" :min="0" :max="5" :step="1"
-            :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
-            :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
+          <vue3-slider
+            id="baseRate"
+            class="slider"
+            v-model="buildingRates.well"
+            :min="0"
+            :max="5"
+            :step="1"
+            :color="'#ae7b62'"
+            :sticky="true"
+            :tooltip="true"
+            :format-tooltip="value => marks[value]"
+            :handle-scale="2.5"
+            :always-show-handle="true"
+            :tooltip-styles="{ zIndex: 2 }"
+          ></vue3-slider>
         </div>
         <div>
-          <MenuHint id="storageRate" hint="Increase maximum number of towers" :currentHint=currentHint
-            @click="toggleHint('storageRate')" style="margin-left: -5px;" />
+          <MenuHint
+            id="storageRate"
+            hint="Increase maximum number of towers"
+            :current-hint="currentHint"
+            @click="toggleHint('storageRate')"
+            style="margin-left: -5px"
+          />
           <div class="icon">
-            <img :src="getImagePath('storage')">
+            <img :src="getImagePath('storage')" />
           </div>
-          <vue3-slider id="baseRate" class="slider" v-model="buildingRates.storage" :min="0" :max="5" :step="1"
-            :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
-            :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
+          <vue3-slider
+            id="baseRate"
+            class="slider"
+            v-model="buildingRates.storage"
+            :min="0"
+            :max="5"
+            :step="1"
+            :color="'#ae7b62'"
+            :sticky="true"
+            :tooltip="true"
+            :format-tooltip="value => marks[value]"
+            :handle-scale="2.5"
+            :always-show-handle="true"
+            :tooltip-styles="{ zIndex: 2 }"
+          ></vue3-slider>
         </div>
         <div>
-          <MenuHint id="obeliskRate" hint="Instantly show any part of the map" :currentHint=currentHint
-            @click="toggleHint('obeliskRate')" style="margin-left: -5px;" />
+          <MenuHint
+            id="obeliskRate"
+            hint="Instantly show any part of the map"
+            :current-hint="currentHint"
+            @click="toggleHint('obeliskRate')"
+            style="margin-left: -5px"
+          />
           <div class="icon">
-            <img :src="getImagePath('obelisk')">
+            <img :src="getImagePath('obelisk')" />
           </div>
-          <vue3-slider id="baseRate" class="slider" v-model="buildingRates.obelisk" :min="0" :max="5" :step="1"
-            :color="'#ae7b62'" :sticky="true" :tooltip="true" :formatTooltip="value => marks[value]" :handleScale="2.5"
-            :alwaysShowHandle="true" :tooltip-styles="{ zIndex: 2 }"></vue3-slider>
+          <vue3-slider
+            id="baseRate"
+            class="slider"
+            v-model="buildingRates.obelisk"
+            :min="0"
+            :max="5"
+            :step="1"
+            :color="'#ae7b62'"
+            :sticky="true"
+            :tooltip="true"
+            :format-tooltip="value => marks[value]"
+            :handle-scale="2.5"
+            :always-show-handle="true"
+            :tooltip-styles="{ zIndex: 2 }"
+          ></vue3-slider>
         </div>
       </div>
     </div>
-
 
     <!-- <div>
       <label for="Undo">Enable undo:</label>
@@ -250,7 +523,7 @@
         <span>{{ isMultiplayerMode ? 'Save' : 'GO!' }}</span>
       </button>
     </div>
-    <MenuError v-if="currentError" :error="currentError" :setError="setError" />
+    <MenuError v-if="currentError" :error="currentError" :set-error="setError" />
   </div>
 </template>
 
@@ -258,16 +531,22 @@
 import slider from 'vue3-slider'
 
 // import Models from '@/game/models';
-import { DEFAULT_BUILDING_RATES, FIELDS_TO_SAVE, GAME_STATES, INITIAL_SETTINGS, MULTIPLAYER_INITIAL_SETTINGS } from '@/game/const';
-import emitter from "@/game/eventBus";
-import MenuHint from '@/components/ui/MenuHint.vue';
-import MenuError from '@/components/ui/MenuError.vue';
+import {
+  DEFAULT_BUILDING_RATES,
+  FIELDS_TO_SAVE,
+  GAME_STATES,
+  INITIAL_SETTINGS,
+  MULTIPLAYER_INITIAL_SETTINGS,
+} from '@/game/const'
+import emitter from '@/game/eventBus'
+import MenuHint from '@/components/ui/MenuHint.vue'
+import MenuError from '@/components/ui/MenuError.vue'
 import { getImagePath } from '@/game/helpers.js'
 
 export default {
   name: 'GameSetup',
   components: {
-    "vue3-slider": slider,
+    'vue3-slider': slider,
     MenuHint,
     MenuError,
   },
@@ -347,7 +626,7 @@ export default {
         max: 20,
         description: 'Number of additional towers per storage',
       },
-    };
+    }
     // const PLAYER_TYPES = Models.PlayerTypes;
     return {
       ...INITIAL_SETTINGS,
@@ -373,22 +652,22 @@ export default {
       currentHint: null,
       currentError: null,
       // PLAYER_TYPES,
-    };
+    }
   },
   mounted() {
-    this.loadSettings();
-    this.loadGamePossible = !!localStorage.getItem('field');
+    this.loadSettings()
+    this.loadGamePossible = !!localStorage.getItem('field')
   },
   watch: {
     savedMultiplayerSettings: {
       handler(newSettings) {
         // When saved settings are provided (multiplayer mode), load them
         if (this.isMultiplayerMode && newSettings) {
-          this.loadMultiplayerSettings(newSettings);
+          this.loadMultiplayerSettings(newSettings)
         } else if (this.isMultiplayerMode && !newSettings) {
           // If in multiplayer mode but no saved settings, ensure we load from localStorage
           // This handles the case where user first visits setup page
-          this.loadSettings();
+          this.loadSettings()
         }
       },
       immediate: true,
@@ -399,85 +678,87 @@ export default {
     handleBackBtnClick() {
       if (this.isMultiplayerMode) {
         // Return to lobby for multiplayer
-        emitter.emit('goToPage', GAME_STATES.lobby);
+        emitter.emit('goToPage', GAME_STATES.lobby)
       } else {
         // Return to menu for single-player
-        emitter.emit('goToPage', GAME_STATES.menu);
+        emitter.emit('goToPage', GAME_STATES.menu)
       }
     },
     loadSettings() {
       // In multiplayer mode, use saved settings if available
       if (this.isMultiplayerMode && this.savedMultiplayerSettings) {
-        this.loadMultiplayerSettings(this.savedMultiplayerSettings);
-        return;
+        this.loadMultiplayerSettings(this.savedMultiplayerSettings)
+        return
       }
-      
+
       // In multiplayer mode with no saved settings, use MULTIPLAYER_INITIAL_SETTINGS as base
       // This ensures the setup page shows the same defaults that would be used when starting without setup
       if (this.isMultiplayerMode && !this.savedMultiplayerSettings) {
         // Start with MULTIPLAYER_INITIAL_SETTINGS defaults
-        const multiplayerDefaults = { ...MULTIPLAYER_INITIAL_SETTINGS };
+        const multiplayerDefaults = { ...MULTIPLAYER_INITIAL_SETTINGS }
         // Override with localStorage values if they exist (user's previous preferences)
         // This includes buildingRates if they were saved previously
-        const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field');
+        const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field')
         for (const field of fieldsToLoad) {
-          const value = localStorage.getItem(field);
+          const value = localStorage.getItem(field)
           if (value) {
-            multiplayerDefaults[field] = JSON.parse(value);
+            multiplayerDefaults[field] = JSON.parse(value)
           }
         }
         // Apply the merged settings
-        Object.assign(this, multiplayerDefaults);
-        return;
+        Object.assign(this, multiplayerDefaults)
+        return
       }
-      
+
       // Single-player mode: load from localStorage
-      const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field');
-      let hasBuildingRates = false;
-      
+      const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field')
+      let hasBuildingRates = false
+
       for (const field of fieldsToLoad) {
-        const value = localStorage.getItem(field);
+        const value = localStorage.getItem(field)
         if (value) {
-          this[field] = JSON.parse(value);
+          this[field] = JSON.parse(value)
           if (field === 'buildingRates') {
-            hasBuildingRates = true;
+            hasBuildingRates = true
           }
         }
       }
-      
+
       // For buildingRates: if not in localStorage, use DEFAULT_BUILDING_RATES
       if (!hasBuildingRates) {
-        this.buildingRates = { ...DEFAULT_BUILDING_RATES };
+        this.buildingRates = { ...DEFAULT_BUILDING_RATES }
       }
     },
     // TODO: Only buildingRates are loaded, all the other settings are default
     loadMultiplayerSettings(settings) {
       // Load settings from saved multiplayer settings
       // Map all the settings fields to component data
-      if (settings.width !== undefined) this.width = settings.width;
-      if (settings.height !== undefined) this.height = settings.height;
-      if (settings.humanPlayersNum !== undefined) this.humanPlayersNum = settings.humanPlayersNum;
-      if (settings.botPlayersNum !== undefined) this.botPlayersNum = settings.botPlayersNum;
-      if (settings.minSpeed !== undefined) this.minSpeed = settings.minSpeed;
-      if (settings.maxSpeed !== undefined) this.maxSpeed = settings.maxSpeed;
-      if (settings.speedMinVisibility !== undefined) this.speedMinVisibility = settings.speedMinVisibility;
-      if (settings.scoresToWin !== undefined) this.scoresToWin = settings.scoresToWin;
-      if (settings.maxUnitsNum !== undefined) this.maxUnitsNum = settings.maxUnitsNum;
-      if (settings.maxBasesNum !== undefined) this.maxBasesNum = settings.maxBasesNum;
-      if (settings.fogOfWarRadius !== undefined) this.fogOfWarRadius = settings.fogOfWarRadius;
-      if (settings.unitModifier !== undefined) this.unitModifier = settings.unitModifier;
-      if (settings.baseModifier !== undefined) this.baseModifier = settings.baseModifier;
-      if (settings.sectorsNum !== undefined) this.sectorsNum = settings.sectorsNum;
-      if (settings.enableFogOfWar !== undefined) this.enableFogOfWar = settings.enableFogOfWar;
-      if (settings.enableScoutMode !== undefined) this.enableScoutMode = settings.enableScoutMode;
-      if (settings.visibilitySpeedRelation !== undefined) this.visibilitySpeedRelation = settings.visibilitySpeedRelation;
-      if (settings.hideEnemySpeed !== undefined) this.hideEnemySpeed = settings.hideEnemySpeed;
-      if (settings.killAtBirth !== undefined) this.killAtBirth = settings.killAtBirth;
-      if (settings.enableUndo !== undefined) this.enableUndo = settings.enableUndo;
-      if (settings.buildingRates !== undefined) this.buildingRates = settings.buildingRates;
+      if (settings.width !== undefined) this.width = settings.width
+      if (settings.height !== undefined) this.height = settings.height
+      if (settings.humanPlayersNum !== undefined) this.humanPlayersNum = settings.humanPlayersNum
+      if (settings.botPlayersNum !== undefined) this.botPlayersNum = settings.botPlayersNum
+      if (settings.minSpeed !== undefined) this.minSpeed = settings.minSpeed
+      if (settings.maxSpeed !== undefined) this.maxSpeed = settings.maxSpeed
+      if (settings.speedMinVisibility !== undefined)
+        this.speedMinVisibility = settings.speedMinVisibility
+      if (settings.scoresToWin !== undefined) this.scoresToWin = settings.scoresToWin
+      if (settings.maxUnitsNum !== undefined) this.maxUnitsNum = settings.maxUnitsNum
+      if (settings.maxBasesNum !== undefined) this.maxBasesNum = settings.maxBasesNum
+      if (settings.fogOfWarRadius !== undefined) this.fogOfWarRadius = settings.fogOfWarRadius
+      if (settings.unitModifier !== undefined) this.unitModifier = settings.unitModifier
+      if (settings.baseModifier !== undefined) this.baseModifier = settings.baseModifier
+      if (settings.sectorsNum !== undefined) this.sectorsNum = settings.sectorsNum
+      if (settings.enableFogOfWar !== undefined) this.enableFogOfWar = settings.enableFogOfWar
+      if (settings.enableScoutMode !== undefined) this.enableScoutMode = settings.enableScoutMode
+      if (settings.visibilitySpeedRelation !== undefined)
+        this.visibilitySpeedRelation = settings.visibilitySpeedRelation
+      if (settings.hideEnemySpeed !== undefined) this.hideEnemySpeed = settings.hideEnemySpeed
+      if (settings.killAtBirth !== undefined) this.killAtBirth = settings.killAtBirth
+      if (settings.enableUndo !== undefined) this.enableUndo = settings.enableUndo
+      if (settings.buildingRates !== undefined) this.buildingRates = settings.buildingRates
     },
     updateHumanPlayers() {
-      this.humanPlayerNames.length = this.humanPlayersNum;
+      this.humanPlayerNames.length = this.humanPlayersNum
     },
     processStartBtnClick() {
       // Settings to validate (limit check)
@@ -495,21 +776,21 @@ export default {
         fogOfWarRadius: this.fogOfWarRadius,
         unitModifier: this.unitModifier,
         baseModifier: this.baseModifier,
-      };
+      }
       if (!this.visibilitySpeedRelation) {
-        delete settings.speedMinVisibility;
+        delete settings.speedMinVisibility
       }
       if (!this.enableFogOfWar) {
-        delete settings.fogOfWarRadius;
-        delete settings.speedMinVisibility;
+        delete settings.fogOfWarRadius
+        delete settings.speedMinVisibility
       }
       if (!this.isInputValid(settings)) {
-        return;
+        return
       }
       // let players = Array.from({ length: this.humanPlayersNum }, () => new Models.Player(Models.PlayerTypes.HUMAN));
       // players = players.concat(Array.from({ length: this.humanPlayersNum }, () => new Models.Player(Models.PlayerTypes.HUMAN)));
-      const playersNum = this.humanPlayersNum + this.botPlayersNum;
-      this.sectorsNum = playersNum <= 4 ? 4 : 6;
+      const playersNum = this.humanPlayersNum + this.botPlayersNum
+      this.sectorsNum = playersNum <= 4 ? 4 : 6
       // const buildingRates = this.calculateBuildingsRate();
 
       settings = {
@@ -528,23 +809,23 @@ export default {
       // If so, store settings and return to lobby instead of starting single player game
       if (this.isMultiplayerMode) {
         // Save settings to localStorage so they persist for new games
-        const fieldsToSave = FIELDS_TO_SAVE.filter(item => item !== 'field');
+        const fieldsToSave = FIELDS_TO_SAVE.filter(item => item !== 'field')
         for (const field of fieldsToSave) {
           if (settings[field] !== undefined) {
-            localStorage.setItem(field, JSON.stringify(settings[field]));
+            localStorage.setItem(field, JSON.stringify(settings[field]))
           }
         }
-        emitter.emit('multiplayerSettingsConfigured', settings);
+        emitter.emit('multiplayerSettingsConfigured', settings)
       } else {
-        emitter.emit('startGame', settings);
+        emitter.emit('startGame', settings)
       }
     },
     processLoadBtnClick() {
       if (this.loadGamePossible) {
-        this.loadSettings();
-        this.loadGame = true;
+        this.loadSettings()
+        this.loadGame = true
       }
-      this.processStartBtnClick();
+      this.processStartBtnClick()
     },
     isInputValid(settings) {
       for (const key in settings) {
@@ -554,43 +835,49 @@ export default {
           settings[key] < this.LIMITS[key].min ||
           settings[key] > this.LIMITS[key].max
         ) {
-          this.setError(`${this.LIMITS[key].description} should be between ${this.LIMITS[key].min} and ${this.LIMITS[key].max}`);
-          return false;
+          this.setError(
+            `${this.LIMITS[key].description} should be between ${this.LIMITS[key].min} and ${this.LIMITS[key].max}`
+          )
+          return false
         }
       }
       if (this.humanPlayersNum + this.botPlayersNum > 8) {
-        this.setError('Total number of players shouldn\'t be greater than 8');
-        return false;
+        this.setError("Total number of players shouldn't be greater than 8")
+        return false
       }
       if (this.maxSpeed < this.minSpeed) {
-        this.setError('Max speed should be greater than min speed');
-        return false;
+        this.setError('Max speed should be greater than min speed')
+        return false
       }
-      if (this.enableFogOfWar && this.visibilitySpeedRelation && this.speedMinVisibility < this.minSpeed) {
-        this.setError('Threshold speed should be greater than min speed');
-        return false;
+      if (
+        this.enableFogOfWar &&
+        this.visibilitySpeedRelation &&
+        this.speedMinVisibility < this.minSpeed
+      ) {
+        this.setError('Threshold speed should be greater than min speed')
+        return false
       }
-      return true;
+      return true
     },
     calculateBuildingsRate() {
-      const totalRate = Object.values(this.buildingRates).reduce((sum, rate) => sum + rate, 0);
-      const normalizedRates = {};
+      const totalRate = Object.values(this.buildingRates).reduce((sum, rate) => sum + rate, 0)
+      const normalizedRates = {}
       for (const key in this.buildingRates) {
-        normalizedRates[key] = this.buildingRates[key] / totalRate;
+        normalizedRates[key] = this.buildingRates[key] / totalRate
       }
-      return normalizedRates;
+      return normalizedRates
     },
     toggleHint(id) {
-      this.currentHint = this.currentHint === id ? null : id;
+      this.currentHint = this.currentHint === id ? null : id
     },
     clickOutside(event) {
       // TODO: Might be done better
       if (['settings-wrapper', 'main-settings'].includes(event.target.id)) {
-        this.toggleHint(null);
+        this.toggleHint(null)
       }
     },
     setError(error) {
-      this.currentError = error;
+      this.currentError = error
     },
   },
 }
@@ -685,7 +972,6 @@ input.inputRange {
   }
 }
 
-
 #main-settings {
   width: 360px;
   margin: 0 auto;
@@ -737,7 +1023,6 @@ input.inputRange {
   user-select: none;
 }
 
-
 input.inputNumber {
   max-width: 50px;
   font-size: 28px;
@@ -757,13 +1042,13 @@ input.inputNumber.digits2 {
 }
 
 /* Hide the default increase/decrease buttons inside the input element */
-input[type=number]::-webkit-outer-spin-button,
-input[type=number]::-webkit-inner-spin-button {
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-input[type=number] {
+input[type='number'] {
   -moz-appearance: textfield;
   /* Firefox */
 }
@@ -778,7 +1063,7 @@ span.labelForInput {
 .hint {
   width: 25px;
   height: 25px;
-  background-image: url("/images/hint_icon.png");
+  background-image: url('/images/hint_icon.png');
   background-size: cover;
   position: absolute;
   margin-left: -33px;
@@ -814,7 +1099,7 @@ span.labelForInput {
   #buildings-settings {
     padding-top: 67px;
   }
-  
+
   #buildings-settings.multiplayer-mode {
     padding-top: 51px;
   }
@@ -828,11 +1113,11 @@ span.labelForInput {
   width: 200px;
   height: 60px;
   border: 0;
-  background-image: url("/images/long_setup_btn.png");
+  background-image: url('/images/long_setup_btn.png');
   background-size: 100% 100%;
   background-color: transparent;
   font-size: 36px;
-  font-family: "RocknRoll One", Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'RocknRoll One', Avenir, Helvetica, Arial, sans-serif;
   cursor: pointer;
 }
 

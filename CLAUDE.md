@@ -42,11 +42,12 @@ npm run format && npm run lint:fix && npm run lint   # full lint
 Game logic lives in plain JS classes under `frontend/src/game/`, decoupled from Vue reactivity:
 
 - `fieldEngine.js` — unit movement, capture, fog of war, unit production
-- `waveEngine.js` — BFS pathfinding for reachable cells
+- `waveEngine.js` — BFS pathfinding (reachable cells + `getPath` for the move animator)
 - `botEngine.js` — AI player decisions
 - `createFieldEngine.js` — random map generation
+- `moveAnimator.js` — presentation-only async walker that steps a unit along a pre-computed path (single- and multiplayer)
 
-The same logic exists server-side in `backend/game/services/` (`game_logic.py`, `move_validation.py`, `unit_production.py`, `visibility.py`, `field.py`, `field_diff.py`, `undo_state.py`). When changing game rules, **both implementations must stay in sync** — multiplayer relies on the server's version, single-player on the client's.
+The same logic exists server-side in `backend/game/services/` (`game_logic.py`, `move_validation.py`, `unit_production.py`, `visibility.py`, `field.py`, `field_diff.py`, `undo_state.py`, `path.py`). When changing game rules, **both implementations must stay in sync** — multiplayer relies on the server's version, single-player on the client's.
 
 ### Component layering
 - `DinoGame.vue` — single-player controller; owns state, calls engines directly
@@ -62,6 +63,7 @@ Components communicate via a mitt-based emitter (`game/eventBus.js`) instead of 
 - `lobbyWebSocket.js` ↔ `LobbyConsumer`
 - On join: server sends full state (`onJoined`)
 - On move: client sends `{type, payload, clientSeq}`; server replies with a **state patch**, not full state. Patches can be either a replacement field array (turn change) or a sparse nested object (e.g. `{ field: { 5: { 3: { isHidden: false } } } }` for scouting). Patch merge logic lives in `frontend/src/game/fieldDiff.js` / `backend/game/services/field_diff.py`.
+- Move patches also carry animation hints: server attaches the full `path`; the consumer slices it per recipient by visibility and renames it `pathSlice` (paired with `movingUnit`). Clients animate the slice, then merge the authoritative `field`. The move-maker always sees the full walk; opponents only see the visible portion.
 
 ### Game models
 `frontend/src/game/models.js` defines `Unit`, `Building`, `Cell`, `Player`. `const.js` holds tunable settings (speeds, modifiers, visibility radii). When adding a new building or unit type, expect to touch: `models.js`, `const.js`, `fieldEngine.js`, the corresponding backend service, and the rendering components.

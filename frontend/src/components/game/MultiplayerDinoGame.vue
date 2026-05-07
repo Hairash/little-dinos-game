@@ -16,10 +16,10 @@
     :field="localField"
     :current-player="currentPlayer"
     :my-player-order="myPlayerOrder"
-    :cellSize="cellSize"
+    :cell-size="cellSize"
     :is-my-turn="isMyTurn"
-    :unitModifier="unitModifier"
-    :baseModifier="baseModifier"
+    :unit-modifier="unitModifier"
+    :base-modifier="baseModifier"
     :current-stats="getCurrentStats()"
     :menu-open="menuOpen"
   />
@@ -30,9 +30,9 @@
     :current-stats="getCurrentStats()"
     :handle-end-turn-btn-click="processEndTurn"
     :handle-unit-click="findNextUnit"
-    :cellSize="cellSize"
+    :cell-size="cellSize"
     :handle-change-cell-size="changeCellSize"
-    :handle-exit-btn-click="() => this.state = this.STATES.exitDialog"
+    :handle-exit-btn-click="() => (this.state = this.STATES.exitDialog)"
     :are-all-units-on-buildings="false"
     :show-end-turn-tip="showEndTurnTip && isMyTurn"
     :field="localField"
@@ -42,11 +42,11 @@
     :max-speed="maxSpeed"
     :can-undo="canUndo && isMyTurn && winner === null"
     :handle-undo-click="undoLastMove"
-    @menuOpen="handleMenuOpen"
+    @menu-open="handleMenuOpen"
   />
   <ExitDialog
     v-if="state === STATES.exitDialog"
-    :handle-cancel="() => state = STATES.play"
+    :handle-cancel="() => (state = STATES.play)"
     :handle-confirm="exitGame"
   />
   <!-- Notifications -->
@@ -55,7 +55,11 @@
       v-for="notification in notifications"
       :key="notification.id"
       :class="['notification', `notification-${notification.type}`]"
-      :style="notification.type === 'turn' ? { '--player-color': getPlayerColor(notification.playerOrder) } : {}"
+      :style="
+        notification.type === 'turn'
+          ? { '--player-color': getPlayerColor(notification.playerOrder) }
+          : {}
+      "
       @click="dismissNotification(notification.id)"
     >
       {{ notification.message }}
@@ -64,23 +68,24 @@
 </template>
 
 <script>
-import GameGrid from '@/components/game/GameGrid.vue';
-import InfoPanel from '@/components/game/InfoPanel.vue';
-import ExitDialog from '@/components/dialogs/ExitDialog.vue';
-import MultiplayerReadyLabel from '@/components/game/MultiplayerReadyLabel.vue';
-import Models from "@/game/models";
-import { WaveEngine } from "@/game/waveEngine";
-import { FieldEngine } from "@/game/fieldEngine";
-import { GameWebSocket } from "@/game/websocket/gameWebSocket";
-import { whoami } from "@/services/auth";
-import { normalizeField, getPlayerColor } from "@/game/helpers";
-import { ACTIONS } from "@/game/const";
-import { gameCoreMixin } from "@/game/mixins/gameCoreMixin";
-import emitter from '@/game/eventBus';
-import logger from '@/utils/logger';
+import GameGrid from '@/components/game/GameGrid.vue'
+import InfoPanel from '@/components/game/InfoPanel.vue'
+import ExitDialog from '@/components/dialogs/ExitDialog.vue'
+import MultiplayerReadyLabel from '@/components/game/MultiplayerReadyLabel.vue'
+import Models from '@/game/models'
+import { WaveEngine } from '@/game/waveEngine'
+import { FieldEngine } from '@/game/fieldEngine'
+import { GameWebSocket } from '@/game/websocket/gameWebSocket'
+import { whoami } from '@/services/auth'
+import { normalizeField, getPlayerColor } from '@/game/helpers'
+import { ACTIONS } from '@/game/const'
+import { animateMovePath } from '@/game/moveAnimator'
+import { gameCoreMixin } from '@/game/mixins/gameCoreMixin'
+import emitter from '@/game/eventBus'
+import logger from '@/utils/logger'
 
 // Module-specific logger with prefix
-const log = logger.withPrefix('MultiplayerDinoGame');
+const log = logger.withPrefix('MultiplayerDinoGame')
 
 export default {
   name: 'MultiplayerDinoGame',
@@ -117,21 +122,21 @@ export default {
   data() {
     return {
       // STATES and cellSize come from gameCoreMixin
-      localField: [],  // Local copy of field for reactivity (initialize as empty array)
-      localSettings: null,  // Local copy of settings for reactivity (can be updated from server)
+      localField: [], // Local copy of field for reactivity (initialize as empty array)
+      localSettings: null, // Local copy of settings for reactivity (can be updated from server)
       players: [],
       currentPlayer: 0,
       currentUserId: null,
       myPlayerOrder: null,
-      state: 'play',  // Initial state (STATES.play)
+      state: 'play', // Initial state (STATES.play)
       gameWs: null,
       clientSeq: 0,
-      reconnectAttempts: 0,  // Track reconnect attempts for UI
-      isInitialConnect: true,  // Track if this is the first connection
-      notifications: [],  // Array of notification objects: { id, message, type }
-      inactivityTimer: null,  // Timer for inactivity detection
-      showEndTurnTip: false,  // Show tip above end turn button
-      activityEventHandlers: [],  // Store event handlers for cleanup
+      reconnectAttempts: 0, // Track reconnect attempts for UI
+      isInitialConnect: true, // Track if this is the first connection
+      notifications: [], // Array of notification objects: { id, message, type }
+      inactivityTimer: null, // Timer for inactivity detection
+      showEndTurnTip: false, // Show tip above end turn button
+      activityEventHandlers: [], // Store event handlers for cleanup
       // Settings from props
       width: 20,
       height: 20,
@@ -151,212 +156,233 @@ export default {
       playersData: [], // Store original player data with usernames from server
       // Undo state - received from server after each move
       canUndo: false,
-    };
+      // True while a move animation is being played from a server patch.
+      // Gates new player input so we never start a second action mid-walk.
+      isAnimating: false,
+      wasUnmounted: false,
+    }
   },
   computed: {
     isMyTurn() {
-      return this.myPlayerOrder !== null && this.currentPlayer === this.myPlayerOrder;
+      return this.myPlayerOrder !== null && this.currentPlayer === this.myPlayerOrder
     },
     minSpeed() {
-      const settings = this.localSettings || this.settings || {};
-      return settings.minSpeed || 1;
+      const settings = this.localSettings || this.settings || {}
+      return settings.minSpeed || 1
     },
     maxSpeed() {
-      const settings = this.localSettings || this.settings || {};
-      return settings.maxSpeed || 5;
+      const settings = this.localSettings || this.settings || {}
+      return settings.maxSpeed || 5
     },
   },
   async created() {
     // Get current user info first - MUST complete before initializing players
     try {
-      const userInfo = await whoami();
+      const userInfo = await whoami()
       // whoami returns { auth: true, user: { id, username } }
       if (userInfo.auth && userInfo.user) {
-        this.currentUserId = userInfo.user.id;
-        log.debug(`Set currentUserId to: ${this.currentUserId} from whoami response:`, userInfo);
+        this.currentUserId = userInfo.user.id
+        log.debug(`Set currentUserId to: ${this.currentUserId} from whoami response:`, userInfo)
       } else {
-        console.warn(`[DEBUG] whoami returned auth=false or no user:`, userInfo);
+        console.warn(`[DEBUG] whoami returned auth=false or no user:`, userInfo)
       }
     } catch (error) {
-      console.error('Failed to get user info:', error);
+      console.error('Failed to get user info:', error)
     }
-    
+
     // Initialize from props first (fallback if WebSocket hasn't connected yet)
     // Note: initializeFromProps might call initializePlayers, but currentUserId should be set by now
-    this.initializeFromProps();
-    
+    this.initializeFromProps()
+
     // Connect to game WebSocket - it will send full state on connect
-    this.connectGameWebSocket();
+    this.connectGameWebSocket()
   },
   mounted() {
-    emitter.on('moveUnit', this.emitMoveUnit);
-    emitter.on('addTempVisibilityForCoords', this.emitAddTempVisibilityForCoords);
-    emitter.on('scoutArea', this.emitScoutArea);
-    emitter.on('processEndTurn', this.processEndTurn);
-    emitter.on('startTurn', this.startTurn);
-    
+    emitter.on('moveUnit', this.emitMoveUnit)
+    emitter.on('addTempVisibilityForCoords', this.emitAddTempVisibilityForCoords)
+    emitter.on('scoutArea', this.emitScoutArea)
+    emitter.on('processEndTurn', this.processEndTurn)
+    emitter.on('startTurn', this.startTurn)
+
     // Track user activity for inactivity tip
-    this.setupActivityTracking();
-    
-    this.startTurn();
+    this.setupActivityTracking()
+
+    this.startTurn()
   },
   beforeUnmount() {
-    emitter.off('moveUnit', this.moveUnit);
-    emitter.off('addTempVisibilityForCoords', this.emitAddTempVisibilityForCoords);
-    emitter.off('scoutArea', this.emitScoutArea);
-    emitter.off('processEndTurn', this.processEndTurn);
-    emitter.off('startTurn', this.startTurn);
-    
+    this.wasUnmounted = true
+    emitter.off('moveUnit', this.moveUnit)
+    emitter.off('addTempVisibilityForCoords', this.emitAddTempVisibilityForCoords)
+    emitter.off('scoutArea', this.emitScoutArea)
+    emitter.off('processEndTurn', this.processEndTurn)
+    emitter.off('startTurn', this.startTurn)
+
     // Clean up inactivity timer and event listeners
-    this.clearInactivityTimer();
+    this.clearInactivityTimer()
     if (this.activityEventHandlers) {
       this.activityEventHandlers.forEach(({ event, handler }) => {
-        document.removeEventListener(event, handler);
-      });
-      this.activityEventHandlers = [];
+        document.removeEventListener(event, handler)
+      })
+      this.activityEventHandlers = []
     }
-    
+
     if (this.gameWs) {
-      this.gameWs.disconnect();
+      this.gameWs.disconnect()
     }
   },
   methods: {
     handleMenuOpen(isOpen) {
-      this.menuOpen = isOpen;
+      this.menuOpen = isOpen
     },
     initializeFromProps() {
       // Initialize field from prop and normalize to model instances
       if (this.field && this.field.length > 0) {
-        this.localField = normalizeField(JSON.parse(JSON.stringify(this.field)));
+        this.localField = normalizeField(JSON.parse(JSON.stringify(this.field)))
       } else {
-        this.localField = [];
+        this.localField = []
       }
-      
+
       // Initialize settings from props (create a local copy)
-      const settings = this.settings || {};
-      this.localSettings = JSON.parse(JSON.stringify(settings));
-      this.width = settings.width || 20;
-      this.height = settings.height || 20;
-      this.fogOfWarRadius = settings.fogOfWarRadius || 3;
-      this.enableFogOfWar = settings.enableFogOfWar !== false;
-      this.enableScoutMode = settings.enableScoutMode !== false;
-      this.hideEnemySpeed = settings.hideEnemySpeed || false;
-      this.unitModifier = settings.unitModifier || 3;
-      this.baseModifier = settings.baseModifier || 3;
-      
+      const settings = this.settings || {}
+      this.localSettings = JSON.parse(JSON.stringify(settings))
+      this.width = settings.width || 20
+      this.height = settings.height || 20
+      this.fogOfWarRadius = settings.fogOfWarRadius || 3
+      this.enableFogOfWar = settings.enableFogOfWar !== false
+      this.enableScoutMode = settings.enableScoutMode !== false
+      this.hideEnemySpeed = settings.hideEnemySpeed || false
+      this.unitModifier = settings.unitModifier || 3
+      this.baseModifier = settings.baseModifier || 3
+
       // Initialize players from gameState prop
       if (this.gameState && this.gameState.players) {
-        this.initializePlayers(this.gameState.players, this.gameState.turnPlayer);
+        this.initializePlayers(this.gameState.players, this.gameState.turnPlayer)
       }
-      
+
       // Initialize engines if we have a field
       // Note: Don't call initVisibility() here - the backend handles visibility filtering
       // The field from props might be unfiltered (from lobby), but it will be replaced
       // by the filtered field when the WebSocket connects and sends server state
       if (this.localField && this.localField.length > 0) {
-        this.initializeEngines();
+        this.initializeEngines()
       }
     },
-    
+
     initializeFromServerState(gameState) {
-      log.debug('Initializing from server state:', gameState);
-      
+      log.debug('Initializing from server state:', gameState)
+
       // Update settings from server
       if (gameState.settings) {
-        const settings = typeof gameState.settings === 'string' 
-          ? JSON.parse(gameState.settings) 
-          : gameState.settings;
-        this.width = settings.width || 20;
-        this.height = settings.height || 20;
-        this.fogOfWarRadius = settings.fogOfWarRadius || 3;
-        this.enableFogOfWar = settings.enableFogOfWar !== false;
-        this.enableScoutMode = settings.enableScoutMode !== false;
-        this.hideEnemySpeed = settings.hideEnemySpeed || false;
-        this.unitModifier = settings.unitModifier || 3;
-        this.baseModifier = settings.baseModifier || 3;
+        const settings =
+          typeof gameState.settings === 'string'
+            ? JSON.parse(gameState.settings)
+            : gameState.settings
+        this.width = settings.width || 20
+        this.height = settings.height || 20
+        this.fogOfWarRadius = settings.fogOfWarRadius || 3
+        this.enableFogOfWar = settings.enableFogOfWar !== false
+        this.enableScoutMode = settings.enableScoutMode !== false
+        this.hideEnemySpeed = settings.hideEnemySpeed || false
+        this.unitModifier = settings.unitModifier || 3
+        this.baseModifier = settings.baseModifier || 3
         // Store full settings locally (can't mutate props)
-        this.localSettings = JSON.parse(JSON.stringify(settings));
+        this.localSettings = JSON.parse(JSON.stringify(settings))
       }
-      
+
       // Update field from server and normalize to model instances
       if (gameState.field) {
-        this.localField = normalizeField(JSON.parse(JSON.stringify(gameState.field)));
+        this.localField = normalizeField(JSON.parse(JSON.stringify(gameState.field)))
       }
-      
+
       // Initialize players from server
       if (gameState.players) {
-        this.initializePlayers(gameState.players, gameState.turnPlayer);
+        this.initializePlayers(gameState.players, gameState.turnPlayer)
       }
-      
+
       // Set currentPlayer from server if provided (preferred over turnPlayer)
       if (gameState.currentPlayer !== undefined) {
-        this.currentPlayer = gameState.currentPlayer;
-        log.debug(`Set currentPlayer from gameState: ${this.currentPlayer}`);
+        this.currentPlayer = gameState.currentPlayer
+        log.debug(`Set currentPlayer from gameState: ${this.currentPlayer}`)
       }
-      
+
       // Initialize engines with server data
-      this.initializeEngines();
+      this.initializeEngines()
 
       // Don't call initVisibility() here - the backend already filtered the field
       // with correct isHidden values based on player's visibility
 
       // Show turn notification for initial turn
-      this.showTurnNotification(this.currentPlayer);
+      this.showTurnNotification(this.currentPlayer)
     },
-    
+
     initializePlayers(playersData, turnPlayerUsername) {
-      log.debug(`initializePlayers called with currentUserId=${this.currentUserId}, playersData:`, playersData);
+      log.debug(
+        `initializePlayers called with currentUserId=${this.currentUserId}, playersData:`,
+        playersData
+      )
 
       // Store original player data with usernames for turn notifications
-      this.playersData = playersData;
+      this.playersData = playersData
 
       this.players = playersData.map((p, idx) => {
         // Find my player order - use the order from server, not array index
         // Compare both id and check if currentUserId is set
         if (this.currentUserId !== null && p.id === this.currentUserId) {
-          this.myPlayerOrder = p.order !== undefined ? p.order : idx;
-          log.debug(`Found my player order: ${this.myPlayerOrder} for user ${this.currentUserId} (player id: ${p.id})`);
+          this.myPlayerOrder = p.order !== undefined ? p.order : idx
+          log.debug(
+            `Found my player order: ${this.myPlayerOrder} for user ${this.currentUserId} (player id: ${p.id})`
+          )
         } else if (this.currentUserId === null) {
-          console.warn(`[DEBUG] currentUserId is null, cannot determine myPlayerOrder. Player data:`, p);
+          console.warn(
+            `[DEBUG] currentUserId is null, cannot determine myPlayerOrder. Player data:`,
+            p
+          )
         }
-        return new Models.Player(Models.PlayerTypes.HUMAN);
-      });
-      
+        return new Models.Player(Models.PlayerTypes.HUMAN)
+      })
+
       // Set current player from turnPlayer - use order from server
       if (turnPlayerUsername) {
-        const turnPlayer = playersData.find(p => p.username === turnPlayerUsername);
+        const turnPlayer = playersData.find(p => p.username === turnPlayerUsername)
         if (turnPlayer) {
           // Use the order from server data, not array index
-          this.currentPlayer = turnPlayer.order !== undefined ? turnPlayer.order : playersData.findIndex(p => p.id === turnPlayer.id);
-          log.debug(`Set currentPlayer to: ${this.currentPlayer} (turnPlayer: ${turnPlayerUsername}, order: ${turnPlayer.order})`);
+          this.currentPlayer =
+            turnPlayer.order !== undefined
+              ? turnPlayer.order
+              : playersData.findIndex(p => p.id === turnPlayer.id)
+          log.debug(
+            `Set currentPlayer to: ${this.currentPlayer} (turnPlayer: ${turnPlayerUsername}, order: ${turnPlayer.order})`
+          )
         } else {
-          console.warn(`[DEBUG] Turn player not found: ${turnPlayerUsername}`);
+          console.warn(`[DEBUG] Turn player not found: ${turnPlayerUsername}`)
         }
       } else {
         // If no turnPlayer specified, default to first player
-        this.currentPlayer = 0;
-        log.debug(`No turnPlayer specified, defaulting currentPlayer to 0`);
+        this.currentPlayer = 0
+        log.debug(`No turnPlayer specified, defaulting currentPlayer to 0`)
       }
-      
-      log.debug(`isMyTurn check: myPlayerOrder=${this.myPlayerOrder}, currentPlayer=${this.currentPlayer}, currentUserId=${this.currentUserId}, isMyTurn=${this.isMyTurn}`);
+
+      log.debug(
+        `isMyTurn check: myPlayerOrder=${this.myPlayerOrder}, currentPlayer=${this.currentPlayer}, currentUserId=${this.currentUserId}, isMyTurn=${this.isMyTurn}`
+      )
     },
-    
+
     initializeEngines() {
       if (!this.localField || this.localField.length === 0) {
-        return;
+        return
       }
-      
+
       // Initialize engines
       this.waveEngine = new WaveEngine(
         this.localField,
         this.width,
         this.height,
         this.fogOfWarRadius,
-        this.enableScoutMode,
-      );
-      
+        this.enableScoutMode
+      )
+
       // Use localSettings if available, otherwise fall back to prop
-      const settings = this.localSettings || this.settings || {};
+      const settings = this.localSettings || this.settings || {}
       this.fieldEngine = new FieldEngine(
         this.localField,
         this.width,
@@ -371,141 +397,193 @@ export default {
         settings.unitModifier || 3,
         settings.baseModifier || 3,
         settings.killAtBirth !== false,
-        settings.visibilitySpeedRelation !== false,
-      );
+        settings.visibilitySpeedRelation !== false
+      )
     },
-    
+
     connectGameWebSocket() {
       this.gameWs = new GameWebSocket(
         this.gameCode,
         {
           onOpen: () => {
-            log.debug('Game WebSocket connected');
+            log.debug('Game WebSocket connected')
           },
           onReconnected: () => {
-            log.debug('[WS] Successfully reconnected to game');
-            this.reconnectAttempts = 0;
-            this.isInitialConnect = false;  // Mark that we've reconnected
+            log.debug('[WS] Successfully reconnected to game')
+            this.reconnectAttempts = 0
+            this.isInitialConnect = false // Mark that we've reconnected
             // Show notification for reconnection
-            this.showNotification('You are reconnected', 'reconnect');
+            this.showNotification('You are reconnected', 'reconnect')
             // State will be synced via onJoined callback when server sends full state
           },
           onReconnecting: (attempt, delay) => {
-            console.warn(`[WS] Reconnecting... (attempt ${attempt}, next try in ${delay}ms)`);
-            this.reconnectAttempts = attempt;
+            console.warn(`[WS] Reconnecting... (attempt ${attempt}, next try in ${delay}ms)`)
+            this.reconnectAttempts = attempt
             // Could show a UI notification here if needed
           },
           onMaxReconnectAttempts: () => {
-            console.error('[WS] Failed to reconnect after maximum attempts');
+            console.error('[WS] Failed to reconnect after maximum attempts')
             // Could show an error message to user here
           },
-          onJoined: (gameState) => {
-            log.debug('Joined game, received state:', gameState);
+          onJoined: gameState => {
+            log.debug('Joined game, received state:', gameState)
             // Update clientSeq from server if provided (for reconnection)
             // The server sends the last clientSeq that was processed for this player
             // We set it to that value, and sendMoveToServer will increment it before sending
             // So the next move will be lastClientSeq + 1, which is correct
             if (gameState.lastClientSeq !== undefined) {
-              console.log(`[WS] Setting clientSeq to ${gameState.lastClientSeq} (next move will be ${gameState.lastClientSeq + 1})`);
-              this.clientSeq = gameState.lastClientSeq;
+              console.log(
+                `[WS] Setting clientSeq to ${gameState.lastClientSeq} (next move will be ${gameState.lastClientSeq + 1})`
+              )
+              this.clientSeq = gameState.lastClientSeq
             }
             // Initialize game state from server
             // This is called both on initial connect and on reconnect
-            this.initializeFromServerState(gameState);
+            this.initializeFromServerState(gameState)
             // Initialize scrollCoords once at the beginning of the game
             // Only do this on initial connect, not on reconnect
             if (this.isInitialConnect) {
-              this.isInitialConnect = false;
+              this.isInitialConnect = false
               this.$nextTick(() => {
-                this.initScrollCoordsOnce();
-              });
+                this.initScrollCoordsOnce()
+              })
             }
           },
           onStateUpdate: (patch, serverTick) => {
-            log.debug('State update received:', patch, serverTick);
-            this.applyStatePatch(patch);
+            log.debug('State update received:', patch, serverTick)
+            this.applyStatePatch(patch)
           },
-          onGameStarted: (gameState) => {
-            log.debug('Game started event:', gameState);
+          onGameStarted: gameState => {
+            log.debug('Game started event:', gameState)
             // Update field and state from server, normalize to model instances
             // Note: This callback is never called for Game WebSocket (only for Lobby WebSocket)
             if (gameState.field) {
-              this.localField = normalizeField(JSON.parse(JSON.stringify(gameState.field)));
+              this.localField = normalizeField(JSON.parse(JSON.stringify(gameState.field)))
             }
           },
-          onError: (error) => {
-            console.error('Game WebSocket error:', error);
+          onError: error => {
+            console.error('Game WebSocket error:', error)
           },
           onClose: () => {
-            log.debug('Game WebSocket disconnected');
+            log.debug('Game WebSocket disconnected')
             // Show notification for own disconnection
-            this.showNotification('You are disconnected', 'disconnect');
+            this.showNotification('You are disconnected', 'disconnect')
           },
-          onPlayerDisconnected: (player) => {
-            log.debug('Player disconnected:', player);
+          onPlayerDisconnected: player => {
+            log.debug('Player disconnected:', player)
             // Show notification for other player's disconnection
-            this.showNotification(`Player ${player.username} disconnected`, 'disconnect');
+            this.showNotification(`Player ${player.username} disconnected`, 'disconnect')
           },
-          onPlayerReconnected: (player) => {
-            log.debug('Player reconnected:', player);
+          onPlayerReconnected: player => {
+            log.debug('Player reconnected:', player)
             // Show notification for other player's reconnection
-            this.showNotification(`Player ${player.username} reconnected`, 'reconnect');
+            this.showNotification(`Player ${player.username} reconnected`, 'reconnect')
           },
         },
-        this.getAppState  // Pass state getter for reconnect logic
-      );
-      this.gameWs.connect();
+        this.getAppState // Pass state getter for reconnect logic
+      )
+      this.gameWs.connect()
     },
-    
+
     applyStatePatch(patch) {
+      // Patches arrive over WS as discrete messages but our handler is async
+      // (move animations can take hundreds of ms). Serialize them onto a
+      // promise chain so a fast turn-end patch doesn't overlap a still-running
+      // move animation. The chain guarantees in-order application.
+      this._animationChain = (this._animationChain || Promise.resolve())
+        .then(() => this._applyStatePatchSerialized(patch))
+        .catch(err => log.error('applyStatePatch error:', err))
+      return this._animationChain
+    },
+
+    async _applyStatePatchSerialized(patch) {
+      if (this.wasUnmounted) return
       // Apply state changes from server
-      log.debug('applyStatePatch called with patch:', patch);
-      
+      log.debug('applyStatePatch called with patch:', patch)
+
+      // Animate the visible slice of the move BEFORE swapping in the new field.
+      // The slice is already filtered to coords this recipient can see.
+      if (
+        Array.isArray(patch.pathSlice) &&
+        patch.pathSlice.length >= 2 &&
+        patch.movingUnit &&
+        this.localField &&
+        this.localField.length > 0
+      ) {
+        const movingUnit = normalizeField([
+          [
+            {
+              terrain: { kind: 'empty', idx: 0 },
+              building: null,
+              unit: patch.movingUnit,
+              isHidden: false,
+            },
+          ],
+        ])[0][0].unit
+        // Place the unit on the source cell of the slice if it's not already
+        // there (the previous patch might have left a different layout).
+        const [sx, sy] = patch.pathSlice[0]
+        if (this.localField[sx] && this.localField[sx][sy]) {
+          this.localField[sx][sy].unit = movingUnit
+        }
+        this.isAnimating = true
+        try {
+          await animateMovePath(this.localField, patch.pathSlice, movingUnit, {
+            // Server already filtered to visible cells.
+            isVisible: () => true,
+            isCancelled: () => this.wasUnmounted,
+          })
+        } finally {
+          this.isAnimating = false
+        }
+        if (this.wasUnmounted) return
+      }
+
       if (patch.field) {
         // Check if this is a partial patch (has null values) or full replacement
-        const isPartialPatch = patch.field.some(row => row && row.some(cell => cell === null));
-        
+        const isPartialPatch = patch.field.some(row => row && row.some(cell => cell === null))
+
         if (isPartialPatch) {
           // Partial patch - merge with existing field (likely a scout action)
-          log.debug('Merging partial field patch (scout action)');
+          log.debug('Merging partial field patch (scout action)')
           if (!this.localField || this.localField.length === 0) {
-            console.warn('[DEBUG] Cannot merge partial patch - localField not initialized');
-            return;
+            console.warn('[DEBUG] Cannot merge partial patch - localField not initialized')
+            return
           }
-          
+
           // Merge the patch into existing field and track revealed coordinates
           for (let x = 0; x < patch.field.length && x < this.localField.length; x++) {
-            if (!patch.field[x] || !this.localField[x]) continue;
+            if (!patch.field[x] || !this.localField[x]) continue
             for (let y = 0; y < patch.field[x].length && y < this.localField[x].length; y++) {
               if (patch.field[x][y] !== null) {
                 // Update this cell with patch data
-                this.localField[x][y] = normalizeField([[patch.field[x][y]]])[0][0];
+                this.localField[x][y] = normalizeField([[patch.field[x][y]]])[0][0]
                 // Ensure isHidden is false for revealed cells
                 if (this.localField[x][y] && typeof this.localField[x][y] === 'object') {
-                  this.localField[x][y].isHidden = false;
+                  this.localField[x][y].isHidden = false
                 }
                 // Track this coordinate as scout-revealed (persist until turn ends)
-                this.scoutRevealedCoords.add(`${x},${y}`);
+                this.scoutRevealedCoords.add(`${x},${y}`)
               }
             }
           }
-          
+
           // Re-normalize the merged field
-          const normalizedField = normalizeField(this.localField);
-          this.localField = normalizedField;
+          const normalizedField = normalizeField(this.localField)
+          this.localField = normalizedField
         } else {
           // Full field replacement
-          log.debug('Updating localField from full patch.field');
-          const normalizedField = normalizeField(patch.field);
-          log.debug('Normalized field, length:', normalizedField.length);
-          this.localField = normalizedField;
-          
+          log.debug('Updating localField from full patch.field')
+          const normalizedField = normalizeField(patch.field)
+          log.debug('Normalized field, length:', normalizedField.length)
+          this.localField = normalizedField
+
           // IMPORTANT: After full field replacement, the server may have set isHidden
           // based on normal visibility, but we need to preserve scout-revealed cells
           // Restore them immediately after field update
-          this.ensureScoutRevealedVisible();
+          this.ensureScoutRevealedVisible()
         }
-        
+
         // Update engines immediately with new field reference
         // This ensures fieldEngine.field points to the new localField
         this.waveEngine = new WaveEngine(
@@ -513,10 +591,10 @@ export default {
           this.width,
           this.height,
           this.fogOfWarRadius,
-          this.enableScoutMode,
-        );
+          this.enableScoutMode
+        )
         // Use localSettings if available, otherwise fall back to prop
-        const settings = this.localSettings || this.settings || {};
+        const settings = this.localSettings || this.settings || {}
         this.fieldEngine = new FieldEngine(
           this.localField,
           this.width,
@@ -531,215 +609,229 @@ export default {
           settings.unitModifier || 3,
           settings.baseModifier || 3,
           settings.killAtBirth !== false,
-          settings.visibilitySpeedRelation !== false,
-        );
-        log.debug('Engines updated with new field');
-        
+          settings.visibilitySpeedRelation !== false
+        )
+        log.debug('Engines updated with new field')
+
         // Ensure scout-revealed cells remain visible after field updates
         // (Called again here in case engines modified the field)
-        this.ensureScoutRevealedVisible();
-        
+        this.ensureScoutRevealedVisible()
+
         // Check if the last move was to an obelisk and trigger scouting action
         if (patch.lastMove && patch.lastMove.toCoords && this.fieldEngine) {
-          const [x, y] = patch.lastMove.toCoords;
+          const [x, y] = patch.lastMove.toCoords
           if (
-            this.localField[x] && this.localField[x][y] && this.localField[x][y].building
-            && this.localField[x][y].unit && this.localField[x][y].unit.player === this.myPlayerOrder
+            this.localField[x] &&
+            this.localField[x][y] &&
+            this.localField[x][y].building &&
+            this.localField[x][y].unit &&
+            this.localField[x][y].unit.player === this.myPlayerOrder
           ) {
-            const action = this.fieldEngine.getActionTriggered(x, y);
+            const action = this.fieldEngine.getActionTriggered(x, y)
             if (action) {
-              log.debug('Obelisk detected at', x, y, '- triggering scouting action');
-              emitter.emit('setAction', action);
+              log.debug('Obelisk detected at', x, y, '- triggering scouting action')
+              emitter.emit('setAction', action)
             }
           }
         }
       }
       // Check if game ended first - if so, skip visibility recalculation and reveal everything
-      const gameEnded = patch.gameEnded === true;
-      
+      const gameEnded = patch.gameEnded === true
+
       if (patch.currentPlayer !== undefined) {
-        const previousPlayer = this.currentPlayer;
-        this.currentPlayer = patch.currentPlayer;
-        log.debug(`Updated currentPlayer from patch: ${this.currentPlayer}, isMyTurn=${this.isMyTurn}`);
-        
+        const previousPlayer = this.currentPlayer
+        this.currentPlayer = patch.currentPlayer
+        log.debug(
+          `Updated currentPlayer from patch: ${this.currentPlayer}, isMyTurn=${this.isMyTurn}`
+        )
+
         // Clear scout-revealed coordinates when turn changes and recalculate visibility
         // The server will send a properly filtered field patch, but we also recalculate on client
         // Skip visibility recalculation if game has ended (we'll reveal everything instead)
         if (previousPlayer !== undefined && previousPlayer !== this.currentPlayer && !gameEnded) {
-          log.debug('Turn changed, clearing scout-revealed coordinates and recalculating visibility');
-          this.scoutRevealedCoords.clear();
+          log.debug(
+            'Turn changed, clearing scout-revealed coordinates and recalculating visibility'
+          )
+          this.scoutRevealedCoords.clear()
           // Clear undo state on turn change
-          this.canUndo = false;
+          this.canUndo = false
           // Recalculate visibility based on current player's units and buildings only (no scout-revealed coords)
-          this.recalculateVisibilityForClient();
+          this.recalculateVisibilityForClient()
           // Clear selected unit and highlighted cells (but don't change scrollCoords)
-          emitter.emit('initTurn');
+          emitter.emit('initTurn')
           // Reset inactivity timer on turn change
-          this.resetInactivityTimer();
+          this.resetInactivityTimer()
           // Show turn notification
-          this.showTurnNotification(this.currentPlayer);
+          this.showTurnNotification(this.currentPlayer)
         }
       }
       if (patch.players) {
         // Detect if any players disconnected
-        const newPlayerIds = new Set(patch.players.map(p => p.id));
-        
+        const newPlayerIds = new Set(patch.players.map(p => p.id))
+
         // Find players who were in the previous list but not in the new list
-        const disconnectedPlayers = this.players.filter(p => !newPlayerIds.has(p.id));
-        
+        const disconnectedPlayers = this.players.filter(p => !newPlayerIds.has(p.id))
+
         // Show notifications for disconnected players
         disconnectedPlayers.forEach(player => {
-          this.showNotification(`Player ${player.username} disconnected`, 'disconnect');
-        });
-        
-        this.players = patch.players;
+          this.showNotification(`Player ${player.username} disconnected`, 'disconnect')
+        })
+
+        this.players = patch.players
       }
       if (gameEnded) {
-        log.info('Game ended! Winner:', patch.winner, patch.winnerUsername);
-        this.winner = patch.winner;
-        this.winnerUsername = patch.winnerUsername || null;
+        log.info('Game ended! Winner:', patch.winner, patch.winnerUsername)
+        this.winner = patch.winner
+        this.winnerUsername = patch.winnerUsername || null
         // Show ready label with winner
-        this.state = this.STATES.ready;
-        this.showReadyLabel = true;
+        this.state = this.STATES.ready
+        this.showReadyLabel = true
         // Reveal the whole field to all players when game ends
         if (this.localField && this.localField.length > 0) {
           for (let x = 0; x < this.width; x++) {
             for (let y = 0; y < this.height; y++) {
               if (this.localField[x] && this.localField[x][y]) {
-                this.localField[x][y].isHidden = false;
+                this.localField[x][y].isHidden = false
               }
             }
           }
         }
         // Clear selected unit and highlighted cells
-        emitter.emit('initTurn');
+        emitter.emit('initTurn')
       }
       // Scout-undo: re-hide the cells the server tells us to. These are coords
       // the last scout had revealed; the move underneath is left intact.
       if (Array.isArray(patch.unrevealedCoords)) {
         for (const [x, y] of patch.unrevealedCoords) {
           if (this.localField[x] && this.localField[x][y]) {
-            this.localField[x][y].isHidden = true;
-            this.localField[x][y].unit = null;
-            this.localField[x][y].building = null;
+            this.localField[x][y].isHidden = true
+            this.localField[x][y].unit = null
+            this.localField[x][y].building = null
           }
-          this.scoutRevealedCoords.delete(`${x},${y}`);
+          this.scoutRevealedCoords.delete(`${x},${y}`)
         }
       }
       // Update undo state from server response
       if (patch.canUndo !== undefined) {
-        this.canUndo = patch.canUndo;
-        log.debug(`Updated canUndo from patch: ${this.canUndo}`);
+        this.canUndo = patch.canUndo
+        log.debug(`Updated canUndo from patch: ${this.canUndo}`)
       }
       // Handle undo applied notification (if server sends this).
       // For scout-undo, the server sets reenterScoutMode so the player can pick
       // another target — in that case we must NOT emit initTurn (which would
       // clear the action we are about to set) and instead re-arm scout mode.
       if (patch.undoApplied) {
-        log.debug('Undo was applied by server');
+        log.debug('Undo was applied by server')
         // Always deselect the unit and clear highlights. For scout-undo, also
         // re-arm scout-pick mode so the player can pick another target.
         // Order matters: initTurn wipes selectedAction, so setAction follows.
-        emitter.emit('initTurn');
+        emitter.emit('initTurn')
         if (patch.reenterScoutMode) {
-          emitter.emit('setAction', ACTIONS.scouting);
+          emitter.emit('setAction', ACTIONS.scouting)
         }
       }
     },
 
     sendMoveToServer(payload) {
       if (!this.gameWs) {
-        console.error('Game WebSocket not connected');
-        return;
+        console.error('Game WebSocket not connected')
+        return
       }
-      
-      this.clientSeq++;
-      this.gameWs.sendMove(payload, this.clientSeq);
+
+      this.clientSeq++
+      this.gameWs.sendMove(payload, this.clientSeq)
     },
-    
+
     emitMoveUnit(coordsDict) {
       if (!this.isMyTurn) {
-        console.warn('Not your turn');
-        return;
+        console.warn('Not your turn')
+        return
       }
-      this.resetInactivityTimer(); // Reset on move
-      this.moveUnit(coordsDict.fromCoords, coordsDict.toCoords);
+      // Lock new input while we're rendering an animation from a previous patch.
+      if (this.isAnimating) return
+      this.resetInactivityTimer() // Reset on move
+      this.moveUnit(coordsDict.fromCoords, coordsDict.toCoords)
     },
-    
+
     moveUnit(fromCoords, toCoords) {
-      const [x0, y0] = fromCoords;
-      const [_x1, _y1] = toCoords;
-      
+      const [x0, y0] = fromCoords
+      const [_x1, _y1] = toCoords
+
       if (!this.localField || !this.localField[x0] || !this.localField[x0][y0]) {
-        console.error('[DEBUG] moveUnit: Invalid source cell', x0, y0);
-        return;
+        console.error('[DEBUG] moveUnit: Invalid source cell', x0, y0)
+        return
       }
-      
-      const unit = this.localField[x0][y0].unit;
-      
+
+      const unit = this.localField[x0][y0].unit
+
       if (!unit || unit.player !== this.myPlayerOrder) {
-        console.warn('[DEBUG] moveUnit: Unit check failed', { unit, myPlayerOrder: this.myPlayerOrder });
-        return;
+        console.warn('[DEBUG] moveUnit: Unit check failed', {
+          unit,
+          myPlayerOrder: this.myPlayerOrder,
+        })
+        return
       }
-      
-      log.debug('moveUnit: Sending move to server from', fromCoords, 'to', toCoords);
-      
+
+      log.debug('moveUnit: Sending move to server from', fromCoords, 'to', toCoords)
+
       // Send move to server - wait for server response to update the field
       const payload = {
         fromCoords: fromCoords,
         toCoords: toCoords,
-      };
-      this.sendMoveToServer(payload);
+      }
+      this.sendMoveToServer(payload)
     },
-    
-    processEndTurn() {
-      if (this.state === this.STATES.ready || !this.isMyTurn || this.winner !== null) return;
 
-      this.resetInactivityTimer(); // Reset on end turn
+    processEndTurn() {
+      if (this.state === this.STATES.ready || !this.isMyTurn || this.winner !== null) return
+      if (this.isAnimating) return
+
+      this.resetInactivityTimer() // Reset on end turn
 
       // Send end turn to server
       const payload = {
         type: 'endTurn',
-      };
-      this.sendMoveToServer(payload);
+      }
+      this.sendMoveToServer(payload)
 
-    //   this.state = this.STATES.ready;
+      //   this.state = this.STATES.ready;
       // Don't save scrollCoords - they should remain fixed after initial setup
     },
 
     undoLastMove() {
-      if (!this.canUndo || !this.isMyTurn || this.winner !== null) return;
+      if (!this.canUndo || !this.isMyTurn || this.winner !== null) return
+      if (this.isAnimating) return
 
-      this.resetInactivityTimer(); // Reset on undo
+      this.resetInactivityTimer() // Reset on undo
 
       // Send undo request to server
       const payload = {
         type: 'undo',
-      };
-      this.sendMoveToServer(payload);
+      }
+      this.sendMoveToServer(payload)
 
       // Server will respond with updated field and canUndo: false
     },
-    
+
     startTurn() {
       if (this.checkSkipReadyLabel()) {
-        this.state = this.STATES.play;
+        this.state = this.STATES.play
       }
-      
+
       // Don't change scrollCoords on turn change - they remain fixed after initial setup
       // Just clear selected unit and highlighted cells
       if (this.isMyTurn) {
-        emitter.emit('initTurn');
+        emitter.emit('initTurn')
       }
     },
-    
+
     readyBtnClick() {
-      this.state = this.STATES.play;
+      this.state = this.STATES.play
     },
-    
+
     checkSkipReadyLabel() {
       // Skip ready label if it's not player's turn or other conditions
-      return !this.isMyTurn;
+      return !this.isMyTurn
     },
 
     // getCurrentStats, getCurrentUnitCoords, findNextUnit come from gameCoreMixin
@@ -747,44 +839,44 @@ export default {
     initScrollCoordsOnce() {
       // Initialize scrollCoords once at the beginning of the game
       // Find the first unit for the current player (or my player if it's my turn)
-      const playerOrder = this.myPlayerOrder;
-      
+      const playerOrder = this.myPlayerOrder
+
       if (playerOrder === null || playerOrder === undefined) {
-        console.warn('[DEBUG] Cannot init scrollCoords - playerOrder not set');
-        return;
+        console.warn('[DEBUG] Cannot init scrollCoords - playerOrder not set')
+        return
       }
-      
+
       // Find first unit for this player
-      let firstUnitCoords = null;
+      let firstUnitCoords = null
       for (let x = 0; x < this.width; x++) {
-        if (!this.localField[x]) continue;
+        if (!this.localField[x]) continue
         for (let y = 0; y < this.height; y++) {
-          const cell = this.localField[x] && this.localField[x][y];
+          const cell = this.localField[x] && this.localField[x][y]
           if (cell && cell.unit && cell.unit.player === playerOrder) {
-            firstUnitCoords = [x, y];
-            break;
+            firstUnitCoords = [x, y]
+            break
           }
         }
-        if (firstUnitCoords) break;
+        if (firstUnitCoords) break
       }
-      
+
       if (firstUnitCoords && this.$refs.gameGridRef) {
         // Get scroll coordinates for this cell from GameGrid component
-        const scrollCoords = this.$refs.gameGridRef.getScrollCoordsByCell(firstUnitCoords);
+        const scrollCoords = this.$refs.gameGridRef.getScrollCoordsByCell(firstUnitCoords)
         // Set scrollCoords for the current player
         if (this.players[playerOrder]) {
-          this.players[playerOrder].scrollCoords = scrollCoords;
+          this.players[playerOrder].scrollCoords = scrollCoords
         }
         // Scroll to this position once
-        log.debug('initScrollCoordsOnce: Scrolling to', scrollCoords);
-        emitter.emit('initTurn', scrollCoords);
+        log.debug('initScrollCoordsOnce: Scrolling to', scrollCoords)
+        emitter.emit('initTurn', scrollCoords)
       } else {
         // No units found or GameGrid not mounted, use default
         if (this.players[playerOrder]) {
-          this.players[playerOrder].scrollCoords = [0, 0];
+          this.players[playerOrder].scrollCoords = [0, 0]
         }
-        log.debug('initScrollCoordsOnce: No units found, scrolling to [0, 0]');
-        emitter.emit('initTurn', [0, 0]);
+        log.debug('initScrollCoordsOnce: No units found, scrolling to [0, 0]')
+        emitter.emit('initTurn', [0, 0])
       }
     },
 
@@ -792,253 +884,254 @@ export default {
 
     exitGame() {
       if (this.gameWs) {
-        this.gameWs.disconnect();
+        this.gameWs.disconnect()
       }
-      this.$emit('exitGame');
+      this.$emit('exitGame')
     },
 
     // Visibility helpers
     emitAddTempVisibilityForCoords(data) {
-      this.addTempVisibilityForCoords(data.x, data.y, data.fogRadius);
+      this.addTempVisibilityForCoords(data.x, data.y, data.fogRadius)
     },
-    
+
     emitScoutArea(data) {
       if (!this.isMyTurn) {
-        console.warn('Not your turn');
-        return;
+        console.warn('Not your turn')
+        return
       }
-      this.resetInactivityTimer(); // Reset on scout action
+      if (this.isAnimating) return
+      this.resetInactivityTimer() // Reset on scout action
       // Send scout message to server
       const payload = {
         type: 'scout',
         targetCoords: [data.x, data.y],
         fogRadius: data.fogRadius,
-      };
-      this.sendMoveToServer(payload);
+      }
+      this.sendMoveToServer(payload)
     },
-    
+
     addVisibilityForCoords(x, y, fogRadius) {
-      if (!this.doesVisibilityMakeSense()) return;
-      
+      if (!this.doesVisibilityMakeSense()) return
+
       for (let curX = x - fogRadius; curX <= x + fogRadius; curX++) {
-        if (curX < 0 || curX >= this.width) continue;
+        if (curX < 0 || curX >= this.width) continue
         for (let curY = y - fogRadius; curY <= y + fogRadius; curY++) {
-          if (curY < 0 || curY >= this.height) continue;
-          if (Math.abs(curX - x) + Math.abs(curY - y) > fogRadius) continue;
-          this.localField[curX][curY].isHidden = false;
+          if (curY < 0 || curY >= this.height) continue
+          if (Math.abs(curX - x) + Math.abs(curY - y) > fogRadius) continue
+          this.localField[curX][curY].isHidden = false
         }
       }
-      
+
       // Ensure scout-revealed cells remain visible after unit moves
-      this.ensureScoutRevealedVisible();
+      this.ensureScoutRevealedVisible()
     },
-    
+
     ensureScoutRevealedVisible() {
-      log.debug('ensureScoutRevealedVisible called', this.scoutRevealedCoords);
+      log.debug('ensureScoutRevealedVisible called', this.scoutRevealedCoords)
       // Keep scout-revealed cells visible even after visibility recalculations
-      if (!this.localField || this.scoutRevealedCoords.size === 0) return;
-      
+      if (!this.localField || this.scoutRevealedCoords.size === 0) return
+
       for (const coordStr of this.scoutRevealedCoords) {
-        const [x, y] = coordStr.split(',').map(Number);
+        const [x, y] = coordStr.split(',').map(Number)
         if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
           if (this.localField[x] && this.localField[x][y]) {
-            this.localField[x][y].isHidden = false;
+            this.localField[x][y].isHidden = false
           }
         }
       }
     },
-    
+
     setVisibilityForArea(x, y, radius) {
-      if (!this.doesVisibilityMakeSense()) return;
-      
+      if (!this.doesVisibilityMakeSense()) return
+
       for (let curX = x - radius; curX <= x + radius; curX++) {
-        if (curX < 0 || curX >= this.width) continue;
+        if (curX < 0 || curX >= this.width) continue
         for (let curY = y - radius; curY <= y + radius; curY++) {
-          if (curY < 0 || curY >= this.height) continue;
-          if (Math.abs(curX - x) + Math.abs(curY - y) > radius) continue;
-          this.localField[curX][curY].isHidden = false;
+          if (curY < 0 || curY >= this.height) continue
+          if (Math.abs(curX - x) + Math.abs(curY - y) > radius) continue
+          this.localField[curX][curY].isHidden = false
         }
       }
-      
+
       // Ensure scout-revealed cells remain visible after setting visibility for area
-      this.ensureScoutRevealedVisible();
+      this.ensureScoutRevealedVisible()
     },
-    
+
     addTempVisibilityForCoords(x, y, fogRadius) {
       // Temporary visibility (e.g., from obelisks)
-      this.addVisibilityForCoords(x, y, fogRadius);
+      this.addVisibilityForCoords(x, y, fogRadius)
     },
-    
+
     initVisibility() {
       // Initialize visibility based on current player's units
       if (!this.enableFogOfWar) {
         for (let x = 0; x < this.width; x++) {
           for (let y = 0; y < this.height; y++) {
-            this.localField[x][y].isHidden = false;
+            this.localField[x][y].isHidden = false
           }
         }
-        return;
+        return
       }
-      
+
       // Hide all cells initially
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
-          this.localField[x][y].isHidden = true;
+          this.localField[x][y].isHidden = true
         }
       }
-      
+
       // Show cells around player's units
       if (this.isMyTurn) {
         for (let x = 0; x < this.width; x++) {
           for (let y = 0; y < this.height; y++) {
-            const unit = this.localField[x][y].unit;
+            const unit = this.localField[x][y].unit
             if (unit && unit.player === this.myPlayerOrder) {
-              this.addVisibilityForCoords(x, y, unit.visibility);
+              this.addVisibilityForCoords(x, y, unit.visibility)
             }
           }
         }
       }
     },
-    
+
     recalculateVisibilityForClient() {
       // Recalculate visibility for the client based on their units and buildings only
       // (without scout-revealed coordinates - those are cleared when turn changes)
       if (!this.enableFogOfWar || !this.localField || this.localField.length === 0) {
-        return;
+        return
       }
-      
+
       // First, hide all cells
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
           if (this.localField[x] && this.localField[x][y]) {
-            this.localField[x][y].isHidden = true;
+            this.localField[x][y].isHidden = true
           }
         }
       }
-      
+
       // Then show cells around current player's units and buildings
       for (let x = 0; x < this.width; x++) {
         for (let y = 0; y < this.height; y++) {
-          if (!this.localField[x] || !this.localField[x][y]) continue;
-          
-          const cell = this.localField[x][y];
-          const unit = cell.unit;
-          const building = cell.building;
-          
+          if (!this.localField[x] || !this.localField[x][y]) continue
+
+          const cell = this.localField[x][y]
+          const unit = cell.unit
+          const building = cell.building
+
           // Add visibility from units
           if (unit && unit.player === this.myPlayerOrder) {
             // Use square visibility (Chebyshev distance) to match backend
-            const visibility = unit.visibility || this.fogOfWarRadius;
+            const visibility = unit.visibility || this.fogOfWarRadius
             for (let curX = x - visibility; curX <= x + visibility; curX++) {
-              if (curX < 0 || curX >= this.width) continue;
+              if (curX < 0 || curX >= this.width) continue
               for (let curY = y - visibility; curY <= y + visibility; curY++) {
-                if (curY < 0 || curY >= this.height) continue;
+                if (curY < 0 || curY >= this.height) continue
                 if (this.localField[curX] && this.localField[curX][curY]) {
-                  this.localField[curX][curY].isHidden = false;
+                  this.localField[curX][curY].isHidden = false
                 }
               }
             }
           }
-          
+
           // Add visibility from bases
           if (building && building.player === this.myPlayerOrder && building._type === 'base') {
-            const baseVisibility = this.fogOfWarRadius;
+            const baseVisibility = this.fogOfWarRadius
             for (let curX = x - baseVisibility; curX <= x + baseVisibility; curX++) {
-              if (curX < 0 || curX >= this.width) continue;
+              if (curX < 0 || curX >= this.width) continue
               for (let curY = y - baseVisibility; curY <= y + baseVisibility; curY++) {
-                if (curY < 0 || curY >= this.height) continue;
+                if (curY < 0 || curY >= this.height) continue
                 if (this.localField[curX] && this.localField[curX][curY]) {
-                  this.localField[curX][curY].isHidden = false;
+                  this.localField[curX][curY].isHidden = false
                 }
               }
             }
           }
         }
       }
-      
+
       // IMPORTANT: Always restore scout-revealed cells after recalculating visibility
       // Scout-revealed cells should remain visible regardless of unit positions
-      this.ensureScoutRevealedVisible();
+      this.ensureScoutRevealedVisible()
     },
-    
+
     showNotification(message, type = 'info', playerOrder = null) {
-      const id = Date.now() + Math.random();
-      this.notifications.push({ id, message, type, playerOrder });
+      const id = Date.now() + Math.random()
+      this.notifications.push({ id, message, type, playerOrder })
 
       // Auto-dismiss after 5 seconds
       setTimeout(() => {
-        this.dismissNotification(id);
-      }, 5000);
+        this.dismissNotification(id)
+      }, 5000)
     },
 
     showTurnNotification(playerOrder) {
-      const playerName = this.getPlayerNameByOrder(playerOrder);
-      const message = `${playerName} turn`;
-      this.showNotification(message, 'turn', playerOrder);
+      const playerName = this.getPlayerNameByOrder(playerOrder)
+      const message = `${playerName} turn`
+      this.showNotification(message, 'turn', playerOrder)
     },
-    
+
     dismissNotification(id) {
-      const index = this.notifications.findIndex(n => n.id === id);
+      const index = this.notifications.findIndex(n => n.id === id)
       if (index !== -1) {
-        this.notifications.splice(index, 1);
+        this.notifications.splice(index, 1)
       }
     },
 
     getPlayerNameByOrder(order) {
       // Get player username by order from stored playersData
-      const player = this.playersData.find(p => p.order === order);
-      return player ? player.username : `Player ${order + 1}`;
+      const player = this.playersData.find(p => p.order === order)
+      return player ? player.username : `Player ${order + 1}`
     },
 
     setupActivityTracking() {
       // Track mouse movement, clicks, and keyboard input
-      const activityEvents = ['mousedown', 'mousemove', 'keydown', 'click', 'touchstart'];
+      const activityEvents = ['mousedown', 'mousemove', 'keydown', 'click', 'touchstart']
       this.activityEventHandlers = activityEvents.map(event => {
-        const handler = this.resetInactivityTimer;
-        document.addEventListener(event, handler, { passive: true });
-        return { event, handler };
-      });
-      
+        const handler = this.resetInactivityTimer
+        document.addEventListener(event, handler, { passive: true })
+        return { event, handler }
+      })
+
       // Start the timer
-      this.resetInactivityTimer();
+      this.resetInactivityTimer()
     },
-    
+
     resetInactivityTimer() {
       // Only track inactivity when it's the player's turn
       if (!this.isMyTurn) {
-        this.showEndTurnTip = false;
-        this.clearInactivityTimer();
-        return;
+        this.showEndTurnTip = false
+        this.clearInactivityTimer()
+        return
       }
-      
+
       // Clear existing timer
-      this.clearInactivityTimer();
-      
+      this.clearInactivityTimer()
+
       // Hide tip immediately on activity
-      this.showEndTurnTip = false;
-      
+      this.showEndTurnTip = false
+
       // Set new timer for 5 seconds
       this.inactivityTimer = setTimeout(() => {
         // Only show tip if it's still the player's turn
         if (this.isMyTurn) {
-          this.showEndTurnTip = true;
+          this.showEndTurnTip = true
         }
-      }, 5000);
+      }, 5000)
     },
-    
+
     clearInactivityTimer() {
       if (this.inactivityTimer) {
-        clearTimeout(this.inactivityTimer);
-        this.inactivityTimer = null;
+        clearTimeout(this.inactivityTimer)
+        this.inactivityTimer = null
       }
     },
     handleReadyLabelClose() {
       // Close the ready label but keep the game field visible
-      this.showReadyLabel = false;
+      this.showReadyLabel = false
     },
     getPlayerColor,
   },
-};
+}
 </script>
 
 <style scoped>
@@ -1067,7 +1160,9 @@ export default {
   min-width: 200px;
   max-width: 300px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  transition: opacity 0.3s, transform 0.3s;
+  transition:
+    opacity 0.3s,
+    transform 0.3s;
   animation: slideIn 0.3s ease-out;
 }
 
@@ -1087,7 +1182,7 @@ export default {
 }
 
 .notification-reconnect {
-  border-color: #4CAF50;
+  border-color: #4caf50;
   background-color: #1a3a1a;
 }
 
@@ -1117,4 +1212,3 @@ export default {
   }
 }
 </style>
-

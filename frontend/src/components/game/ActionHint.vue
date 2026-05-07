@@ -1,8 +1,6 @@
 <template>
   <div class="action-hint">
-    <div v-if="action === 'scouting'">
-      Select point to scout
-    </div>
+    <div v-if="action === 'scouting'">Select point to scout</div>
   </div>
 </template>
 
@@ -12,11 +10,10 @@ export default {
   props: {
     action: String,
   },
-};
+}
 </script>
 
 <style scoped>
-
 div.action-hint {
   position: fixed;
   display: flex;

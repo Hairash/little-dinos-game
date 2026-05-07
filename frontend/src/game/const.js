@@ -1,17 +1,22 @@
-export const TRANSITION_DELAY = 1;
+export const TRANSITION_DELAY = 1
+
+// Per-step delay for unit move animation, in milliseconds.
+// Single source of truth so we can tune from one place when we move to
+// smoother interpolation or walk-cycle frames later.
+export const MOVE_ANIMATION_DELAY = 100
 
 // Cell size constants for zoom levels
-export const MIN_CELL_SIZE = 10;
-export const MAX_CELL_SIZE = 70;
-export const DEFAULT_CELL_SIZE = 30;
-export const DEFAULT_BORDER_WIDTH = 3;  // Border width at default cell size
+export const MIN_CELL_SIZE = 10
+export const MAX_CELL_SIZE = 70
+export const DEFAULT_CELL_SIZE = 30
+export const DEFAULT_BORDER_WIDTH = 3 // Border width at default cell size
 export const GAME_STATUS_FIELDS = [
   'winPhase',
   'winner',
   'humanPhase',
   'lastPlayerPhase',
   'lastPlayer',
-];
+]
 
 // TODO: Refactor fields, make all in one place - name, toSave (true/false), type (number, bool), min/max, ...
 export const FIELDS_TO_SAVE = [
@@ -38,7 +43,7 @@ export const FIELDS_TO_SAVE = [
   'hideEnemySpeed',
   'killAtBirth',
   'enableUndo',
-].concat(GAME_STATUS_FIELDS);
+].concat(GAME_STATUS_FIELDS)
 
 export const SCORE_MOD = {
   kill: 10,
@@ -48,11 +53,11 @@ export const SCORE_MOD = {
   capture: 0,
   lose: 0,
   unit: 0,
-};
+}
 
 export const ACTIONS = {
   scouting: 'scouting',
-};
+}
 
 export const DEFAULT_BUILDING_RATES = {
   base: 3,
@@ -61,7 +66,7 @@ export const DEFAULT_BUILDING_RATES = {
   well: 1,
   storage: 2,
   obelisk: 5,
-};
+}
 
 export const GAME_STATES = {
   login: 'login',
@@ -70,7 +75,7 @@ export const GAME_STATES = {
   setup: 'setup',
   game: 'game',
   help: 'help',
-};
+}
 
 export const INITIAL_SETTINGS = {
   width: 20,
@@ -101,7 +106,7 @@ export const INITIAL_SETTINGS = {
   },
   hideEnemySpeed: false,
   killAtBirth: true,
-};
+}
 
 export const MULTIPLAYER_INITIAL_SETTINGS = {
   ...INITIAL_SETTINGS,
@@ -113,4 +118,4 @@ export const MULTIPLAYER_INITIAL_SETTINGS = {
   // minVisibilitySpeed: 5,
   // fogOfWarRadius: 2,
   buildingRates: DEFAULT_BUILDING_RATES,
-};
+}

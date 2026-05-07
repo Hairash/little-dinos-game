@@ -92,11 +92,12 @@ export const gameCoreMixin = {
             stats.units.total++
             if (!unit.hasMoved) {
               // Check if unit is on a building that should be excluded from priority
-              const isOnExcludedBuilding = building && (
-                (building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) ||
-                (building._type === Models.BuildingTypes.BASE && building.player === null) ||
-                building._type === Models.BuildingTypes.OBELISK
-              )
+              const isOnExcludedBuilding =
+                building &&
+                ((building._type === Models.BuildingTypes.BASE &&
+                  building.player === this.currentPlayer) ||
+                  (building._type === Models.BuildingTypes.BASE && building.player === null) ||
+                  building._type === Models.BuildingTypes.OBELISK)
 
               if (!building || isOnExcludedBuilding) {
                 unitsNotOnBuildings.push([x, y])
@@ -106,17 +107,29 @@ export const gameCoreMixin = {
               stats.units.active++
             }
             // Check for habitation buildings that increase unit limit
-            if (building && building._type === Models.BuildingTypes.HABITATION && stats.units.max > 0) {
-              stats.units.max += (settings.unitModifier || this.unitModifier || 0)
+            if (
+              building &&
+              building._type === Models.BuildingTypes.HABITATION &&
+              stats.units.max > 0
+            ) {
+              stats.units.max += settings.unitModifier || this.unitModifier || 0
             }
             // Check for storage buildings that increase base limit
-            if (building && building._type === Models.BuildingTypes.STORAGE && stats.towers.max > 0) {
-              stats.towers.max += (settings.baseModifier || this.baseModifier || 0)
+            if (
+              building &&
+              building._type === Models.BuildingTypes.STORAGE &&
+              stats.towers.max > 0
+            ) {
+              stats.towers.max += settings.baseModifier || this.baseModifier || 0
             }
           }
 
           // Count bases (towers)
-          if (building && building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) {
+          if (
+            building &&
+            building._type === Models.BuildingTypes.BASE &&
+            building.player === this.currentPlayer
+          ) {
             stats.towers.total++
             if (!unit) stats.towers.empty++
           }
@@ -157,11 +170,12 @@ export const gameCoreMixin = {
 
           if (unit && unit.player === playerNum && !unit.hasMoved) {
             // Check if unit is on a building that should be excluded from priority
-            const isOnExcludedBuilding = building && (
-              (building._type === Models.BuildingTypes.BASE && building.player === this.currentPlayer) ||
-              (building._type === Models.BuildingTypes.BASE && building.player === null) ||
-              building._type === Models.BuildingTypes.OBELISK
-            )
+            const isOnExcludedBuilding =
+              building &&
+              ((building._type === Models.BuildingTypes.BASE &&
+                building.player === this.currentPlayer) ||
+                (building._type === Models.BuildingTypes.BASE && building.player === null) ||
+                building._type === Models.BuildingTypes.OBELISK)
 
             if (!building || isOnExcludedBuilding) {
               unitsNotOnBuildings.push([x, y])
@@ -266,7 +280,14 @@ export const gameCoreMixin = {
             if (cell) {
               // Check if there's a visible object here that reveals area
               if (this.fieldEngine && typeof this.fieldEngine.getVisibleObjRadius === 'function') {
-                const curR = this.fieldEngine.getVisibleObjRadius(curX, curY, this.currentPlayer, x, y, radius)
+                const curR = this.fieldEngine.getVisibleObjRadius(
+                  curX,
+                  curY,
+                  this.currentPlayer,
+                  x,
+                  y,
+                  radius
+                )
                 if (curR) {
                   this.addVisibilityForCoords(curX, curY, curR)
                 }

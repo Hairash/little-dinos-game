@@ -4,7 +4,7 @@
 
 <script>
 export default {
-  name: "EndTurnBtn",
+  name: 'EndTurnBtn',
 }
 </script>
 

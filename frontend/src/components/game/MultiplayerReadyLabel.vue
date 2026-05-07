@@ -8,16 +8,14 @@
         Player <span :style="{ color: getPlayerColor(winner) }">{{ winner + 1 }}</span> wins!
       </div>
       <div>
-        <button type="button" @click="handleOkClick" class="ok-button">
-          OK
-        </button>
+        <button type="button" @click="handleOkClick" class="ok-button">OK</button>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { getPlayerColor } from '@/game/helpers';
+import { getPlayerColor } from '@/game/helpers'
 
 export default {
   name: 'MultiplayerReadyLabel',
@@ -33,11 +31,11 @@ export default {
   },
   methods: {
     handleOkClick() {
-      this.$emit('close');
+      this.$emit('close')
     },
     getPlayerColor,
   },
-};
+}
 </script>
 
 <style scoped>
@@ -78,4 +76,3 @@ div.fixed-label {
   background-color: #926846;
 }
 </style>
-

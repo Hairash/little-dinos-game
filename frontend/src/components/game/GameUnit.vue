@@ -1,17 +1,21 @@
 <template>
-  <div class="unitContainer" :class="{'hidden': hidden}">
+  <div class="unitContainer" :class="{ hidden: hidden }">
     <img
       class="unitImg"
       :style="{ width: calculatedWidth, height: calculatedHeight, left: left, top: top }"
       :src="getImagePath(image)"
-    >
+    />
     <span
       v-if="width > 10"
       class="movePointsLabel"
-      :class="{'hasMoved': hasMoved}"
-      :style="{ fontSize: `${fontSize}px`, height: `${fontSize}px`, lineHeight: `${labelHeight}px` }"
+      :class="{ hasMoved: hasMoved }"
+      :style="{
+        fontSize: `${fontSize}px`,
+        height: `${fontSize}px`,
+        lineHeight: `${labelHeight}px`,
+      }"
     >
-      {{showMovePoints ? movePoints : '*'}}
+      {{ showMovePoints ? movePoints : '*' }}
     </span>
   </div>
 </template>
@@ -21,9 +25,9 @@ import { TRANSITION_DELAY } from '@/game/const.js'
 import { getImagePath } from '@/game/helpers.js'
 
 export default {
-  name: "GameUnit",
+  name: 'GameUnit',
   methods: {
-    getImagePath
+    getImagePath,
   },
   props: {
     hidden: Boolean,
@@ -51,26 +55,26 @@ export default {
   },
   computed: {
     calculatedWidth() {
-      return `${this.width * 0.9}px`;
+      return `${this.width * 0.9}px`
     },
     calculatedHeight() {
-      return `${this.height * 0.9}px`;
+      return `${this.height * 0.9}px`
     },
     left() {
-      return `${this.width * 0.05}px`;
+      return `${this.width * 0.05}px`
     },
     top() {
-      return `${this.height * 0.05}px`;
+      return `${this.height * 0.05}px`
     },
     fontSize() {
-      return this.width * 0.3;
+      return this.width * 0.3
     },
     labelHeight() {
       // if (this.fontSize > 9) return this.fontSize + 2;
       // if (this.fontSize > 6) return this.fontSize + 1;
-      return this.fontSize + 1;
-    }
-  }
+      return this.fontSize + 1
+    },
+  },
 }
 </script>
 
@@ -105,6 +109,6 @@ span.movePointsLabel {
 }
 span.movePointsLabel.hasMoved {
   background-color: darkred;
-  color: #DDDDDD;
+  color: #dddddd;
 }
 </style>

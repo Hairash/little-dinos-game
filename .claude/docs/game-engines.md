@@ -100,7 +100,7 @@ new WaveEngine(
 |--------|------------|---------|-------------|
 | `getReachableCoords(x, y, speed)` | start coords, movement points | `[[x,y], ...]` | Get all cells unit can reach |
 | `isReachable(x0, y0, x1, y1, speed)` | start, end, movement | boolean | Check if destination is reachable |
-| `getPath(x0, y0, x1, y1)` | start, end coords | `[[x,y], ...]` | Get path between points |
+| `getPath(x0, y0, x1, y1, movePoints)` | start, end coords, movement | `[[x,y], ...]` or `null` | Cell-by-cell path including both endpoints; `null` when unreachable. Used by the move animator. |
 
 ### Algorithm
 
@@ -118,6 +118,30 @@ Wave propagation (BFS):
 - **Empty cells:** Cost = 1 movement point
 - **Mountains:** Impassable (blocked)
 - **Occupied cells:** Passable but can't stop (unless enemy)
+
+---
+
+## Move Animator
+
+**Location:** `frontend/src/game/moveAnimator.js`
+
+### Purpose
+Plays the cell-by-cell unit walk along a pre-computed path. Pure (DOM-free), so it works the same in single-player (animates own and bot moves locally) and multiplayer (animates the per-recipient `pathSlice` from server patches).
+
+### API
+
+```javascript
+animateMovePath(field, path, unit, opts)
+// opts.delay        — ms between visible steps (default MOVE_ANIMATION_DELAY = 100)
+// opts.isVisible    — predicate; if false for both endpoints of a step, the sleep is skipped
+// opts.isCancelled  — abort gate (component unmount, end-of-game)
+```
+
+The animator only handles the visual walk. Capture/kill/visibility recompute and undo-diff stay in the controller (`DinoGame.vue` / `MultiplayerDinoGame.vue`) and run after `await animateMovePath(...)` resolves.
+
+### Multiplayer wire format
+
+`apply_move_txn` attaches the full BFS `path` plus the `movingUnit` to the patch. The consumer's `_filter_patch_for_player` slices `path` against the recipient's visibility set and renames it to `pathSlice` (the move-maker keeps the full path; opponents get only visible cells). If `len(pathSlice) < 2`, both `pathSlice` and `movingUnit` are dropped.
 
 ---
 
