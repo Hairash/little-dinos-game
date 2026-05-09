@@ -374,28 +374,16 @@ export default {
       if (unitCoordsArr.length === 0) return
 
       let coords = unitCoordsArr[0]
-
       if (this.selectedCoords) {
         const curIdx = unitCoordsArr.findIndex(
           el => el[0] === this.selectedCoords[0] && el[1] === this.selectedCoords[1]
         )
-        if (curIdx !== -1 && curIdx + 1 < unitCoordsArr.length) {
-          // Selected unit is still in the array, select next one
-          coords = unitCoordsArr[curIdx + 1]
-        } else if (curIdx === -1) {
-          // Selected unit was moved (no longer in array), continue with next unit
-          // Find the first unit that comes after the previously selected position
-          // If no such unit exists, wrap around to the first unit
-          const nextIdx = unitCoordsArr.findIndex(el => {
-            // Compare by position: find first unit that is "after" the selected one
-            return (
-              el[0] > this.selectedCoords[0] ||
-              (el[0] === this.selectedCoords[0] && el[1] > this.selectedCoords[1])
-            )
-          })
-          coords = nextIdx !== -1 ? unitCoordsArr[nextIdx] : unitCoordsArr[0]
+        // If the previously selected unit is still in the list, advance to
+        // the next one (wrap to start at end). If it's gone (moved), just
+        // restart iteration from the beginning.
+        if (curIdx !== -1) {
+          coords = unitCoordsArr[(curIdx + 1) % unitCoordsArr.length]
         }
-        // If curIdx is the last element, it will wrap to the first (coords already set to unitCoordsArr[0])
       }
       const [x, y] = coords
       const unit = this.field[x][y].unit

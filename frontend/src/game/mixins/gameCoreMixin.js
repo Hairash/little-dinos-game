@@ -190,10 +190,10 @@ export const gameCoreMixin = {
     },
 
     /**
-     * Find and select the next available unit
+     * Find and select the next available unit.
      */
     findNextUnit() {
-      const coordsArr = this.getCurrentStats().units.coordsArr
+      const coordsArr = this.getCurrentUnitCoords()
       if (coordsArr.length === 0) return
       emitter.emit('selectNextUnit', coordsArr)
     },
