@@ -5,7 +5,19 @@
       <div id="buttons">
         <button @click="handleStartBtnClick">New Game</button>
         <button @click="handleLoadBtnClick">Load Game</button>
-        <button @click="handleMultiplayerBtnClick">Multiplayer</button>
+        <button
+          @click="handleMultiplayerBtnClick"
+          :disabled="multiplayerLoading"
+          class="multiplayer-btn"
+        >
+          <img
+            v-if="multiplayerLoading"
+            src="/images/loading.png"
+            alt="Loading..."
+            class="loading-spinner"
+          />
+          <template v-else>Multiplayer</template>
+        </button>
         <button @click="handleHelpBtnClick">Help</button>
       </div>
     </div>
@@ -27,6 +39,13 @@ export default {
     error: String,
     setError: Function,
   },
+  data() {
+    return {
+      // Cleared by unmount when App transitions to lobby/login after the
+      // whoami() check, so we don't need an explicit reset path.
+      multiplayerLoading: false,
+    }
+  },
   methods: {
     handleStartBtnClick() {
       emitter.emit('goToPage', GAME_STATES.setup)
@@ -35,6 +54,8 @@ export default {
       emitter.emit('loadGame')
     },
     handleMultiplayerBtnClick() {
+      if (this.multiplayerLoading) return
+      this.multiplayerLoading = true
       emitter.emit('startMultiplayer')
     },
     handleHelpBtnClick() {
@@ -119,6 +140,31 @@ export default {
   border-radius: 12px;
   margin: 0 auto;
   flex-shrink: 0;
+}
+
+/* Loading state for the Multiplayer button: hide the label and show a
+   rotating spinner while waiting for the server. Source-ordered AFTER the
+   generic `#menu-content button` rule so `display: flex` wins over `block`
+   at equal specificity. */
+#menu-content .multiplayer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#menu-content .multiplayer-btn .loading-spinner {
+  height: 60%;
+  width: auto;
+  animation: multiplayer-btn-spin 1s linear infinite;
+}
+
+@keyframes multiplayer-btn-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Landscape orientation adjustments */
