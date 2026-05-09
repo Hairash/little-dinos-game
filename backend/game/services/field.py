@@ -17,6 +17,28 @@ BUILDING_TYPES = {
     "OBELISK": "obelisk",
 }
 
+# Inclusive [min, max] count of buildings of a given building-rate setting,
+# calibrated for a 20x20 (400-cell) field. Other field sizes scale linearly
+# by area. Keep in sync with frontend/src/game/createFieldEngine.js.
+BUILDINGS_NUM_RANGES = {
+    1: (1, 3),  # Ones
+    2: (4, 6),  # Few
+    3: (7, 10),  # Average
+    4: (11, 16),  # A lot
+    5: (17, 40),  # Very much
+}
+BUILDINGS_NUM_REFERENCE_AREA = 400
+
+
+def pick_buildings_num(rate: int, area: int) -> int:
+    rng = BUILDINGS_NUM_RANGES.get(rate)
+    if rng is None:
+        return 0
+    scale = area / BUILDINGS_NUM_REFERENCE_AREA
+    min_buildings = max(1, round(rng[0] * scale))
+    max_buildings = max(min_buildings, round(rng[1] * scale))
+    return random.randint(min_buildings, max_buildings)
+
 
 def generate_field(settings: dict) -> list:
     """Generate a field based on the settings."""
@@ -100,21 +122,11 @@ def generate_field(settings: dict) -> list:
 
     # Set buildings BEFORE making field linked so they become reachable too
     min_distance = 5
+    area = width * height
     for building_type, rate in building_rates.items():
         if rate == 0:
             continue
-        average = 2**rate
-        min_buildings = math.floor(average / 2)
-        max_buildings = math.ceil(average * 1.5)
-        buildings_num = max(
-            1,
-            math.floor(
-                (random.random() * (max_buildings - min_buildings + 1) + min_buildings)
-                * width
-                * height
-                * 0.0025
-            ),
-        )
+        buildings_num = pick_buildings_num(rate, area)
 
         for _building_ctr in range(buildings_num):
             if min_distance < 0:
