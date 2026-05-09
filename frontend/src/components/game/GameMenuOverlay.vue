@@ -169,6 +169,14 @@ export default {
       type: Function,
       required: true,
     },
+    // Authoritative per-type building totals supplied by the server in
+    // multiplayer. When null, fall back to counting from the local field —
+    // correct in single-player (full visibility) but undercounts under
+    // multiplayer fog of war.
+    buildingTotalsOverride: {
+      type: Object,
+      default: null,
+    },
   },
   computed: {
     buildingTypes() {
@@ -320,15 +328,26 @@ export default {
     },
     totalBuildings() {
       const totals = {}
-      const width = this.field ? this.field.length : 0
-      const height = this.field && this.field[0] ? this.field[0].length : 0
-
       // Initialize all building types to 0
       for (let _type in Models.BuildingTypes) {
         totals[Models.BuildingTypes[_type]] = 0
       }
 
-      // Count all buildings regardless of visibility
+      // Server-provided totals win over local counting under fog of war.
+      if (this.buildingTotalsOverride) {
+        for (const _type in totals) {
+          if (this.buildingTotalsOverride[_type] != null) {
+            totals[_type] = this.buildingTotalsOverride[_type]
+          }
+        }
+        return totals
+      }
+
+      const width = this.field ? this.field.length : 0
+      const height = this.field && this.field[0] ? this.field[0].length : 0
+
+      // Count all buildings regardless of visibility (single-player path —
+      // local field has full info).
       for (let x = 0; x < width; x++) {
         if (!this.field[x]) continue
         for (let y = 0; y < height; y++) {

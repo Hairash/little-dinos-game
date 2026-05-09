@@ -13,6 +13,35 @@ from .services.game_logic import (
 )
 from .services.visibility import calculate_visibility, filter_field_for_player
 
+
+def _compute_building_totals(field, width, height):
+    """Count buildings of each type on the unfiltered field.
+
+    Sent to every player so the menu's TOTAL row reflects the real map even
+    under fog of war. Per-type totals don't reveal who occupies what — only
+    that buildings of that type exist somewhere — so the enemy-occupancy
+    breakdown stays hidden.
+    """
+    totals: dict[str, int] = {}
+    if not field:
+        return totals
+    for x in range(width):
+        if x >= len(field) or not field[x]:
+            continue
+        for y in range(height):
+            if y >= len(field[x]):
+                continue
+            cell = field[x][y]
+            if not isinstance(cell, dict):
+                continue
+            building = cell.get("building")
+            if building and isinstance(building, dict):
+                _type = building.get("_type")
+                if _type:
+                    totals[_type] = totals.get(_type, 0) + 1
+    return totals
+
+
 # Get logger for this module
 logger = logging.getLogger(__name__)
 
@@ -379,6 +408,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             "status": g.status,
             "settings": g.settings,
             "field": field,  # Filtered field based on player visibility
+            "buildingTotals": _compute_building_totals(g.field, width, height),
             "turnPlayer": g.turn_player.username if g.turn_player else None,
             "currentPlayer": current_player_order,  # Player order (0, 1, 2, ...) whose turn it is
             "players": [
