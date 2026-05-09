@@ -3,25 +3,11 @@
 
 import Models from '@/game/models'
 import { createNewUnit } from '@/game/helpers'
-
-// Inclusive [min, max] count of buildings of a given building-rate setting,
-// calibrated for a 20x20 (400-cell) field. Other field sizes scale linearly
-// by area. Keep in sync with backend/game/services/field.py.
-const BUILDINGS_NUM_RANGES = {
-  1: [1, 3], // Ones
-  2: [4, 6], // Few
-  3: [7, 10], // Average
-  4: [11, 16], // A lot
-  5: [17, 40], // Very much
-}
-const BUILDINGS_NUM_REFERENCE_AREA = 400
+import { scaledBuildingsRange } from '@/game/const'
 
 function pickBuildingsNum(rate, area) {
-  const range = BUILDINGS_NUM_RANGES[rate]
-  if (!range) return 0
-  const scale = area / BUILDINGS_NUM_REFERENCE_AREA
-  const min = Math.max(1, Math.round(range[0] * scale))
-  const max = Math.max(min, Math.round(range[1] * scale))
+  const [min, max] = scaledBuildingsRange(rate, area)
+  if (max === 0) return 0
   return min + Math.floor(Math.random() * (max - min + 1))
 }
 
