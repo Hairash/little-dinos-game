@@ -30,7 +30,7 @@
                   />
                 </th>
                 <th
-                  v-for="buildingType in buildingTypes"
+                  v-for="buildingType in visibleBuildingTypes"
                   :key="buildingType.type"
                   class="building-header"
                 >
@@ -66,7 +66,7 @@
                   <span>{{ allPlayersDinos[playerIndex] || 0 }}</span>
                 </td>
                 <td
-                  v-for="buildingType in buildingTypes"
+                  v-for="buildingType in visibleBuildingTypes"
                   :key="buildingType.type"
                   class="building-cell"
                 >
@@ -79,7 +79,7 @@
                 <td class="player-cell total-label">TOTAL</td>
                 <td class="dino-cell"></td>
                 <td
-                  v-for="buildingType in buildingTypes"
+                  v-for="buildingType in visibleBuildingTypes"
                   :key="buildingType.type"
                   class="building-cell"
                 >
@@ -188,6 +188,12 @@ export default {
         { type: Models.BuildingTypes.STORAGE, icon: 'storage', name: 'Storage' },
         { type: Models.BuildingTypes.OBELISK, icon: 'obelisk', name: 'Obelisk' },
       ]
+    },
+    // Drop columns for building types that don't exist on the map. Reads
+    // from `totalBuildings` so it benefits from the server-supplied totals
+    // in multiplayer (which see through fog of war).
+    visibleBuildingTypes() {
+      return this.buildingTypes.filter(bt => (this.totalBuildings[bt.type] || 0) > 0)
     },
     speedRangeMin() {
       const templesOccupied = this.countTemplesOccupied(this.currentPlayer)

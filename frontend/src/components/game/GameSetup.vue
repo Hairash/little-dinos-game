@@ -368,7 +368,7 @@
             :tooltip-styles="{ zIndex: 2 }"
           ></vue3-slider>
         </div>
-        <div>
+        <div v-if="maxUnitsNum > 0">
           <MenuHint
             id="habitationRate"
             hint="Increase maximum number of dinos"
@@ -449,7 +449,7 @@
             :tooltip-styles="{ zIndex: 2 }"
           ></vue3-slider>
         </div>
-        <div>
+        <div v-if="maxBasesNum > 0">
           <MenuHint
             id="storageRate"
             hint="Increase maximum number of towers"
@@ -476,7 +476,7 @@
             :tooltip-styles="{ zIndex: 2 }"
           ></vue3-slider>
         </div>
-        <div>
+        <div v-if="enableFogOfWar">
           <MenuHint
             id="obeliskRate"
             hint="Instantly show any part of the map"
@@ -519,11 +519,16 @@
       </select>
     </div> -->
     <div style="padding: 30px">
-      <button type="button" class="startBtn" @click="processStartBtnClick">
+      <button type="button" class="startBtn" @click="processStartBtnClick()">
         <span>{{ isMultiplayerMode ? 'Save' : 'GO!' }}</span>
       </button>
     </div>
     <MenuError v-if="currentError" :error="currentError" :set-error="setError" />
+    <PlayabilityWarning
+      v-if="showPlayabilityWarning"
+      @play-anyway="handlePlayAnyway"
+      @update-settings="handleUpdateSettings"
+    />
   </div>
 </template>
 
@@ -537,10 +542,12 @@ import {
   GAME_STATES,
   INITIAL_SETTINGS,
   MULTIPLAYER_INITIAL_SETTINGS,
+  scaledBuildingsRange,
 } from '@/game/const'
 import emitter from '@/game/eventBus'
 import MenuHint from '@/components/ui/MenuHint.vue'
 import MenuError from '@/components/ui/MenuError.vue'
+import PlayabilityWarning from '@/components/ui/PlayabilityWarning.vue'
 import { getImagePath } from '@/game/helpers.js'
 
 export default {
@@ -549,6 +556,7 @@ export default {
     'vue3-slider': slider,
     MenuHint,
     MenuError,
+    PlayabilityWarning,
   },
   props: {
     isMultiplayerMode: {
@@ -651,11 +659,27 @@ export default {
       },
       currentHint: null,
       currentError: null,
+      showPlayabilityWarning: false,
       // PLAYER_TYPES,
     }
   },
+  computed: {
+    // Worst-case unit budget against worst-case tower count, using the
+    // scaled building-rate ranges. > 0 means the player can theoretically
+    // hold every tower; <= 0 means the game might lock the player out.
+    // Skipped (always playable) when maxUnitsNum is 0 — that's the
+    // "unlimited units" mode and the constraint doesn't apply.
+    isPlayable() {
+      if (this.maxUnitsNum === 0) return true
+      const area = this.width * this.height
+      const [minHab] = scaledBuildingsRange(this.buildingRates.habitation || 0, area)
+      const [, maxTowers] = scaledBuildingsRange(this.buildingRates.base || 0, area)
+      return this.maxUnitsNum + minHab * this.unitModifier - maxTowers > 0
+    },
+  },
   mounted() {
     this.loadSettings()
+    this.zeroHiddenBuildingRates()
     this.loadGamePossible = !!localStorage.getItem('field')
   },
   watch: {
@@ -669,8 +693,20 @@ export default {
           // This handles the case where user first visits setup page
           this.loadSettings()
         }
+        this.zeroHiddenBuildingRates()
       },
       immediate: true,
+    },
+    // Keep building rates that have no effect at zero so they don't quietly
+    // generate useless buildings (e.g. obelisks with fog off).
+    maxUnitsNum() {
+      this.zeroHiddenBuildingRates()
+    },
+    maxBasesNum() {
+      this.zeroHiddenBuildingRates()
+    },
+    enableFogOfWar() {
+      this.zeroHiddenBuildingRates()
     },
   },
   methods: {
@@ -760,7 +796,7 @@ export default {
     updateHumanPlayers() {
       this.humanPlayerNames.length = this.humanPlayersNum
     },
-    processStartBtnClick() {
+    processStartBtnClick(skipPlayabilityCheck = false) {
       // Settings to validate (limit check)
       let settings = {
         width: this.width,
@@ -785,6 +821,14 @@ export default {
         delete settings.speedMinVisibility
       }
       if (!this.isInputValid(settings)) {
+        return
+      }
+      // Playability check runs only after format/limit validation succeeds —
+      // there's no point warning about unwinnable rates if the inputs are
+      // still malformed. The user picks "Play anyway" (re-enters here with
+      // the flag set) or "Update settings" (closes the dialog).
+      if (!skipPlayabilityCheck && !this.isPlayable) {
+        this.showPlayabilityWarning = true
         return
       }
       // let players = Array.from({ length: this.humanPlayersNum }, () => new Models.Player(Models.PlayerTypes.HUMAN));
@@ -878,6 +922,25 @@ export default {
     },
     setError(error) {
       this.currentError = error
+    },
+    handlePlayAnyway() {
+      this.showPlayabilityWarning = false
+      this.processStartBtnClick(true)
+    },
+    handleUpdateSettings() {
+      this.showPlayabilityWarning = false
+    },
+    zeroHiddenBuildingRates() {
+      if (!this.buildingRates) return
+      if (this.maxUnitsNum === 0 && this.buildingRates.habitation !== 0) {
+        this.buildingRates.habitation = 0
+      }
+      if (this.maxBasesNum === 0 && this.buildingRates.storage !== 0) {
+        this.buildingRates.storage = 0
+      }
+      if (!this.enableFogOfWar && this.buildingRates.obelisk !== 0) {
+        this.buildingRates.obelisk = 0
+      }
     },
   },
 }
@@ -1089,6 +1152,7 @@ span.labelForInput {
   margin: auto;
   padding-top: 4px;
 }
+
 
 #buildings-settings {
   width: 360px;
