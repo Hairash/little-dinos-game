@@ -25,6 +25,9 @@
                     ? !displayVisibilityCoords.has(`${x},${y}`)
                     : field[x][y].isHidden
                 "
+                :dying="dyingCells ? dyingCells.has(`${x},${y}`) : false"
+                :borning="borningCells ? borningCells.has(`${x},${y}`) : false"
+                :pending-birth="pendingBirthCells ? pendingBirthCells.has(`${x},${y}`) : false"
                 :width="cellSize"
                 :height="cellSize"
                 :terrain="cellData.terrain"
@@ -104,6 +107,12 @@ import ActionHint from '@/components/game/ActionHint.vue'
 import CellContextHelp from '@/components/game/CellContextHelp.vue'
 import VisibilityFrame from '@/components/game/VisibilityFrame.vue'
 
+// `centerOnCell` skips scrolling when the cell is already this close to
+// the viewport centre. Bigger than 1px so a unit that's slightly off-
+// centre doesn't trigger a scroll for every move/birth — only really-
+// off-centre cells pull the camera.
+const CENTER_TOLERANCE_PX = 10
+
 export default {
   name: 'GameGrid',
   components: {
@@ -152,6 +161,31 @@ export default {
     // bot turns so the human keeps their own fog while the field's
     // `isHidden` (kept consistent with `currentPlayer`) drives bot AI.
     displayVisibilityCoords: {
+      type: Set,
+      default: null,
+    },
+    // Cells whose unit is mid-death-animation. The controller adds the
+    // killed coords here when a move's neighbour-kills land, holds for
+    // `MOVE_ANIMATION_DELAY`, then actually removes the units and clears
+    // the set. Forwarded to GameCell → GameUnit which renders the damage
+    // overlay + fade-out.
+    dyingCells: {
+      type: Set,
+      default: null,
+    },
+    // Cells whose unit is mid-birth-animation. The controller marks each
+    // freshly-spawned cell as `borning` for `BIRTH_ANIMATION_DELAY` while
+    // GameUnit fades the image in. Same Set-identity-changes-on-mutation
+    // pattern as `dyingCells`.
+    borningCells: {
+      type: Set,
+      default: null,
+    },
+    // Spawn cells whose fade-in hasn't started yet. The controller fills
+    // this on turn-start so all spawn cells render at opacity 0 from the
+    // first frame, then moves cells one by one out of the set into
+    // `borningCells` to play their fade-in.
+    pendingBirthCells: {
       type: Set,
       default: null,
     },
@@ -450,6 +484,60 @@ export default {
       const scrollX = x * this.cellSize - container.clientWidth / 2 + this.cellSize / 2
       const scrollY = y * this.cellSize - container.clientHeight / 2 + this.cellSize / 2
       return [scrollX, scrollY]
+    },
+    // Centre the viewport on a cell with a smooth scroll. Returns a Promise
+    // that resolves to `true` once the smooth-scroll has actually finished
+    // (via the browser's `scrollend` event, with a timeout fallback), or
+    // `false` immediately if the cell is already centred to within
+    // CENTER_TOLERANCE_PX (no-op). The browser clamps the scroll to the
+    // container's bounds, so edge cells land as close to centre as possible.
+    //
+    // The tolerance is intentionally generous (a few cells of slop on a
+    // typical zoom level): if the unit is already comfortably near the
+    // middle of the screen, the camera stays still rather than nudging by
+    // a few pixels every step. Cuts down on unnecessary scrolls.
+    //
+    // Used by the move animator and the birth-sequencer to make the user
+    // look at the action's cell before the animation begins.
+    centerOnCell(coords) {
+      const container = this.$refs.gameGridContainer
+      if (!container) return Promise.resolve(false)
+      const [tx, ty] = this.getScrollCoordsByCell(coords)
+      // Clamp the ideal centre to the container's real scroll range
+      // before measuring the delta. Without this, edge cells (e.g. last
+      // column) ask for a `tx` beyond `scrollWidth - clientWidth`; the
+      // browser clamps the actual scroll, so `scrollLeft` lands at the
+      // max but `tx` doesn't — `dx` stays large forever and every
+      // subsequent call kicks off a scrollTo that does nothing, then
+      // burns the 800 ms `scrollend` fallback timeout waiting for an
+      // event that never fires.
+      const maxLeft = Math.max(0, container.scrollWidth - container.clientWidth)
+      const maxTop = Math.max(0, container.scrollHeight - container.clientHeight)
+      const clampedTx = Math.max(0, Math.min(maxLeft, tx))
+      const clampedTy = Math.max(0, Math.min(maxTop, ty))
+      const dx = Math.abs(container.scrollLeft - clampedTx)
+      const dy = Math.abs(container.scrollTop - clampedTy)
+      if (dx <= CENTER_TOLERANCE_PX && dy <= CENTER_TOLERANCE_PX) {
+        return Promise.resolve(false)
+      }
+      return new Promise(resolve => {
+        let settled = false
+        let timeoutId = null
+        const finish = () => {
+          if (settled) return
+          settled = true
+          container.removeEventListener('scrollend', finish)
+          if (timeoutId !== null) clearTimeout(timeoutId)
+          resolve(true)
+        }
+        container.addEventListener('scrollend', finish, { once: true })
+        // Fallback for browsers without `scrollend` support, or for cases
+        // where the event doesn't fire (e.g. user-initiated scroll cancels
+        // the smooth animation). Generous bound — the animation only starts
+        // after this resolves, so being late is fine; never resolving is not.
+        timeoutId = setTimeout(finish, 800)
+        container.scrollTo({ left: tx, top: ty, behavior: 'smooth' })
+      })
     },
 
     // Highlights helpers

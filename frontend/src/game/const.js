@@ -5,6 +5,31 @@ export const TRANSITION_DELAY = 1
 // smoother interpolation or walk-cycle frames later.
 export const MOVE_ANIMATION_DELAY = 100
 
+// Duration of the unit-death animation (damage flash + fade-out), in
+// milliseconds. Independent of MOVE_ANIMATION_DELAY so the death cadence
+// can be tuned separately. Used for every cause of death — neighbour-kill
+// at the end of a move *and* kill-at-birth when a freshly-produced unit
+// spawns next to enemies at the start of a turn.
+export const DEATH_ANIMATION_DELAY = 300
+
+// Auto-scroll the viewport to the unit's starting cell before each move
+// animation. The scroll always centres the cell (smooth, awaits
+// `scrollend`) so the user is looking at the action before it begins.
+// Kept as a module-level constant so we can wire a user-facing toggle
+// later without touching call-sites — replace the read with a settings/
+// store lookup.
+export const SCROLL_TO_MOVES = true
+
+// Auto-scroll the viewport to each spawn cell before its fade-in. Same
+// "always centre" semantics as SCROLL_TO_MOVES.
+export const SCROLL_TO_BIRTHS = true
+
+// Per-birth lingering delay in ms. Same shape as MOVE_ANIMATION_DELAY but
+// independent so the cadence can be tuned. Acts as the death-animation
+// window for that birth's kill-at-birth victims; pick >= DEATH_ANIMATION_DELAY
+// if you want the fade-out to fully complete before the camera moves on.
+export const BIRTH_ANIMATION_DELAY = 1000
+
 // Cell size constants for zoom levels
 export const MIN_CELL_SIZE = 10
 export const MAX_CELL_SIZE = 70

@@ -22,6 +22,9 @@
     :base-modifier="baseModifier"
     :current-stats="getCurrentStats()"
     :menu-open="menuOpen"
+    :dying-cells="dyingCells"
+    :borning-cells="borningCells"
+    :pending-birth-cells="pendingBirthCells"
   />
   <InfoPanel
     v-if="state === STATES.play || (state === STATES.ready && !showReadyLabel)"
@@ -78,7 +81,15 @@ import { FieldEngine } from '@/game/fieldEngine'
 import { GameWebSocket } from '@/game/websocket/gameWebSocket'
 import { whoami } from '@/services/auth'
 import { normalizeField, getPlayerColor } from '@/game/helpers'
-import { ACTIONS } from '@/game/const'
+import {
+  ACTIONS,
+  BIRTH_ANIMATION_DELAY,
+  DEATH_ANIMATION_DELAY,
+  SCROLL_TO_BIRTHS,
+  SCROLL_TO_MOVES,
+} from '@/game/const'
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 import { animateMovePath } from '@/game/moveAnimator'
 import { gameCoreMixin } from '@/game/mixins/gameCoreMixin'
 import emitter from '@/game/eventBus'
@@ -160,6 +171,19 @@ export default {
       // Gates new player input so we never start a second action mid-walk.
       isAnimating: false,
       wasUnmounted: false,
+      // Cells whose unit is mid-death-animation (server told us this move
+      // killed those cells in the receiver's view). Held for
+      // MOVE_ANIMATION_DELAY ms while GameUnit renders the damage flash +
+      // fade-out, then cleared as we merge the post-move field.
+      dyingCells: new Set(),
+      // Cells whose unit is mid-birth-animation (fade-in). Driven by
+      // `patch.births` on end-turn patches, one cell at a time.
+      borningCells: new Set(),
+      // Spawn cells whose fade-in hasn't started yet — held at opacity 0.
+      // Filled with every visible birth on patch arrival (so the user
+      // opens the new turn looking at empty bases) and drained one at a
+      // time as the fade-ins play.
+      pendingBirthCells: new Set(),
     }
   },
   computed: {
@@ -526,6 +550,14 @@ export default {
         if (this.localField[sx] && this.localField[sx][sy]) {
           this.localField[sx][sy].unit = movingUnit
         }
+        // Centre the camera on the unit's first visible cell before the
+        // walk begins. The slice is already filtered to cells we can see,
+        // so picking path[0] is enough. Smooth-centre awaits scrollend
+        // so the user is looking at the action when it starts.
+        if (SCROLL_TO_MOVES) {
+          await this.centerOnCell(patch.pathSlice[0])
+          if (this.wasUnmounted) return
+        }
         this.isAnimating = true
         try {
           await animateMovePath(this.localField, patch.pathSlice, movingUnit, {
@@ -537,6 +569,39 @@ export default {
           this.isAnimating = false
         }
         if (this.wasUnmounted) return
+      }
+
+      // Death animation. The server tells us which units this patch
+      // killed (filtered to cells visible to us). We mark those cells as
+      // `dying` so GameUnit shows the damage flash + fade-out, hold for
+      // `DEATH_ANIMATION_DELAY`, then fall through to merge the post-move
+      // field (which has them removed).
+      const killedCells = Array.isArray(patch.killedCells) ? patch.killedCells : null
+      if (killedCells && killedCells.length > 0) {
+        const next = new Set(this.dyingCells)
+        for (const [kx, ky] of killedCells) next.add(`${kx},${ky}`)
+        this.dyingCells = next
+        await sleep(DEATH_ANIMATION_DELAY)
+        if (this.wasUnmounted) return
+        const after = new Set(this.dyingCells)
+        for (const [kx, ky] of killedCells) after.delete(`${kx},${ky}`)
+        this.dyingCells = after
+      }
+
+      // Birth pre-mark. End-turn patches carry `births` (per-birth list).
+      // We pre-mark every visible spawn cell as `pendingBirth` BEFORE
+      // merging the field — that way Vue's first render after the merge
+      // already paints the freshly-spawned units at opacity 0, and the
+      // user opens the new turn looking at empty bases. The fade-in
+      // sequence runs after the merge.
+      const births = Array.isArray(patch.births) ? patch.births : null
+      if (births && births.length > 0) {
+        const next = new Set(this.pendingBirthCells)
+        for (const b of births) {
+          const [bx, by] = b.coords
+          next.add(`${bx},${by}`)
+        }
+        this.pendingBirthCells = next
       }
 
       if (patch.field) {
@@ -699,6 +764,46 @@ export default {
         // Clear selected unit and highlighted cells
         emitter.emit('initTurn')
       }
+      // Birth fade-in sequence. Pendng cells were marked pre-merge so the
+      // user already sees empty bases. Drain them one at a time, swapping
+      // each from `pendingBirth` to `borning` so the CSS keyframe runs.
+      // For opponent turns we also scroll to each spawn cell first.
+      if (births && births.length > 0) {
+        this.isAnimating = true
+        try {
+          for (const b of births) {
+            if (this.wasUnmounted) return
+            const [bx, by] = b.coords
+            // Scroll first so the user is looking at the cell before the
+            // fade-in starts. Smooth-centre — no-op when the cell is
+            // already centred.
+            if (SCROLL_TO_BIRTHS) {
+              await this.centerOnCell(b.coords)
+              if (this.wasUnmounted) return
+            }
+            // Pull this cell out of pending and into borning.
+            const np = new Set(this.pendingBirthCells)
+            np.delete(`${bx},${by}`)
+            this.pendingBirthCells = np
+            const nb = new Set(this.borningCells)
+            nb.add(`${bx},${by}`)
+            this.borningCells = nb
+            await sleep(BIRTH_ANIMATION_DELAY)
+            if (this.wasUnmounted) return
+            const nb2 = new Set(this.borningCells)
+            nb2.delete(`${bx},${by}`)
+            this.borningCells = nb2
+          }
+          // Defensive: drain any leftover pending entries (cancellation,
+          // server sending births for cells we couldn't see, etc.).
+          if (this.pendingBirthCells.size > 0) {
+            this.pendingBirthCells = new Set()
+          }
+        } finally {
+          this.isAnimating = false
+        }
+      }
+
       // Scout-undo: re-hide the cells the server tells us to. These are coords
       // the last scout had revealed; the move underneath is left intact.
       if (Array.isArray(patch.unrevealedCoords)) {
@@ -887,6 +992,13 @@ export default {
         this.gameWs.disconnect()
       }
       this.$emit('exitGame')
+    },
+
+    // Forward a "centre on this cell" request to the grid. Returns a
+    // Promise that resolves to `true` once the smooth-scroll has finished,
+    // or `false` immediately when the cell was already centred.
+    centerOnCell(coord) {
+      return this.$refs.gameGridRef?.centerOnCell?.(coord) ?? Promise.resolve(false)
     },
 
     // Visibility helpers

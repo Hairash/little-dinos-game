@@ -123,6 +123,19 @@ export class FieldEngine {
     }
   }
 
+  // Same predicate as `killNeighbours` but returns the coordinates without
+  // mutating the field. Used by the controller to drive the death animation
+  // (damage flash + fade-out) before the units are actually removed.
+  findKillNeighbours(x, y, curPlayer) {
+    const result = []
+    for (const [curX, curY] of getNeighbours(this.field, this.width, this.height, x, y)) {
+      if (this.field[curX][curY].unit && this.field[curX][curY].unit.player !== curPlayer) {
+        result.push([curX, curY])
+      }
+    }
+    return result
+  }
+
   getBuildingsOccupied(curPlayer) {
     const buildings = {}
     for (let _type in Models.BuildingTypes) {
@@ -224,7 +237,13 @@ export class FieldEngine {
     }
   }
 
-  restoreAndProduceUnits(curPlayer) {
+  // When `deferKills` is true, freshly-produced units are placed on the
+  // field but the kill-at-birth pass is collected (not applied) and the
+  // coordinates are returned in the result as `killedCoords`. The caller
+  // can then play the death animation, then call `applyKillsAtCoords` to
+  // remove the units. When false (default), kills happen synchronously
+  // — same behaviour as before this option existed.
+  restoreAndProduceUnits(curPlayer, { deferKills = false } = {}) {
     let buildingsNum = 0
     let unitsNum = 0
     let producedNum = 0
@@ -271,6 +290,8 @@ export class FieldEngine {
         }
       }
     }
+    const killedCoords = []
+    const births = []
     if (
       !this.maxUnitsNum ||
       unitsNum + producedNum <= this.maxUnitsNum + habitationsOccupied * this.unitModifier
@@ -286,8 +307,17 @@ export class FieldEngine {
           templesOccupied
         )
         if (this.killAtBirth) {
-          // countScore=false to avoid double score calculation (here only kill)
-          this.killNeighbours(x, y, curPlayer, false)
+          if (deferKills) {
+            const birthKills = this.findKillNeighbours(x, y, curPlayer)
+            births.push({ coords: [x, y], killedCoords: birthKills })
+            for (const k of birthKills) killedCoords.push(k)
+          } else {
+            // countScore=false to avoid double score calculation (here only kill)
+            this.killNeighbours(x, y, curPlayer, false)
+            births.push({ coords: [x, y], killedCoords: [] })
+          }
+        } else {
+          births.push({ coords: [x, y], killedCoords: [] })
         }
       }
     }
@@ -295,6 +325,28 @@ export class FieldEngine {
       buildingsNum: buildingsNum,
       unitsNum: unitsNum,
       producedNum: producedNum,
+      // Flat list of every kill-at-birth victim — kept for callers that
+      // animate them simultaneously (legacy "all-at-once" path).
+      killedCoords,
+      // Per-birth records: spawn cell + that birth's own kill victims.
+      // Lets the controller play each birth in sequence (scroll → wait
+      // → death anim → next) when SCROLL_TO_ENEMY_BIRTHS is enabled.
+      births,
+    }
+  }
+
+  // Apply kill-at-birth to a list of [x, y] cells previously collected by
+  // `restoreAndProduceUnits({ deferKills: true })`. Same accounting as the
+  // inline kill in that method (no double score) — used after the death
+  // animation has played.
+  applyKillsAtCoords(curPlayer, coords) {
+    for (const [x, y] of coords) {
+      const cell = this.field[x][y]
+      if (cell && cell.unit && cell.unit.player !== curPlayer) {
+        this.players[curPlayer].killed++
+        this.players[cell.unit.player].lost++
+        delete cell.unit
+      }
     }
   }
 
