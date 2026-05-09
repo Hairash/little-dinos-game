@@ -220,6 +220,84 @@ def test_pre_move_visibility_covers_killers_path_for_victim(kill_scenario_game, 
         assert tuple(cell) in visible_for_0, f"pre-move hint missing path cell {cell}"
 
 
+def test_apply_move_txn_emits_killed_cells(kill_scenario_game, user2):
+    """Patch carries `killedCells` listing the cells whose unit just died,
+    so the client can play the death animation before merging the post-move
+    field (which has them already removed)."""
+    ok, res = apply_move_txn(
+        game_code=kill_scenario_game.game_code,
+        user_id=user2.id,
+        payload={"fromCoords": [0, 4], "toCoords": [3, 4]},
+        client_seq=1,
+    )
+    assert ok, res
+    patch = res["patch"]
+    assert "killedCells" in patch
+    # The victim was at (4, 4) — adjacent to the killer's destination (3, 4).
+    assert [4, 4] in patch["killedCells"]
+
+
+def test_apply_end_turn_txn_emits_births_for_kill_at_birth(db, user, user2):
+    """`apply_end_turn_txn` should attach `births` (per-birth list of
+    {coords, killedCoords}) so the client can play the per-birth fade-in
+    + per-birth death animation when the next player's turn begins."""
+    from game.models import Game, GamePlayer
+    from game.services.game_logic import apply_end_turn_txn
+
+    width, height = 5, 5
+    field = []
+    for _x in range(width):
+        col = []
+        for _y in range(height):
+            col.append(
+                {
+                    "terrain": {"kind": TERRAIN_TYPES["EMPTY"], "idx": 1},
+                    "building": None,
+                    "unit": None,
+                    "isHidden": True,
+                }
+            )
+        field.append(col)
+    # Player 1 (user2) owns a base at (1, 0). When their turn begins, a
+    # fresh unit spawns there. Player 0 has a unit at (1, 1) — adjacent —
+    # which gets killed at birth.
+    field[1][0]["building"] = {"player": 1, "_type": "base"}
+    field[1][1]["unit"] = {
+        "player": 0,
+        "_type": "dino1",
+        "movePoints": 1,
+        "visibility": 1,
+        "hasMoved": True,
+    }
+    g = Game.objects.create(
+        game_code="killbirth01",
+        status="playing",
+        # turn_player is `user` (player 0); we end their turn so the next
+        # player (user2 / player 1) starts and produces a unit.
+        turn_player=user,
+        settings={
+            "width": width,
+            "height": height,
+            "fogOfWarRadius": 2,
+            "enableFogOfWar": True,
+            "minSpeed": 1,
+            "maxSpeed": 5,
+            "killAtBirth": True,
+        },
+        field=field,
+    )
+    GamePlayer.objects.create(game=g, player=user, order=0)
+    GamePlayer.objects.create(game=g, player=user2, order=1)
+
+    ok, res = apply_end_turn_txn(game_code=g.game_code, user_id=user.id, client_seq=1)
+    assert ok, res
+    patch = res["patch"]
+    assert "births" in patch, "kill-at-birth should produce a `births` list so clients can animate"
+    assert any(b["coords"] == [1, 0] for b in patch["births"]), patch["births"]
+    spawn = next(b for b in patch["births"] if b["coords"] == [1, 0])
+    assert spawn["killedCoords"] == [[1, 1]]
+
+
 def test_visibility_hint_is_pre_move_not_post_move(kill_scenario_game, user, user2):
     """The hint must reflect PRE-move state. We verify by checking that
     player 0's pre-move visibility includes their unit's source cell (4, 4),

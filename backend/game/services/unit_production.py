@@ -64,7 +64,13 @@ def restore_and_produce_units(field, width, height, player_order, settings):
         settings: Game settings dict
 
     Returns:
-        dict: Counters with buildingsNum, unitsNum, producedNum
+        dict: Counters with buildingsNum, unitsNum, producedNum, killedCoords,
+              births.
+              `killedCoords` is a flat list of [x, y] for enemy units killed
+              by kill-at-birth.
+              `births` is a list of {"coords": [x, y], "killedCoords": [...]}
+              entries, one per spawn, in spawn order. Used by the consumer
+              to drive the client-side per-birth fade-in + death animation.
     """
     buildings_num = 0
     units_num = 0
@@ -72,6 +78,8 @@ def restore_and_produce_units(field, width, height, player_order, settings):
     habitations_occupied = 0
     temples_occupied = 0
     units_to_create_coords = []
+    killed_coords: list[list[int]] = []
+    births: list[dict] = []
 
     min_speed = settings.get("minSpeed", 1)
     max_speed = settings.get("maxSpeed", 5)
@@ -155,20 +163,27 @@ def restore_and_produce_units(field, width, height, player_order, settings):
             field[x][y]["unit"] = new_unit
 
             # Kill neighbors if killAtBirth is enabled
+            birth_kills: list[list[int]] = []
             if kill_at_birth:
-                kill_neighbors_at_birth(field, width, height, x, y, player_order)
+                birth_kills = kill_neighbors_at_birth(field, width, height, x, y, player_order)
+                killed_coords.extend(birth_kills)
+            births.append({"coords": [x, y], "killedCoords": birth_kills})
 
     return {
         "buildingsNum": buildings_num,
         "unitsNum": units_num,
         "producedNum": produced_num,
+        "killedCoords": killed_coords,
+        "births": births,
     }
 
 
 def kill_neighbors_at_birth(field, width, height, x, y, player_order):
     """
     Kill enemy units in neighboring cells when a unit is born.
-    This is called when killAtBirth is enabled.
+    This is called when killAtBirth is enabled. Returns a list of [x, y]
+    for cells where an enemy unit was actually killed, so the caller can
+    drive a client-side death animation.
     """
     neighbors = []
     if x > 0:
@@ -180,9 +195,12 @@ def kill_neighbors_at_birth(field, width, height, x, y, player_order):
     if y < height - 1:
         neighbors.append((x, y + 1))
 
+    killed: list[list[int]] = []
     for nx, ny in neighbors:
         neighbor_cell = field[nx][ny]
         neighbor_unit = neighbor_cell.get("unit")
         if neighbor_unit and neighbor_unit.get("player") != player_order:
             # Kill enemy unit
             neighbor_cell["unit"] = None
+            killed.append([nx, ny])
+    return killed

@@ -285,7 +285,7 @@ class TestApplyMoveToCell:
             "hasMoved": False,
         }
 
-        building_captured, cells_changed = apply_move_to_cell(
+        building_captured, cells_changed, _killed = apply_move_to_cell(
             field, 2, 2, 2, 3, player_order=0, settings={}
         )
 
@@ -311,7 +311,7 @@ class TestApplyMoveToCell:
         }
 
         settings = {"maxBasesNum": 0}  # No limit
-        building_captured, cells_changed = apply_move_to_cell(
+        building_captured, cells_changed, _killed = apply_move_to_cell(
             field, 2, 2, 2, 3, player_order=0, settings=settings
         )
 
@@ -345,7 +345,7 @@ class TestApplyMoveToCell:
             "_type": "dino2",
         }
 
-        building_captured, cells_changed = apply_move_to_cell(
+        building_captured, cells_changed, _killed = apply_move_to_cell(
             field, 2, 2, 1, 2, player_order=0, settings={}
         )
 
