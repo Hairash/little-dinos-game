@@ -161,6 +161,7 @@ def apply_move_txn(game_code: str, user_id: int, payload: dict, client_seq: int)
 
         # Capture field state BEFORE the move (for undo)
         field_before = copy.deepcopy(field)
+        active_before = get_active_players(field_before, width, height)
 
         # Capture the moving unit and compute the BFS path. We use the
         # per-player `field_for_validation` (built above with correct
@@ -300,10 +301,16 @@ def apply_move_txn(game_code: str, user_id: int, payload: dict, client_seq: int)
         game.field = field  # Field was updated in-place by apply_move_to_cell
         undo.set_move(game, diff=undo_diff, can_undo=can_undo)
 
-        # 3. Check if game has ended (only 1 player remains)
-        winner_order = check_game_ended(
-            field, width, height, len(GamePlayer.objects.filter(game=game))
-        )
+        # 3. Check eliminations and end-of-game. Players newly knocked out
+        #    by this move (their last unit/building captured) are reported
+        #    via `newlyEliminated` so the consumer can flip them into
+        #    spectator mode for that recipient. Game ends iff a single
+        #    player is left active.
+        active_after = get_active_players(field, width, height)
+        newly_eliminated = sorted(active_before - active_after)
+        if newly_eliminated:
+            patch["newlyEliminated"] = newly_eliminated
+        winner_order = next(iter(active_after)) if len(active_after) == 1 else None
         write_fields = ["field", "undo_state"]
         if winner_order is not None:
             # Game ended - clear undo state (no further actions are possible) and
@@ -490,8 +497,19 @@ def apply_end_turn_txn(game_code: str, user_id: int, client_seq: int):
         except GamePlayer.DoesNotExist:
             return False, {"code": "NOT_IN_GAME", "msg": "Player not in game"}
 
-        # Advance to next player first (we'll produce units for the next player)
-        next_player_id = compute_next_player(game, user_id)
+        # Snapshot eliminations now so we can both skip dead players when
+        # rotating turns AND diff against the post-production state to find
+        # players knocked out by kill-at-birth this turn.
+        field_for_active = game.field if game.field else []
+        settings_for_active = game.settings if game.settings else {}
+        width_for_active = settings_for_active.get("width", 20)
+        height_for_active = settings_for_active.get("height", 20)
+        all_orders_now = set(GamePlayer.objects.filter(game=game).values_list("order", flat=True))
+        active_before = get_active_players(field_for_active, width_for_active, height_for_active)
+        eliminated_before = all_orders_now - active_before
+
+        # Advance to next ACTIVE player (we'll produce units for them).
+        next_player_id = compute_next_player(game, user_id, eliminated_before)
 
         # Clear scout-revealed coordinates for the current player (turn is ending)
         try:
@@ -553,10 +571,13 @@ def apply_end_turn_txn(game_code: str, user_id: int, client_seq: int):
                     if unit:
                         unit["hasMoved"] = False
 
-        # Check if game has ended after unit production (new units can kill enemies at birth)
-        winner_order = check_game_ended(
-            field, width, height, len(GamePlayer.objects.filter(game=game))
-        )
+        # Eliminations after unit production: kill-at-birth from the next
+        # player's spawns may have wiped out other players. Diff against
+        # the pre-turn snapshot so the consumer can flip those recipients
+        # into spectator mode. Game ends iff a single player remains.
+        active_after = get_active_players(field, width, height)
+        newly_eliminated_orders = sorted(active_before - active_after)
+        winner_order = next(iter(active_after)) if len(active_after) == 1 else None
 
         # Persist changes to DB
         tick = now_ms()
@@ -580,6 +601,8 @@ def apply_end_turn_txn(game_code: str, user_id: int, client_seq: int):
             "field": field,  # Send full field with reset hasMoved flags
             "canUndo": False,  # Undo not available at start of turn
         }
+        if newly_eliminated_orders:
+            patch["newlyEliminated"] = newly_eliminated_orders
 
         # Birth animation hints. The new turn's unit production produced
         # one entry per spawn (with that birth's kill-at-birth victims, if
@@ -803,56 +826,62 @@ def apply_scout_txn(game_code: str, user_id: int, payload: dict, client_seq: int
         return True, {"patch": patch, "server_tick": tick}
 
 
-def check_game_ended(field, width, height, players_num: int) -> int | None:
-    """
-    Check if the game has ended (only 1 player remains).
-    A player is eliminated if:
-    - They have no units on the field
-    - All their buildings are occupied by other players (building.player != their player order)
+def get_active_players(field, width, height) -> set[int]:
+    """Return the set of player orders still in the game.
 
-    Returns:
-        int | None: The player order (0, 1, 2, ...) of the winner if game ended, None otherwise
+    A player counts as active if they have at least one unit OR own at
+    least one building that isn't occupied by an opposing unit. This is
+    the inverse of the "eliminated" predicate used to skip dead players'
+    turns and to mark them as spectators.
     """
-    # Count active players (players with units or unoccupied buildings)
-    active_players = set()
-
+    active: set[int] = set()
     for x in range(width):
         for y in range(height):
             cell = field[x][y]
             if not cell:
                 continue
-
-            # Check units - if a player has units, they're still active
             unit = cell.get("unit")
             if unit and unit.get("player") is not None:
-                active_players.add(unit["player"])
-
-            # Check buildings - if a building belongs to a player and is not occupied by another player's unit, that player is active
+                active.add(unit["player"])
             building = cell.get("building")
             if building and building.get("player") is not None:
-                building_owner = building["player"]
-                # If there's no unit on this building, or the unit belongs to the building owner, the owner is still active
-                if not unit or (unit.get("player") == building_owner):
-                    active_players.add(building_owner)
+                owner = building["player"]
+                if not unit or unit.get("player") == owner:
+                    active.add(owner)
+    return active
 
-    # If only 1 player remains, game has ended
+
+def check_game_ended(field, width, height, players_num: int) -> int | None:
+    """Return the surviving player's order if only one is left, else None."""
+    active_players = get_active_players(field, width, height)
     if len(active_players) == 1:
-        return list(active_players)[0]
-
+        return next(iter(active_players))
     return None
 
 
-def compute_next_player(game: Game, current_user_id: int) -> int | None:
+def compute_next_player(
+    game: Game, current_user_id: int, eliminated_orders: set[int] | None = None
+) -> int | None:
+    """Rotate to the next player by GamePlayer.order, skipping eliminated.
+
+    `eliminated_orders` is a set of player *orders* (not user_ids) whose
+    turns must be skipped. None or empty preserves the previous behaviour.
+    Returns None if every player is eliminated (which shouldn't normally
+    occur — `check_game_ended` would have fired first).
     """
-    Rotate to next player based on GamePlayer.order.
-    """
-    players = list(
-        GamePlayer.objects.filter(game=game).order_by("order").values_list("player_id", flat=True)
+    eliminated_orders = eliminated_orders or set()
+    rows = list(
+        GamePlayer.objects.filter(game=game).order_by("order").values_list("player_id", "order")
     )
-    if not players:
+    if not rows:
         return None
+    n = len(rows)
     try:
-        idx = players.index(current_user_id)
-        return players[(idx + 1) % len(players)]
-    except ValueError:
-        return players[0]
+        start = next(i for i, (pid, _) in enumerate(rows) if pid == current_user_id)
+    except StopIteration:
+        start = -1
+    for k in range(1, n + 1):
+        pid, order = rows[(start + k) % n]
+        if order not in eliminated_orders:
+            return pid
+    return None
