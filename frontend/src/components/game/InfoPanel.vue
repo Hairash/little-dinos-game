@@ -166,6 +166,7 @@
       :enable-fog-of-war="enableFogOfWar"
       :min-speed="minSpeed"
       :max-speed="maxSpeed"
+      :building-totals-override="buildingTotalsOverride"
       :handle-exit="handleMenuExit"
       :handle-zoom-in="handleMenuZoomIn"
       :handle-zoom-out="handleMenuZoomOut"
@@ -212,6 +213,13 @@ export default {
     handleUndoClick: {
       type: Function,
       default: () => {},
+    },
+    // Server-provided per-type building totals (multiplayer). When null,
+    // GameMenuOverlay falls back to counting from the local field
+    // (single-player has full visibility, so the fallback is exact).
+    buildingTotalsOverride: {
+      type: Object,
+      default: null,
     },
   },
   emits: ['menuOpen'],

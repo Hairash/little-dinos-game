@@ -43,6 +43,7 @@
     :enable-fog-of-war="enableFogOfWar"
     :min-speed="minSpeed"
     :max-speed="maxSpeed"
+    :building-totals-override="buildingTotals"
     :can-undo="canUndo && isMyTurn && winner === null"
     :handle-undo-click="undoLastMove"
     @menu-open="handleMenuOpen"
@@ -157,6 +158,12 @@ export default {
       hideEnemySpeed: false,
       unitModifier: 3,
       baseModifier: 3,
+      // Per-type building counts on the unfiltered map. Sent by the server
+      // on `joined` so the menu's TOTAL row reflects the real map even
+      // under fog of war. Buildings don't change post-generation, so this
+      // doesn't need refresh after join. Empty until first `joined` arrives;
+      // GameMenuOverlay falls back to its own field-based count in that case.
+      buildingTotals: {},
       // Track coordinates revealed by scout actions (persist until turn ends)
       scoutRevealedCoords: new Set(), // Set of strings like "x,y"
       // Game end state
@@ -316,6 +323,11 @@ export default {
       // Update field from server and normalize to model instances
       if (gameState.field) {
         this.localField = normalizeField(JSON.parse(JSON.stringify(gameState.field)))
+      }
+
+      // Per-type building counts for the whole (unfiltered) map.
+      if (gameState.buildingTotals && typeof gameState.buildingTotals === 'object') {
+        this.buildingTotals = { ...gameState.buildingTotals }
       }
 
       // Initialize players from server
