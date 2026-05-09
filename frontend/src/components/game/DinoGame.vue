@@ -24,6 +24,9 @@
     :current-stats="getCurrentStats()"
     :menu-open="menuOpen"
     :display-visibility-coords="displayVisibilityCoords"
+    :dying-cells="dyingCells"
+    :borning-cells="borningCells"
+    :pending-birth-cells="pendingBirthCells"
   />
   <InfoPanel
     v-if="state === STATES.play"
@@ -82,7 +85,18 @@ import { WaveEngine } from '@/game/waveEngine'
 import { FieldEngine } from '@/game/fieldEngine'
 import { BotEngine } from '@/game/botEngine'
 import { createPlayers, getPlayerColor, normalizeField } from '@/game/helpers'
-import { ACTIONS, FIELDS_TO_SAVE, GAME_STATUS_FIELDS, SCORE_MOD } from '@/game/const'
+import {
+  ACTIONS,
+  BIRTH_ANIMATION_DELAY,
+  DEATH_ANIMATION_DELAY,
+  FIELDS_TO_SAVE,
+  GAME_STATUS_FIELDS,
+  SCORE_MOD,
+  SCROLL_TO_BIRTHS,
+  SCROLL_TO_MOVES,
+} from '@/game/const'
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 import { gameCoreMixin } from '@/game/mixins/gameCoreMixin'
 import { computeFieldDiff, applyFieldDiff } from '@/game/fieldDiff'
 import { animateMovePath } from '@/game/moveAnimator'
@@ -191,6 +205,27 @@ export default {
       // would shrink the live visibility mid-animation and hide the path
       // the moving unit took before the user could see it.
       displayVisibilitySnapshot: null,
+      // Cells whose unit is mid-death-animation. Populated by every cause
+      // of death (neighbour-kill at end of move, kill-at-birth at start of
+      // turn) and cleared after `DEATH_ANIMATION_DELAY` once the units are
+      // actually removed from the field. The Set's identity changes on
+      // every mutation so Vue's reactivity picks it up.
+      dyingCells: new Set(),
+      // Cells whose unit is mid-birth-animation (fade-in). Populated by
+      // the per-birth loop in `runBirthSequence`, one cell at a time, and
+      // cleared after `BIRTH_ANIMATION_DELAY`.
+      borningCells: new Set(),
+      // Spawn cells whose fade-in hasn't started yet — held at opacity 0.
+      // Filled with every visible spawn at the start of the turn (so the
+      // user opens the turn looking at empty bases) and drained one cell
+      // at a time as `runBirthSequence` advances.
+      pendingBirthCells: new Set(),
+      // Per-birth records captured at start of turn but whose animation
+      // was deferred — used when the ready-label is shown. The animation
+      // runs in `readyBtnClick` once the player dismisses the label, so
+      // the flash + fade-out is visible on the field instead of hidden
+      // behind the label. Each entry is `{ coords, killedCoords }`.
+      pendingBirths: [],
       // Set in beforeUnmount; the animator checks it to abort cleanly.
       wasUnmounted: false,
     }
@@ -343,18 +378,20 @@ export default {
     handleExitClick() {
       this.state = this.STATES.exitDialog
     },
-    startTurn() {
+    async startTurn() {
       // Show turn notification for all players (human and bot)
       this.showTurnNotification(this.currentPlayer)
 
-      // const killedBefore = this.players[this.currentPlayer].killed;
-      const counters = this.fieldEngine.restoreAndProduceUnits(this.currentPlayer)
-      // this.updatePlayerScore(
-      //   killedBefore,
-      //   counters.buildingsNum,
-      //   counters.unitsNum,
-      //   counters.producedNum,
-      // );
+      // Defer the kill-at-birth pass so we can play the death animation
+      // first — same flash + fade-out as for neighbour-kills at end of
+      // move. `restoreAndProduceUnits({ deferKills: true })` places freshly-
+      // spawned units on the field but returns the coords whose unit
+      // *would* die instead of removing them; we then animate and call
+      // `applyKillsAtCoords` to actually remove them.
+      const counters = this.fieldEngine.restoreAndProduceUnits(this.currentPlayer, {
+        deferKills: true,
+      })
+      const births = counters.births || []
 
       if (counters.buildingsNum === 0 && counters.unitsNum === 0) {
         this.players[this.currentPlayer].active = false
@@ -362,14 +399,144 @@ export default {
 
       this.setVisibilityStartTurn()
 
-      if (this.players[this.currentPlayer]._type === Models.PlayerTypes.BOT) {
-        emitter.emit('makeBotMove')
-      } else {
-        emitter.emit('initTurn', this.players[this.currentPlayer].scrollCoords)
-        if (this.checkSkipReadyLabel()) {
-          this.state = this.STATES.play
+      // Decide whether the field is about to be visible. The animation
+      // only makes sense to play once the field is — otherwise the ready-
+      // label (which renders when `state === STATES.ready`) covers the
+      // cells we're trying to animate. Bots always show the field
+      // directly; humans only do so when `checkSkipReadyLabel` (typical
+      // single-human game) returns true.
+      const isBot = this.players[this.currentPlayer]._type === Models.PlayerTypes.BOT
+      const fieldVisibleNow = isBot || this.checkSkipReadyLabel()
+
+      if (fieldVisibleNow) {
+        // Drop out of `STATES.ready` (which `processEndTurn` set) before
+        // awaiting the animation, so the ready-label doesn't sit on top
+        // of the dying-unit flash. `makeBotMove` would have set this for
+        // bots anyway; we just do it earlier so the animation is visible.
+        this.state = this.STATES.play
+        if (births.length > 0) {
+          await this.runBirthSequence(births)
+          if (this.wasUnmounted) return
         }
+        if (isBot) {
+          emitter.emit('makeBotMove')
+        } else {
+          emitter.emit('initTurn', this.players[this.currentPlayer].scrollCoords)
+        }
+      } else {
+        // Multi-human flow: ready-label is up until the player dismisses
+        // it. Stash the births and run the animation in `readyBtnClick`
+        // once the field is uncovered.
+        this.pendingBirths = births
+        emitter.emit('initTurn', this.players[this.currentPlayer].scrollCoords)
       }
+    },
+    // Drive the start-of-turn birth animation.
+    //
+    // The whole sequence runs synchronously up to its first await, so
+    // Vue's first render after this method is called already has every
+    // visible spawn cell flagged `pendingBirth` — the user opens the turn
+    // looking at empty bases everywhere, and the freshly-spawned units
+    // appear one at a time as we drain the pending set.
+    //
+    //   - all visible spawn cells are pre-marked `pendingBirth` (held at
+    //     opacity 0)
+    //   - we iterate the births in order: pull this birth's cell out of
+    //     `pendingBirthCells`, scroll to it (no-op if already on screen),
+    //     mark it `borning` (CSS fades 0 → 1)
+    //   - for births that triggered kill-at-birth, mark those cells
+    //     `dying` for the same window — death + birth animate together
+    //   - after the window, unmark borning + dying and commit kills
+    //
+    // Births in the local player's fog are skipped entirely.
+    async runBirthSequence(births) {
+      if (!births || births.length === 0) return
+      this.isAnimating = true
+      try {
+        const humanPlayer = this.findHumanPlayerOrder()
+        const humanVisibility =
+          this.doesVisibilityMakeSense() && humanPlayer !== null
+            ? new Set(
+                Array.from(this.fieldEngine.getCurrentVisibilitySet(humanPlayer)).map(
+                  ([hx, hy]) => `${hx},${hy}`
+                )
+              )
+            : null
+
+        // Filter to births visible to the local player and pre-mark them
+        // all as `pendingBirth` BEFORE any await so they render at opacity
+        // 0 from the very first frame.
+        const visibleBirths = births.filter(b => {
+          const [bx, by] = b.coords
+          return humanVisibility === null || humanVisibility.has(`${bx},${by}`)
+        })
+        const pendingCoords = visibleBirths.map(b => b.coords)
+        this._setPendingBirth(pendingCoords, true)
+
+        for (const birth of visibleBirths) {
+          if (this.wasUnmounted) return
+          // Scroll first so the user is looking at the cell before its
+          // fade-in starts. Smooth-centre — no-op when the cell is
+          // already centred.
+          if (SCROLL_TO_BIRTHS) {
+            await this.centerOnCell(birth.coords)
+            if (this.wasUnmounted) return
+          }
+          // Pull this cell out of pending and into borning. Both writes
+          // happen synchronously in the same tick, so Vue renders the
+          // transition cleanly (no frame where neither flag is set).
+          this._setPendingBirth([birth.coords], false)
+          this._setBorning([birth.coords], true)
+          this._setDying(birth.killedCoords, true)
+          await sleep(BIRTH_ANIMATION_DELAY)
+          if (this.wasUnmounted) return
+          this._setBorning([birth.coords], false)
+          this._setDying(birth.killedCoords, false)
+          this.fieldEngine.applyKillsAtCoords(this.currentPlayer, birth.killedCoords)
+        }
+
+        // Defensive: clear any residual pending flags (e.g. cancelled
+        // mid-sequence the cleanup might be partial).
+        this._setPendingBirth(pendingCoords, false)
+
+        this.checkEndOfGame()
+        // Visibility may have shrunk if a kill-at-birth removed a unit at
+        // a cell the player was seeing through.
+        if (this.doesVisibilityMakeSense()) this.setVisibility()
+      } finally {
+        this.isAnimating = false
+      }
+    },
+    // Toggle the `dying` flag for a list of cells. The Set's identity has
+    // to change for Vue's reactivity to pick the mutation up.
+    _setDying(coords, on) {
+      if (!coords || coords.length === 0) return
+      const next = new Set(this.dyingCells)
+      for (const [x, y] of coords) {
+        if (on) next.add(`${x},${y}`)
+        else next.delete(`${x},${y}`)
+      }
+      this.dyingCells = next
+    },
+    // Same shape as _setDying, for the birth fade-in flag.
+    _setBorning(coords, on) {
+      if (!coords || coords.length === 0) return
+      const next = new Set(this.borningCells)
+      for (const [x, y] of coords) {
+        if (on) next.add(`${x},${y}`)
+        else next.delete(`${x},${y}`)
+      }
+      this.borningCells = next
+    },
+    // Same shape as _setBorning, for the "queued, opacity 0" flag.
+    _setPendingBirth(coords, on) {
+      if (!coords || coords.length === 0) return
+      const next = new Set(this.pendingBirthCells)
+      for (const [x, y] of coords) {
+        if (on) next.add(`${x},${y}`)
+        else next.delete(`${x},${y}`)
+      }
+      this.pendingBirthCells = next
     },
     emitMoveUnit(coordsDict) {
       // Don't accept a new move while one is animating.
@@ -420,6 +587,27 @@ export default {
         [x0, y0],
         [x1, y1],
       ]
+      // Centre the camera on the unit's starting cell (or the first
+      // visible cell of its path, if it begins in fog) before the walk
+      // begins. Smooth-centre awaits scrollend, so the user is looking at
+      // the action when it starts.
+      //
+      // Skipped when the moving unit belongs to the local human player:
+      // they're driving the move themselves, so the camera shouldn't
+      // jerk away from where they clicked.
+      const isOwnMove = humanPlayer !== null && unit.player === humanPlayer
+      if (SCROLL_TO_MOVES && !isOwnMove) {
+        const firstVisibleCell = path.find(
+          ([cx, cy]) => humanVisibility === null || humanVisibility.has(`${cx},${cy}`)
+        )
+        if (firstVisibleCell) {
+          await this.centerOnCell(firstVisibleCell)
+          if (this.wasUnmounted) {
+            this.displayVisibilitySnapshot = null
+            return
+          }
+        }
+      }
       this.isAnimating = true
       try {
         await animateMovePath(this.localField, path, unit, {
@@ -441,6 +629,13 @@ export default {
             emitter.emit('setAction', action)
           }
         }
+        // Death animation for cells about to be killed by the move's
+        // neighbour-pass. `playDeathAnimation` flashes damage + fades the
+        // unit images, then we actually remove them. Same helper drives
+        // kill-at-birth in `startTurn` so every death uses one cadence.
+        const killedCoords = this.fieldEngine.findKillNeighbours(x1, y1, unit.player)
+        await this.playDeathAnimation(killedCoords)
+        if (this.wasUnmounted) return
         this.fieldEngine.killNeighbours(x1, y1, unit.player)
 
         this.checkEndOfGame()
@@ -482,6 +677,30 @@ export default {
         this.displayVisibilitySnapshot = null
       }
     },
+    // Mark every coord in `coords` as dying (damage flash + fade-out via
+    // GameUnit), hold for DEATH_ANIMATION_DELAY, then clear the set. The
+    // caller is responsible for actually removing the units from the
+    // field after this resolves; the helper just drives the visual.
+    // No-op when `coords` is empty so callers don't need to guard.
+    async playDeathAnimation(coords) {
+      if (!coords || coords.length === 0) return
+      const next = new Set(this.dyingCells)
+      for (const [kx, ky] of coords) next.add(`${kx},${ky}`)
+      this.dyingCells = next
+      await sleep(DEATH_ANIMATION_DELAY)
+      if (this.wasUnmounted) return
+      const after = new Set(this.dyingCells)
+      for (const [kx, ky] of coords) after.delete(`${kx},${ky}`)
+      this.dyingCells = after
+    },
+    // Forward a "centre on this cell" request to the grid. Returns a
+    // Promise that resolves to `true` once the smooth-scroll has finished
+    // (via `scrollend`), or `false` immediately when the cell was already
+    // centred (or the grid isn't mounted yet). Factored out so tests can
+    // spy on it without mocking the GameGrid ref directly.
+    centerOnCell(coord) {
+      return this.$refs.gameGridRef?.centerOnCell?.(coord) ?? Promise.resolve(false)
+    },
     // Pick the player whose visibility gates animations. With a single human
     // player (most common case) it's that player; otherwise we fall back to
     // the current player (bot vs bot — invisible anyway when fog is off).
@@ -501,7 +720,7 @@ export default {
       this.selectNextPlayerAndCheckPhases()
       emitter.emit('startTurn')
     },
-    readyBtnClick() {
+    async readyBtnClick() {
       this.state = this.STATES.play
       if (this.humanPhase === this.HUMAN_PHASES.all_eliminated) {
         this.humanPhase = this.HUMAN_PHASES.informed
@@ -517,6 +736,15 @@ export default {
         !this.players[this.currentPlayer].informed_lose
       ) {
         this.players[this.currentPlayer].informed_lose = true
+      }
+      // Multi-human flow: `startTurn` deferred the birth animation because
+      // the ready-label was hiding the field. Now that the player has
+      // dismissed the label, run the per-birth sequence (which also plays
+      // any kill-at-birth death animation).
+      if (this.pendingBirths && this.pendingBirths.length > 0) {
+        const births = this.pendingBirths
+        this.pendingBirths = []
+        await this.runBirthSequence(births)
       }
     },
 

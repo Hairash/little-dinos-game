@@ -203,7 +203,7 @@ def apply_move_txn(game_code: str, user_id: int, payload: dict, client_seq: int)
             )
 
         # Apply move
-        building_captured, cells_changed = apply_move_to_cell(
+        building_captured, cells_changed, killed_coords = apply_move_to_cell(
             field,
             from_coords[0],
             from_coords[1],
@@ -242,6 +242,14 @@ def apply_move_txn(game_code: str, user_id: int, payload: dict, client_seq: int)
         }
         if building_captured:
             patch["buildingCaptured"] = True
+        # Cells whose unit was just killed by this move. Sent as a full
+        # list here; the consumer slices it per recipient against the
+        # `_visibilityByOrder` hint so we never reveal kills in cells the
+        # recipient couldn't see pre-move. The client uses the sliced list
+        # to play the death animation (damage flash + fade-out) before
+        # merging the post-move field that has these units already removed.
+        if killed_coords:
+            patch["killedCells"] = [[kx, ky] for kx, ky in killed_coords]
         # Animation hints. Stored on the patch as the FULL path; the consumer
         # slices it per recipient before sending so we never leak cells the
         # recipient can't see.
@@ -507,11 +515,35 @@ def apply_end_turn_txn(game_code: str, user_id: int, client_seq: int):
         settings = game.settings if game.settings else {}
         width = settings.get("width", 20)
         height = settings.get("height", 20)
+        enable_fog_of_war = settings.get("enableFogOfWar", True)
+        fog_of_war_radius = settings.get("fogOfWarRadius", 3)
+
+        # Snapshot per-player visibility BEFORE production so the consumer
+        # can slice `killedCells` per recipient (we should only animate
+        # kill-at-birth in cells the recipient could see pre-production).
+        # Mirrors the same hint we attach for move-kill animations.
+        pre_visibility_by_order: dict[str, list[list[int]]] = {}
+        if enable_fog_of_war:
+            for gp in GamePlayer.objects.filter(game=game):
+                gp_scout = gp.scout_revealed_coords if gp.scout_revealed_coords else None
+                visible = calculate_visibility(
+                    field,
+                    width,
+                    height,
+                    gp.order,
+                    fog_of_war_radius,
+                    enable_fog_of_war,
+                    gp_scout,
+                )
+                pre_visibility_by_order[str(gp.order)] = [[c[0], c[1]] for c in visible]
 
         # Produce units for the next player (whose turn is starting)
         # This also resets hasMoved for all units and applies building bonuses
+        production_result = None
         if next_player_order is not None:
-            restore_and_produce_units(field, width, height, next_player_order, settings)
+            production_result = restore_and_produce_units(
+                field, width, height, next_player_order, settings
+            )
         else:
             # If no next player, just reset hasMoved for all units
             for x in range(width):
@@ -548,6 +580,18 @@ def apply_end_turn_txn(game_code: str, user_id: int, client_seq: int):
             "field": field,  # Send full field with reset hasMoved flags
             "canUndo": False,  # Undo not available at start of turn
         }
+
+        # Birth animation hints. The new turn's unit production produced
+        # one entry per spawn (with that birth's kill-at-birth victims, if
+        # any). Clients render every spawn cell at opacity 0 from the
+        # first frame, then fade them in one by one — driving the death
+        # animation for that birth's victims during the same window.
+        # Sliced per recipient against the pre-production visibility so we
+        # never leak a spawn in fog.
+        if production_result and production_result.get("births"):
+            patch["births"] = list(production_result["births"])
+            if pre_visibility_by_order:
+                patch["_visibilityByOrder"] = pre_visibility_by_order
 
         end_turn_fields = ["field", "turn_player", "undo_state"]
 

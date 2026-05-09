@@ -34,6 +34,9 @@
       :move-points="unit.movePoints"
       :has-moved="unit.hasMoved"
       :show-move-points="showMovePoints()"
+      :dying="dying"
+      :borning="borning"
+      :pending-birth="pendingBirth"
     />
     <!-- Warning indicator for tower limit reached -->
     <img
@@ -93,6 +96,18 @@ export default {
       default: 3,
     },
     selectedUnitOnStorage: Boolean,
+    // Death animation flag — set by the controller for cells where a unit
+    // is mid-death-animation. Forwarded to GameUnit which renders the
+    // damage overlay + fade-out.
+    dying: Boolean,
+    // Birth animation flag — set by the controller for cells where a unit
+    // just spawned. GameUnit fades the image in from 0 to 1 over the
+    // BIRTH_ANIMATION_DELAY window.
+    borning: Boolean,
+    // Pending-birth flag — the spawn cell is queued but the fade-in
+    // hasn't started yet. GameUnit holds opacity 0 (no animation) until
+    // the controller swaps to `borning`.
+    pendingBirth: Boolean,
   },
   computed: {
     transitionOpacity() {

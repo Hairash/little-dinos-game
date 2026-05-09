@@ -209,8 +209,13 @@ def apply_move_to_cell(field, x0, y0, x1, y1, player_order, settings):
     Also handles building capture and killing neighbors.
     Field is modified in-place.
 
-    Returns: (building_captured, cells_changed)
+    Returns: (building_captured, cells_changed, killed_coords)
     where cells_changed is a list of [(x, y)] coordinates that changed
+    and killed_coords is a list of [(x, y)] for cells where an enemy unit
+    was killed by this move. The caller uses `killed_coords` to drive the
+    client-side death animation (damage flash + fade-out) — those cells
+    won't have a unit in the post-move field, so the animation needs an
+    explicit signal.
     """
     source_cell = field[x0][y0]
     dest_cell = field[x1][y1]
@@ -273,6 +278,7 @@ def apply_move_to_cell(field, x0, y0, x1, y1, player_order, settings):
     if y1 < len(field[x1]) - 1:
         neighbours.append([x1, y1 + 1])
 
+    killed_coords: list[tuple[int, int]] = []
     for nx, ny in neighbours:
         neighbour_cell = field[nx][ny]
         neighbour_unit = neighbour_cell.get("unit")
@@ -280,5 +286,6 @@ def apply_move_to_cell(field, x0, y0, x1, y1, player_order, settings):
             # Kill enemy unit
             neighbour_cell["unit"] = None
             cells_changed.append((nx, ny))
+            killed_coords.append((nx, ny))
 
-    return building_captured, cells_changed
+    return building_captured, cells_changed, killed_coords

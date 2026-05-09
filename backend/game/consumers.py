@@ -487,20 +487,20 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         if has_field:
             filtered_patch["field"] = field
 
+        # Pre-move visibility hint emitted by `apply_move_txn`. Used by
+        # both the path and the killed-cells slicers — we MUST use this in
+        # preference to recomputing visibility against the post-move field
+        # (a move that kills the recipient's unit would otherwise produce
+        # an empty slice and the recipient would see no animation).
+        pre_visibility_by_order = patch.get("_visibilityByOrder") or {}
+        is_move_maker = user_id is not None and user_id == g.turn_player_id
+
         # Slice the move path against the recipient's visibility. The full
         # `path` is never sent to clients — only the per-recipient `pathSlice`.
         # The move-maker is allowed to see their entire walk; opponents only
         # see cells they can currently observe.
         if has_path:
             full_path = patch.get("path") or []
-            is_move_maker = user_id is not None and user_id == g.turn_player_id
-            # Pre-move visibility hint emitted by `apply_move_txn`. We MUST use
-            # this in preference to recomputing visibility against the post-move
-            # field — see the comment in `apply_move_txn` for the rationale (a
-            # move that kills the recipient's unit would otherwise produce an
-            # empty slice and the recipient would see no animation).
-            pre_visibility_by_order = patch.get("_visibilityByOrder") or {}
-
             if is_move_maker or not effective_fog_of_war or game_ended:
                 path_slice = list(full_path)
             elif player_order is not None and str(player_order) in pre_visibility_by_order:
@@ -525,16 +525,66 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             else:
                 path_slice = []
 
-            # Always strip the unfiltered path and the internal visibility hint
-            # before sending to clients.
+            # Always strip the unfiltered path before sending to clients.
             filtered_patch.pop("path", None)
-            filtered_patch.pop("_visibilityByOrder", None)
             if len(path_slice) >= 2 and patch.get("movingUnit"):
                 filtered_patch["pathSlice"] = path_slice
                 # movingUnit is already on filtered_patch via copy; keep it.
             else:
                 # Nothing to animate — drop the moving-unit overlay too.
                 filtered_patch.pop("movingUnit", None)
+
+        # Slice `killedCells` against the same pre-move visibility hint —
+        # we should only animate kills the recipient could see pre-move.
+        # Otherwise the patch could leak the existence of an enemy unit in
+        # a fogged cell (the death animation would render in fog).
+        if "killedCells" in patch:
+            full_killed = patch.get("killedCells") or []
+            if is_move_maker or not effective_fog_of_war or game_ended:
+                killed_slice = list(full_killed)
+            elif player_order is not None and str(player_order) in pre_visibility_by_order:
+                visible_set = {tuple(c) for c in pre_visibility_by_order[str(player_order)]}
+                killed_slice = [c for c in full_killed if tuple(c) in visible_set]
+            else:
+                killed_slice = []
+            if killed_slice:
+                filtered_patch["killedCells"] = killed_slice
+            else:
+                filtered_patch.pop("killedCells", None)
+
+        # Slice `births` per recipient. Each entry is `{coords, killedCoords}`
+        # — we keep entries whose spawn cell is in the recipient's pre-
+        # production visibility, and within those we trim each entry's
+        # `killedCoords` to the same set (no point flashing damage on a
+        # neighbour the recipient couldn't see).
+        if "births" in patch:
+            full_births = patch.get("births") or []
+            if not effective_fog_of_war or game_ended:
+                births_slice = [dict(b) for b in full_births]
+            elif player_order is not None and str(player_order) in pre_visibility_by_order:
+                visible_set = {tuple(c) for c in pre_visibility_by_order[str(player_order)]}
+                births_slice = []
+                for entry in full_births:
+                    coords = entry.get("coords")
+                    if not coords or tuple(coords) not in visible_set:
+                        continue
+                    kc = entry.get("killedCoords") or []
+                    births_slice.append(
+                        {
+                            "coords": list(coords),
+                            "killedCoords": [list(c) for c in kc if tuple(c) in visible_set],
+                        }
+                    )
+            else:
+                births_slice = []
+            if births_slice:
+                filtered_patch["births"] = births_slice
+            else:
+                filtered_patch.pop("births", None)
+
+        # The visibility hint is internal — strip after we've used it for
+        # path, killed-cells and births slicing.
+        filtered_patch.pop("_visibilityByOrder", None)
 
         return filtered_patch
 
