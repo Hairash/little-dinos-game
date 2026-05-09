@@ -10,6 +10,7 @@ from .services.game_logic import (
     apply_move_txn,
     apply_scout_txn,
     apply_undo_txn,
+    get_active_players,
 )
 from .services.visibility import calculate_visibility, filter_field_for_player
 
@@ -354,8 +355,22 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         field = g.field
         scout_revealed_coords = None
         game_ended = g.status == "ended"
-        # If game ended, disable fog of war to show full field
-        effective_fog_of_war = enable_fog_of_war and not game_ended
+
+        # Eliminated reconnects come back as spectators: full map reveal
+        # and the `youLose` flag so the client suppresses input. The
+        # check is cheap (single field walk) and only runs at join time.
+        is_spectator = False
+        if player_order is not None and field and not game_ended:
+            try:
+                active_orders = get_active_players(field, width, height)
+                is_spectator = player_order not in active_orders
+            except Exception as e:
+                logger.warning(f"Spectator check failed: {e}", exc_info=True)
+                is_spectator = False
+
+        # If game ended OR this player is a spectator, disable fog so
+        # they see the full field.
+        effective_fog_of_war = enable_fog_of_war and not game_ended and not is_spectator
 
         if player_order is not None and field:
             # print(f"[DEBUG] Filtering field for player_order={player_order}, enable_fog_of_war={enable_fog_of_war}, game_ended={game_ended}")
@@ -420,6 +435,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 for gp in g.players.select_related("player").order_by("order")
             ],
             "lastClientSeq": last_client_seq,  # Last clientSeq for this player (for reconnection)
+            # Spectator-on-reconnect: tells the client to suppress input
+            # and keep the full map revealed. `False` for living players.
+            "youLose": is_spectator,
         }
 
     @database_sync_to_async
@@ -480,12 +498,37 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         # Filter field based on player's visibility
         # Always filter the field to ensure isHidden is set correctly (even when fog of war is disabled)
         # If game has ended, show full field to all players
-        field = patch["field"]
+        field = patch["field"] if has_field else None
         scout_revealed_coords = None
         # Check both game status and patch flag to ensure we show full field when game ends
         game_ended = g.status == "ended" or patch.get("gameEnded", False)
-        # If game ended, disable fog of war to show full field
-        effective_fog_of_war = enable_fog_of_war and not game_ended
+
+        # Was this recipient already a spectator coming into the move? We
+        # need this to decide between two paths:
+        #  - "newly eliminated" (active before, eliminated by this patch):
+        #    inject `youLose` so the client can flip into spectator mode.
+        #  - "already eliminated" (skipped a previous turn): just keep
+        #    feeding them the full map without re-firing `youLose`.
+        newly_eliminated_orders = set(patch.get("newlyEliminated") or [])
+        is_newly_eliminated = player_order is not None and player_order in newly_eliminated_orders
+        is_already_spectator = False
+        if player_order is not None and not game_ended and not is_newly_eliminated:
+            try:
+                pre_active = get_active_players(g.field or [], width, height) if g.field else set()
+                # The patch's `field` is the post-move state we're about
+                # to ship. `g.field` was just saved in the same txn, so
+                # it's already post-move. If the recipient is missing from
+                # the post-move active set AND not in newlyEliminated for
+                # this patch, they were already eliminated previously.
+                is_already_spectator = player_order not in pre_active
+            except Exception as e:
+                logger.warning(f"Spectator pre-check failed: {e}", exc_info=True)
+
+        is_spectator = is_newly_eliminated or is_already_spectator
+
+        # If game ended OR this recipient is a (now or previously)
+        # spectator, disable fog so they see the full field.
+        effective_fog_of_war = enable_fog_of_war and not game_ended and not is_spectator
 
         if player_order is not None:
             # Get scout-revealed coordinates for this player (only relevant when fog of war is enabled)
@@ -502,8 +545,17 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 except GamePlayer.DoesNotExist:
                     pass
             if has_field:
+                # Spectators get the full post-move field (move patches
+                # normally ship a sparse diff, which would leave their
+                # local state stale for cells they were never in fog of).
+                # We pass the full field through `filter_field_for_player`
+                # with fog disabled so every cell comes out with
+                # `isHidden=False` — the raw `g.field` carries
+                # `isHidden=True` baseline, and skipping the filter would
+                # re-hide the spectator's map on every patch.
+                source_field = g.field if is_spectator else field
                 field = filter_field_for_player(
-                    field,
+                    source_field,
                     width,
                     height,
                     player_order,
@@ -516,6 +568,11 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         filtered_patch = patch.copy()
         if has_field:
             filtered_patch["field"] = field
+        # `newlyEliminated` is internal — translate to a per-recipient
+        # `youLose` flag and strip the broadcast list before sending.
+        filtered_patch.pop("newlyEliminated", None)
+        if is_newly_eliminated:
+            filtered_patch["youLose"] = True
 
         # Pre-move visibility hint emitted by `apply_move_txn`. Used by
         # both the path and the killed-cells slicers — we MUST use this in

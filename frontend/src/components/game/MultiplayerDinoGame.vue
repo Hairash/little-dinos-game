@@ -3,6 +3,7 @@
     v-if="state === STATES.ready && showReadyLabel"
     :winner="winner"
     :winner-username="winnerUsername"
+    :you-lose="iAmSpectator && winner === null"
     @close="handleReadyLabelClose"
   />
   <GameGrid
@@ -169,6 +170,12 @@ export default {
       // Game end state
       winner: null, // Player order (0, 1, 2, ...) of the winner, or null if game not ended
       winnerUsername: null, // Username of the winner, or null if game not ended
+      // Spectator state. Set when the server tells us we've been
+      // eliminated (`youLose: true` on a patch or on the joined gameState
+      // for reconnects). Once set, all client-side input is suppressed,
+      // the field is fully revealed, and visibility recalc on turn change
+      // is skipped so the eliminated player keeps seeing the whole map.
+      iAmSpectator: false,
       showReadyLabel: false, // Whether to show the ready label (can be closed while keeping game visible)
       menuOpen: false,
       playersData: [], // Store original player data with usernames from server
@@ -195,6 +202,10 @@ export default {
   },
   computed: {
     isMyTurn() {
+      // Spectators (eliminated players) never have a turn. The server
+      // already skips them when rotating, but this guard makes the
+      // input-suppression rules robust to any stray patch state.
+      if (this.iAmSpectator) return false
       return this.myPlayerOrder !== null && this.currentPlayer === this.myPlayerOrder
     },
     minSpeed() {
@@ -328,6 +339,14 @@ export default {
       // Per-type building counts for the whole (unfiltered) map.
       if (gameState.buildingTotals && typeof gameState.buildingTotals === 'object') {
         this.buildingTotals = { ...gameState.buildingTotals }
+      }
+
+      // Reconnect-as-spectator: the server marks the joining player as
+      // eliminated. Show the "You lose" overlay (so they know what's
+      // happening) and reveal the whole map locally. The server has
+      // already disabled fog-of-war filtering for them.
+      if (gameState.youLose) {
+        this.becomeSpectator({ showLabel: true })
       }
 
       // Initialize players from server
@@ -780,6 +799,12 @@ export default {
         }
         // Clear selected unit and highlighted cells
         emitter.emit('initTurn')
+      } else if (patch.youLose && !this.iAmSpectator) {
+        // The server has marked us as eliminated mid-game. Switch to
+        // spectator mode: full-map reveal, input suppressed, and a "You
+        // lose" overlay we can dismiss to keep watching.
+        log.info('Eliminated by this patch — entering spectator mode')
+        this.becomeSpectator({ showLabel: true })
       }
       // Birth fade-in sequence. Pendng cells were marked pre-merge so the
       // user already sees empty bases. Drain them one at a time, swapping
@@ -1128,6 +1153,9 @@ export default {
       if (!this.enableFogOfWar || !this.localField || this.localField.length === 0) {
         return
       }
+      // Spectators see the whole map. Don't re-hide cells based on their
+      // (now non-existent) units' visibility.
+      if (this.iAmSpectator) return
 
       // First, hide all cells
       for (let x = 0; x < this.width; x++) {
@@ -1257,6 +1285,28 @@ export default {
     handleReadyLabelClose() {
       // Close the ready label but keep the game field visible
       this.showReadyLabel = false
+    },
+    becomeSpectator({ showLabel }) {
+      // Latch spectator state, reveal the full map locally (server
+      // already disabled fog filtering for us), drop any pending
+      // selection / animation hints, and optionally surface the "You
+      // lose" overlay. The game keeps progressing for the other players.
+      this.iAmSpectator = true
+      this.canUndo = false
+      if (this.localField && this.localField.length > 0) {
+        for (let x = 0; x < this.width; x++) {
+          for (let y = 0; y < this.height; y++) {
+            if (this.localField[x] && this.localField[x][y]) {
+              this.localField[x][y].isHidden = false
+            }
+          }
+        }
+      }
+      emitter.emit('initTurn')
+      if (showLabel) {
+        this.state = this.STATES.ready
+        this.showReadyLabel = true
+      }
     },
     getPlayerColor,
   },
