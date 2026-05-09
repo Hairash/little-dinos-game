@@ -4,6 +4,27 @@
 import Models from '@/game/models'
 import { createNewUnit } from '@/game/helpers'
 
+// Inclusive [min, max] count of buildings of a given building-rate setting,
+// calibrated for a 20x20 (400-cell) field. Other field sizes scale linearly
+// by area. Keep in sync with backend/game/services/field.py.
+const BUILDINGS_NUM_RANGES = {
+  1: [1, 3], // Ones
+  2: [4, 6], // Few
+  3: [7, 10], // Average
+  4: [11, 16], // A lot
+  5: [17, 40], // Very much
+}
+const BUILDINGS_NUM_REFERENCE_AREA = 400
+
+function pickBuildingsNum(rate, area) {
+  const range = BUILDINGS_NUM_RANGES[rate]
+  if (!range) return 0
+  const scale = area / BUILDINGS_NUM_REFERENCE_AREA
+  const min = Math.max(1, Math.round(range[0] * scale))
+  const max = Math.max(min, Math.round(range[1] * scale))
+  return min + Math.floor(Math.random() * (max - min + 1))
+}
+
 class CreateFieldEngine {
   static MOUNTAIN_RATIO = 0.75 // Ratio of cells that will be empty (others - mountains)
 
@@ -97,16 +118,11 @@ class CreateFieldEngine {
 
     // Set buildings (placed BEFORE makeFieldLinked so all buildings are included in reachability check)
     let minDistance = 5
+    const area = this.width * this.height
     for (let buildingType in this.buildingRates) {
-      if (this.buildingRates[buildingType] === 0) continue
-      const average = 2 ** this.buildingRates[buildingType]
-      const min = Math.floor(average / 2)
-      const max = Math.ceil(average * 1.5)
-      // Take a random number of buildings for this type
-      const buildingsNum = Math.max(
-        1,
-        Math.floor((Math.random() * (max - min + 1) + min) * this.width * this.height * 0.0025)
-      )
+      const rate = this.buildingRates[buildingType]
+      if (rate === 0) continue
+      const buildingsNum = pickBuildingsNum(rate, area)
       console.log(`${buildingType}: ${buildingsNum}`)
       for (let buildingCtr = 0; buildingCtr < buildingsNum; buildingCtr++) {
         if (minDistance < 0) break
