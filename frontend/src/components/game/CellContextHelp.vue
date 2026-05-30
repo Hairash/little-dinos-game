@@ -14,6 +14,7 @@
 <script>
 import Models from '@/game/models'
 import { getPlayerColor } from '@/game/helpers'
+import { getBuildingHintContent } from '@/game/buildingHints'
 
 export default {
   name: 'CellContextHelp',
@@ -140,11 +141,9 @@ export default {
       }
     },
     cannotBeCaptured() {
-      // Check if tower cannot be captured (same logic as in GameCell)
-      if (!this.hasSelectedUnit) {
-        return false
-      }
-
+      // "Limit reached" warning on empty or enemy towers. Independent of
+      // whether a unit is currently selected — the player should know the
+      // limit is full even when just inspecting the map.
       if (
         !this.cell ||
         !this.cell.building ||
@@ -153,7 +152,8 @@ export default {
         return false
       }
 
-      // Check if tower is empty or enemy-owned
+      // Own towers never show the warning (you can't capture what you
+      // already own).
       const isTowerEmpty = this.cell.building.player === null
       const isTowerEnemy =
         this.cell.building.player !== null && this.cell.building.player !== this.currentPlayer
@@ -181,7 +181,6 @@ export default {
     },
   },
   methods: {
-    // Returns structured content object instead of HTML for XSS safety
     buildingContent(_type) {
       const building = this.cell.building
       const playerColor =
@@ -189,54 +188,13 @@ export default {
           ? getPlayerColor(building.player)
           : null
 
-      const towerTitleStyle = playerColor ? { color: playerColor } : null
-
-      switch (_type) {
-        case 'base':
-          return {
-            title: 'Tower',
-            titleStyle: towerTitleStyle,
-            description: 'Produce 1 unit every turn',
-            warning: this.cannotBeCaptured,
-          }
-        case 'habitation':
-          return {
-            title: 'Habitation',
-            titleStyle: null,
-            description: `Units limit +${this.unitModifier}`,
-            warning: false,
-          }
-        case 'temple':
-          return {
-            title: 'Temple',
-            titleStyle: null,
-            description: 'Speed for generated units +1',
-            warning: false,
-          }
-        case 'well':
-          return {
-            title: 'Well',
-            titleStyle: null,
-            description: 'Speed for current unit +1',
-            warning: false,
-          }
-        case 'storage':
-          return {
-            title: 'Storage',
-            titleStyle: null,
-            description: `Towers limit +${this.baseModifier}`,
-            warning: false,
-          }
-        case 'obelisk':
-          return {
-            title: 'Obelisk',
-            titleStyle: null,
-            description: `Show any part of the map ${this.fogOfWarRadius}x${this.fogOfWarRadius}`,
-            warning: false,
-          }
-        default:
-          return null
-      }
+      return getBuildingHintContent(_type, {
+        unitModifier: this.unitModifier,
+        baseModifier: this.baseModifier,
+        fogOfWarRadius: this.fogOfWarRadius,
+        playerColor,
+        warning: this.cannotBeCaptured,
+      })
     },
   },
 }

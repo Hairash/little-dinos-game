@@ -18,10 +18,11 @@
     :hide-enemy-speed="hideEnemySpeed"
     :field="localField"
     :current-player="currentPlayer"
+    :viewing-player="viewingPlayer"
     :cell-size="cellSize"
     :unit-modifier="unitModifier"
     :base-modifier="baseModifier"
-    :current-stats="getCurrentStats()"
+    :current-stats="getCurrentStats(viewingPlayer)"
     :menu-open="menuOpen"
     :display-visibility-coords="displayVisibilityCoords"
     :dying-cells="dyingCells"
@@ -31,19 +32,24 @@
   <InfoPanel
     v-if="state === STATES.play"
     :current-player="currentPlayer"
+    :viewing-player="viewingPlayer"
+    :is-my-turn="isHumanTurn"
     :players="players"
-    :current-stats="getCurrentStats()"
+    :current-stats="getCurrentStats(viewingPlayer)"
     :handle-end-turn-btn-click="processEndTurn"
     :handle-unit-click="findNextUnit"
     :cell-size="cellSize"
     :handle-change-cell-size="changeCellSize"
     :handle-exit-btn-click="() => (this.state = this.STATES.exitDialog)"
-    :are-all-units-on-buildings="this.fieldEngine.areAllUnitsOnBuildings(this.currentPlayer)"
+    :are-all-units-on-buildings="this.fieldEngine.areAllUnitsOnBuildings(this.viewingPlayer)"
     :field="localField"
     :field-engine="fieldEngine"
     :enable-fog-of-war="enableFogOfWar"
     :min-speed="minSpeed"
     :max-speed="maxSpeed"
+    :unit-modifier="unitModifier"
+    :base-modifier="baseModifier"
+    :fog-of-war-radius="fogOfWarRadius"
     :can-undo="canUndo"
     :handle-undo-click="undoLastMove"
     @menu-open="handleMenuOpen"
@@ -228,9 +234,35 @@ export default {
       pendingBirths: [],
       // Set in beforeUnmount; the animator checks it to abort cleanly.
       wasUnmounted: false,
+      // Latched index of the most recently active human player. Used to
+      // hold the bottom panel on the user's own color/stats while bot
+      // turns play out — without this the panel would flicker through
+      // each bot's stats between human turns. Initialised to the first
+      // human once players are created.
+      lastHumanPlayer: null,
     }
   },
   computed: {
+    // Whose color / stats the bottom info panel reflects. During a
+    // human's turn this is just `currentPlayer`. During bot turns it
+    // stays on the most recently active human (so the player keeps
+    // seeing their own side while bots move). Falls back to the first
+    // human or `currentPlayer` before any human has played.
+    viewingPlayer() {
+      if (!this.players || this.players.length === 0) return this.currentPlayer
+      const cur = this.players[this.currentPlayer]
+      if (cur && cur._type === Models.PlayerTypes.HUMAN) return this.currentPlayer
+      if (this.lastHumanPlayer !== null) return this.lastHumanPlayer
+      const firstHuman = this.findHumanPlayerOrder()
+      return firstHuman !== null ? firstHuman : this.currentPlayer
+    },
+    // Drives the "Next unit" button. Enabled only on human turns —
+    // there's no UI to click during bot moves anyway, but explicitly
+    // gating keeps the cursor and disabled state consistent.
+    isHumanTurn() {
+      if (!this.players || !this.players[this.currentPlayer]) return false
+      return this.players[this.currentPlayer]._type === Models.PlayerTypes.HUMAN
+    },
     // Display-only visibility override. During a bot's turn, `cell.isHidden`
     // reflects the BOT's view (so AI/pathfinding sees the right thing), but
     // the human player should keep seeing only their own visibility — otherwise
@@ -253,6 +285,12 @@ export default {
       for (const [x, y] of this.fieldEngine.getCurrentVisibilitySet(human)) {
         set.add(`${x},${y}`)
       }
+      // Scout-revealed coords stay visible until end of turn — fold them
+      // into the override so bot turns don't re-hide an area the human
+      // just scouted with an obelisk.
+      for (const key of this.tempVisibilityCoords) {
+        set.add(key)
+      }
       return set
     },
     canUndo() {
@@ -266,6 +304,19 @@ export default {
       if (this.scoutUndoState) return this.scoutUndoState.canUndo
       if (this.moveUndoState) return this.moveUndoState.canUndo
       return false
+    },
+  },
+  watch: {
+    // Latch the last human seen so the panel can hold their identity
+    // while bot turns play out.
+    currentPlayer: {
+      immediate: true,
+      handler(newVal) {
+        if (!this.players || !this.players[newVal]) return
+        if (this.players[newVal]._type === Models.PlayerTypes.HUMAN) {
+          this.lastHumanPlayer = newVal
+        }
+      },
     },
   },
   created() {
@@ -379,7 +430,10 @@ export default {
       this.state = this.STATES.exitDialog
     },
     async startTurn() {
-      // Show turn notification for all players (human and bot)
+      // Show turn notification for all players (human and bot). The
+      // toast is now persistent — it stays on screen until the next
+      // startTurn replaces it, so the user keeps a steady "who's playing
+      // now" cue through long bot rotations.
       this.showTurnNotification(this.currentPlayer)
 
       // Defer the kill-at-birth pass so we can play the death animation
@@ -578,6 +632,15 @@ export default {
               )
             )
           : null
+      // Fold in scout-revealed coords so areas the human revealed with an
+      // obelisk this turn stay visible through the move animation (and
+      // any subsequent bot move) — otherwise the snapshot overrides
+      // cell.isHidden=false on those cells and they blink to fog.
+      if (humanVisibility !== null) {
+        for (const key of this.tempVisibilityCoords) {
+          humanVisibility.add(key)
+        }
+      }
       this.displayVisibilitySnapshot = humanVisibility
 
       // Walk the unit along the BFS path. fieldEngine.moveUnit is bypassed
@@ -623,7 +686,12 @@ export default {
         // player. Only surface the prompt to a human player; otherwise a bot
         // landing on an obelisk would flash "Select area for scouting" UI to
         // the human.
-        if (this.players[unit.player]?._type === Models.PlayerTypes.HUMAN) {
+        // Triggered actions only matter with fog of war on — scouting an
+        // obelisk reveals fog, and with no fog there's nothing to reveal.
+        if (
+          this.enableFogOfWar &&
+          this.players[unit.player]?._type === Models.PlayerTypes.HUMAN
+        ) {
           const action = this.fieldEngine.getActionTriggered(x1, y1)
           if (action) {
             emitter.emit('setAction', action)
@@ -713,6 +781,9 @@ export default {
     processEndTurn() {
       if (this.isAnimating) return
       if (this.state === this.STATES.ready) return
+      // Clear unit selection and move highlights before transitioning —
+      // otherwise they bleed into the ready-label / next turn.
+      emitter.emit('initTurn')
       this.state = this.STATES.ready
       emitter.emit('saveCoords', this.players[this.currentPlayer])
       this.moveUndoState = null
@@ -1046,6 +1117,18 @@ export default {
     // Bot move high level logic
     async makeBotMove() {
       this.state = this.STATES.play
+      // Yield to the browser before the AI's heavy move-selection work
+      // begins. Everything from "End turn click" up to this point runs
+      // synchronously (showTurnNotification, restoreAndProduceUnits,
+      // setVisibilityStartTurn, this state assignment), so without this
+      // yield the user wouldn't see the new "Player N turn" toast or
+      // the disabled buttons until botEngine.makeBotUnitMove finally
+      // hits an internal await — which on a busy turn can be ~1s. The
+      // setTimeout(0) gives Vue's render cycle a paint window. Tests
+      // never reach this method (humanPlayersNum=1, botPlayersNum=0),
+      // so fake timers aren't affected.
+      await sleep(0)
+      if (this.wasUnmounted) return
       console.log(`Bot player ${this.currentPlayer + 1} turn`)
       this.unitCoordsArr = this.getCurrentUnitCoords()
       // TODO: Choose order of moves (calculate, which move is more profitable) - ideal algorithm
@@ -1096,18 +1179,35 @@ export default {
     exitGame() {
       window.location.reload()
     },
-    showNotification(message, type = 'info', playerOrder = null) {
+    showNotification(message, type = 'info', playerOrder = null, autoDismiss = type !== 'turn') {
+      // Turn notifications collapse: a new one replaces any stale turn
+      // notification still on screen so fast bot rotations don't stack up
+      // "Player 1 turn" / "Player 2 turn" / ... Other types (info etc.)
+      // coexist as before.
+      if (type === 'turn') {
+        this.notifications = this.notifications.filter(n => n.type !== 'turn')
+      }
       const id = Date.now() + Math.random()
       this.notifications.push({ id, message, type, playerOrder })
 
-      // Auto-dismiss after 5 seconds
-      setTimeout(() => {
-        this.dismissNotification(id)
-      }, 5000)
+      // `autoDismiss` defaults to true for everything except turn
+      // notifications — those persist until replaced by the next turn so
+      // the player always sees who's playing. Caller can override; we
+      // use that to make the local user's own "Your turn!" still
+      // disappear after 5s (otherwise it lingers during their thinking).
+      if (autoDismiss) {
+        setTimeout(() => {
+          this.dismissNotification(id)
+        }, 5000)
+      }
     },
     showTurnNotification(playerOrder) {
-      const message = `Player ${playerOrder + 1} turn`
-      this.showNotification(message, 'turn', playerOrder)
+      const isHuman = this.players[playerOrder]?._type === Models.PlayerTypes.HUMAN
+      const message = isHuman ? 'Your turn!' : `Player ${playerOrder + 1} turn`
+      // Auto-dismiss the human's own "Your turn!" after 5s so it doesn't
+      // sit on screen the whole time they're deciding. Bot/opponent
+      // toasts stay until the next turn replaces them.
+      this.showNotification(message, 'turn', playerOrder, isHuman)
     },
     dismissNotification(id) {
       const index = this.notifications.findIndex(n => n.id === id)

@@ -48,10 +48,13 @@ export const gameCoreMixin = {
     },
 
     /**
-     * Calculate current player stats including units and towers
+     * Calculate stats (units / towers) for a given player.
+     * @param {number} [playerNum] - Player order. Defaults to `currentPlayer`
+     *   (the active turn-taker). Multiplayer passes the *viewing* player
+     *   (usually the local user) so the bottom panel always reflects them.
      * @returns {Object} Stats object with units and towers info
      */
-    getCurrentStats() {
+    getCurrentStats(playerNum = this.currentPlayer) {
       const settings = this._getSettings()
       const field = this._getField()
 
@@ -88,14 +91,14 @@ export const gameCoreMixin = {
           const unit = field[x][y].unit
           const building = field[x][y].building
 
-          if (unit && unit.player === this.currentPlayer) {
+          if (unit && unit.player === playerNum) {
             stats.units.total++
             if (!unit.hasMoved) {
               // Check if unit is on a building that should be excluded from priority
               const isOnExcludedBuilding =
                 building &&
                 ((building._type === Models.BuildingTypes.BASE &&
-                  building.player === this.currentPlayer) ||
+                  building.player === playerNum) ||
                   (building._type === Models.BuildingTypes.BASE && building.player === null) ||
                   building._type === Models.BuildingTypes.OBELISK)
 
@@ -128,7 +131,7 @@ export const gameCoreMixin = {
           if (
             building &&
             building._type === Models.BuildingTypes.BASE &&
-            building.player === this.currentPlayer
+            building.player === playerNum
           ) {
             stats.towers.total++
             if (!unit) stats.towers.empty++

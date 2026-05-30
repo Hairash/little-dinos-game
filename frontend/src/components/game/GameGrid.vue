@@ -86,7 +86,7 @@
           :fog-of-war-radius="fogOfWarRadius"
           :has-selected-unit="selectedCoords !== null"
           :current-stats="currentStats"
-          :current-player="currentPlayer"
+          :current-player="viewingPlayer ?? currentPlayer"
           :selected-unit-on-storage="selectedUnitOnStorage"
         />
       </div>
@@ -129,6 +129,15 @@ export default {
     hideEnemySpeed: Boolean,
     field: Array[Array[Models.Cell]],
     currentPlayer: Number,
+    // The player whose perspective the right-click tooltips speak from
+    // (own / enemy / empty tower, "Limit reached" applicability). In
+    // multiplayer this is the local user — they keep watching from
+    // their own side during opponents' turns. Single-player leaves it
+    // null and falls back to `currentPlayer`.
+    viewingPlayer: {
+      type: Number,
+      default: null,
+    },
     myPlayerOrder: {
       type: Number,
       default: null, // null for single-player mode
