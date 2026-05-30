@@ -614,11 +614,17 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
             # Always strip the unfiltered path before sending to clients.
             filtered_patch.pop("path", None)
-            if len(path_slice) >= 2 and patch.get("movingUnit"):
+            if len(path_slice) >= 1 and patch.get("movingUnit"):
+                # A 1-cell slice means the enemy unit became visible only
+                # on its final step — there's no walk to animate but the
+                # client still wants the cell so it can scroll the camera
+                # there before the field merge brings the new unit into
+                # view. The client's animator skips animation for len < 2
+                # and just uses the cell for centering.
                 filtered_patch["pathSlice"] = path_slice
                 # movingUnit is already on filtered_patch via copy; keep it.
             else:
-                # Nothing to animate — drop the moving-unit overlay too.
+                # Nothing to show — drop the moving-unit overlay too.
                 filtered_patch.pop("movingUnit", None)
 
         # Slice `killedCells` against the same pre-move visibility hint —

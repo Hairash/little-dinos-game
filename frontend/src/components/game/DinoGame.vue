@@ -1179,7 +1179,7 @@ export default {
     exitGame() {
       window.location.reload()
     },
-    showNotification(message, type = 'info', playerOrder = null, autoDismiss = type !== 'turn') {
+    showNotification(message, type = 'info', playerOrder = null) {
       // Turn notifications collapse: a new one replaces any stale turn
       // notification still on screen so fast bot rotations don't stack up
       // "Player 1 turn" / "Player 2 turn" / ... Other types (info etc.)
@@ -1190,24 +1190,15 @@ export default {
       const id = Date.now() + Math.random()
       this.notifications.push({ id, message, type, playerOrder })
 
-      // `autoDismiss` defaults to true for everything except turn
-      // notifications — those persist until replaced by the next turn so
-      // the player always sees who's playing. Caller can override; we
-      // use that to make the local user's own "Your turn!" still
-      // disappear after 5s (otherwise it lingers during their thinking).
-      if (autoDismiss) {
-        setTimeout(() => {
-          this.dismissNotification(id)
-        }, 5000)
-      }
+      // Auto-dismiss after 5 seconds for all notification types.
+      setTimeout(() => {
+        this.dismissNotification(id)
+      }, 5000)
     },
     showTurnNotification(playerOrder) {
       const isHuman = this.players[playerOrder]?._type === Models.PlayerTypes.HUMAN
       const message = isHuman ? 'Your turn!' : `Player ${playerOrder + 1} turn`
-      // Auto-dismiss the human's own "Your turn!" after 5s so it doesn't
-      // sit on screen the whole time they're deciding. Bot/opponent
-      // toasts stay until the next turn replaces them.
-      this.showNotification(message, 'turn', playerOrder, isHuman)
+      this.showNotification(message, 'turn', playerOrder)
     },
     dismissNotification(id) {
       const index = this.notifications.findIndex(n => n.id === id)
