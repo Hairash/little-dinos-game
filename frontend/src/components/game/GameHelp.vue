@@ -100,6 +100,56 @@
           </div>
           To apply effect of first four buildings, your dino should stay on them at the beginning of
           the turn. Effect of obelisk applies when dino ends move on it.<br />
+          <div class="context-help-example">
+            Right-click on a dino to see it's visibility radius - handy
+            for planning moves with fog of war enabled.
+          </div>
+          <div class="context-help-example">
+            Right-click on a cell during scouting action (staying on an obelisk) to see the area it will reveal.
+          </div>
+          <br />
+          <br />
+          Bottom panel buttons.<br />
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/settings_icon.png`" alt="Menu" />
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Menu:</span> open the in-game menu with statistics
+              and exit / zoom controls.
+            </span>
+          </div>
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/undo.png`" alt="Undo" />
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Undo:</span> revert your last move this turn, as
+              long as it didn't reveal new cells.
+            </span>
+          </div>
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/dino1.png`" alt="Next unit" />
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Next unit:</span> select your next dino that hasn't
+              moved yet. Free dinos come first, then dinos sitting on buildings.
+            </span>
+          </div>
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/arrow.png`" alt="End turn" />
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">End turn:</span> finish your turn and pass play to
+              the next player.
+            </span>
+          </div>
+          <div class="context-help-example">
+            Right-click on any icon in the game to see a tooltip with information about it.
+          </div>
+          <br />
           <br />
           Before you dive in, note that there are a few game settings available. Kindly recommend
           you to start with the "fog of war" option disabled and towers only to understand what's

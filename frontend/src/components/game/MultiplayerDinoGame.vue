@@ -16,12 +16,13 @@
     :hide-enemy-speed="hideEnemySpeed"
     :field="localField"
     :current-player="currentPlayer"
+    :viewing-player="viewingPlayer"
     :my-player-order="myPlayerOrder"
     :cell-size="cellSize"
     :is-my-turn="isMyTurn"
     :unit-modifier="unitModifier"
     :base-modifier="baseModifier"
-    :current-stats="getCurrentStats()"
+    :current-stats="getCurrentStats(viewingPlayer)"
     :menu-open="menuOpen"
     :dying-cells="dyingCells"
     :borning-cells="borningCells"
@@ -30,14 +31,18 @@
   <InfoPanel
     v-if="state === STATES.play || (state === STATES.ready && !showReadyLabel)"
     :current-player="currentPlayer"
+    :viewing-player="viewingPlayer"
+    :is-my-turn="isMyTurn"
     :players="players"
-    :current-stats="getCurrentStats()"
+    :current-stats="getCurrentStats(viewingPlayer)"
     :handle-end-turn-btn-click="processEndTurn"
     :handle-unit-click="findNextUnit"
     :cell-size="cellSize"
     :handle-change-cell-size="changeCellSize"
     :handle-exit-btn-click="() => (this.state = this.STATES.exitDialog)"
-    :are-all-units-on-buildings="false"
+    :are-all-units-on-buildings="
+      fieldEngine ? fieldEngine.areAllUnitsOnBuildings(viewingPlayer) : false
+    "
     :show-end-turn-tip="showEndTurnTip && isMyTurn"
     :field="localField"
     :field-engine="fieldEngine"
@@ -45,6 +50,9 @@
     :min-speed="minSpeed"
     :max-speed="maxSpeed"
     :building-totals-override="buildingTotals"
+    :unit-modifier="unitModifier"
+    :base-modifier="baseModifier"
+    :fog-of-war-radius="fogOfWarRadius"
     :can-undo="canUndo && isMyTurn && winner === null"
     :handle-undo-click="undoLastMove"
     @menu-open="handleMenuOpen"
@@ -207,6 +215,15 @@ export default {
       // input-suppression rules robust to any stray patch state.
       if (this.iAmSpectator) return false
       return this.myPlayerOrder !== null && this.currentPlayer === this.myPlayerOrder
+    },
+    // The player whose color/units/towers the bottom panel reflects.
+    // Regular players always see themselves so the panel stays "theirs"
+    // when it's an opponent's turn. Spectators no longer have any units
+    // of their own, so they follow the active turn-taker instead — gives
+    // them something useful to watch.
+    viewingPlayer() {
+      if (this.iAmSpectator) return this.currentPlayer
+      return this.myPlayerOrder !== null ? this.myPlayerOrder : this.currentPlayer
     },
     minSpeed() {
       const settings = this.localSettings || this.settings || {}
@@ -718,8 +735,15 @@ export default {
         // (Called again here in case engines modified the field)
         this.ensureScoutRevealedVisible()
 
-        // Check if the last move was to an obelisk and trigger scouting action
-        if (patch.lastMove && patch.lastMove.toCoords && this.fieldEngine) {
+        // Check if the last move was to an obelisk and trigger scouting
+        // action. Skipped when fog of war is off — scouting reveals fog,
+        // and with no fog there's nothing to reveal.
+        if (
+          this.enableFogOfWar &&
+          patch.lastMove &&
+          patch.lastMove.toCoords &&
+          this.fieldEngine
+        ) {
           const [x, y] = patch.lastMove.toCoords
           if (
             this.localField[x] &&
@@ -934,6 +958,11 @@ export default {
       if (this.isAnimating) return
 
       this.resetInactivityTimer() // Reset on end turn
+
+      // Clear unit selection and move highlights immediately — without
+      // this they stick around until the server's turn-change patch
+      // arrives, which can be a noticeable beat.
+      emitter.emit('initTurn')
 
       // Send end turn to server
       const payload = {
@@ -1211,20 +1240,36 @@ export default {
       this.ensureScoutRevealedVisible()
     },
 
-    showNotification(message, type = 'info', playerOrder = null) {
+    showNotification(message, type = 'info', playerOrder = null, autoDismiss = type !== 'turn') {
+      // Turn notifications collapse: a new one replaces any stale turn
+      // notification still sitting on the stack so we don't accumulate
+      // "X turn" / "Y turn" pile-ups across fast rotations. Other types
+      // (disconnect/reconnect/info) coexist as before.
+      if (type === 'turn') {
+        this.notifications = this.notifications.filter(n => n.type !== 'turn')
+      }
       const id = Date.now() + Math.random()
       this.notifications.push({ id, message, type, playerOrder })
 
-      // Auto-dismiss after 5 seconds
-      setTimeout(() => {
-        this.dismissNotification(id)
-      }, 5000)
+      // `autoDismiss` defaults to true for everything except turn
+      // notifications — those persist until replaced by the next turn so
+      // the player always sees who's playing. Caller can override; we
+      // use that to make the local user's own "Your turn!" still
+      // disappear after 5s (otherwise it lingers during their thinking).
+      if (autoDismiss) {
+        setTimeout(() => {
+          this.dismissNotification(id)
+        }, 5000)
+      }
     },
 
     showTurnNotification(playerOrder) {
-      const playerName = this.getPlayerNameByOrder(playerOrder)
-      const message = `${playerName} turn`
-      this.showNotification(message, 'turn', playerOrder)
+      const isMine = playerOrder === this.myPlayerOrder
+      const message = isMine ? 'Your turn!' : `${this.getPlayerNameByOrder(playerOrder)} turn`
+      // Auto-dismiss the local user's own "Your turn!" after 5s so it
+      // doesn't sit on screen the whole time they're deciding.
+      // Opponent toasts stay until the next turn replaces them.
+      this.showNotification(message, 'turn', playerOrder, isMine)
     },
 
     dismissNotification(id) {

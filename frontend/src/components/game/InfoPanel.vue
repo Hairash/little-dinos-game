@@ -43,7 +43,7 @@
           class="infoBtn"
           @click="handleUnitClick"
           @contextmenu.prevent="showContextHelp($event, 'Next unit')"
-          :disabled="menuOpen"
+          :disabled="menuOpen || !isMyTurn"
         >
           <img
             v-if="areAllUnitsOnBuildings && currentStats.units.active > 0"
@@ -54,7 +54,7 @@
           />
           <img
             class="curPlayerImage"
-            :src="getImagePath('dino' + (currentPlayer + 1))"
+            :src="getImagePath('dino' + (panelPlayer + 1))"
             title="Next unit"
           />
         </button>
@@ -88,7 +88,7 @@
 
       <!-- Center-right: Towers -->
       <span class="infoItem center-group">
-        <img class="towerImage" :src="getImagePath('base' + (currentPlayer + 1))" />
+        <img class="towerImage" :src="getImagePath('base' + (panelPlayer + 1))" />
         <span
           class="infoLabel"
           :class="{
@@ -126,7 +126,7 @@
           class="infoBtn endTurnBtn"
           @click="handleEndTurnBtnClick"
           @contextmenu.prevent="showContextHelp($event, 'End turn')"
-          :disabled="(player && player.type === botType) || menuOpen"
+          :disabled="!isMyTurn || menuOpen"
           title="End turn"
         >
           <img
@@ -167,6 +167,9 @@
       :min-speed="minSpeed"
       :max-speed="maxSpeed"
       :building-totals-override="buildingTotalsOverride"
+      :unit-modifier="unitModifier"
+      :base-modifier="baseModifier"
+      :fog-of-war-radius="fogOfWarRadius"
       :handle-exit="handleMenuExit"
       :handle-zoom-in="handleMenuZoomIn"
       :handle-zoom-out="handleMenuZoomOut"
@@ -189,6 +192,21 @@ export default {
   },
   props: {
     currentPlayer: Number,
+    // The player whose color/icons/stats this panel reflects. Defaults to
+    // `currentPlayer` (the active turn-taker) which is correct for
+    // single-player. In multiplayer the controller passes the local user
+    // so each client always sees their own side in the bottom panel.
+    viewingPlayer: {
+      type: Number,
+      default: null,
+    },
+    // Used to gate the "Next unit" button. In multiplayer, only the
+    // active player can iterate their unmoved units. Defaults to `true`
+    // for the single-player path where the player always owns the turn.
+    isMyTurn: {
+      type: Boolean,
+      default: true,
+    },
     players: Array[Models.Player],
     currentStats: Object,
     handleEndTurnBtnClick: Function,
@@ -221,6 +239,18 @@ export default {
       type: Object,
       default: null,
     },
+    unitModifier: {
+      type: Number,
+      default: 3,
+    },
+    baseModifier: {
+      type: Number,
+      default: 3,
+    },
+    fogOfWarRadius: {
+      type: Number,
+      default: 3,
+    },
   },
   emits: ['menuOpen'],
   data() {
@@ -248,15 +278,22 @@ export default {
     }
   },
   computed: {
+    // Player whose color/icons drive the panel. `viewingPlayer` from
+    // multiplayer; falls back to `currentPlayer` for single-player.
+    panelPlayer() {
+      return this.viewingPlayer !== null && this.viewingPlayer !== undefined
+        ? this.viewingPlayer
+        : this.currentPlayer
+    },
     player() {
-      // Guard: return null if players array is empty or currentPlayer is out of bounds
+      // Guard: return null if players array is empty or panelPlayer is out of bounds
       if (!this.players || !Array.isArray(this.players) || this.players.length === 0) {
         return null
       }
-      if (this.currentPlayer < 0 || this.currentPlayer >= this.players.length) {
+      if (this.panelPlayer < 0 || this.panelPlayer >= this.players.length) {
         return null
       }
-      return this.players[this.currentPlayer]
+      return this.players[this.panelPlayer]
     },
     maxUnitsNum() {
       return this.currentStats.units.max ? this.currentStats.units.max : '∞'
@@ -268,7 +305,7 @@ export default {
       return Models.PlayerTypes.BOT
     },
     playerColor() {
-      return getPlayerColor(this.currentPlayer)
+      return getPlayerColor(this.panelPlayer)
     },
     unitsOverLimit() {
       if (!this.currentStats.units.max) return false
