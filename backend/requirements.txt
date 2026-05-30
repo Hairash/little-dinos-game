@@ -2,7 +2,12 @@ django>=4.2
 channels
 daphne
 channels-redis
-redis
+# redis-py 8.x rewrote async timeout / cancellation propagation in a way
+# that channels_redis 4.3.x doesn't handle — its BRPOP receive loop
+# leaks the TimeoutError up to the consumer and kills WebSocket sessions
+# (`Timeout reading from <upstash>:6379`). Stay on 5.x until channels_redis
+# ships a compatible release. https://github.com/django/channels_redis/
+redis<6
 psycopg[binary]>=3.1
 whitenoise
 django-cors-headers
