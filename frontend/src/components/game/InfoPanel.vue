@@ -43,7 +43,7 @@
           class="infoBtn"
           @click="handleUnitClick"
           @contextmenu.prevent="showContextHelp($event, 'Next unit')"
-          :disabled="menuOpen || !isMyTurn"
+          :disabled="menuOpen || !isMyTurn || (currentStats.units.active || 0) === 0"
         >
           <img
             v-if="areAllUnitsOnBuildings && currentStats.units.active > 0"

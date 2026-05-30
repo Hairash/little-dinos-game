@@ -158,6 +158,7 @@ export default {
       inactivityTimer: null, // Timer for inactivity detection
       showEndTurnTip: false, // Show tip above end turn button
       activityEventHandlers: [], // Store event handlers for cleanup
+      contextmenuHandlerRef: null, // window-level contextmenu suppressor
       // Settings from props
       width: 20,
       height: 20,
@@ -263,6 +264,15 @@ export default {
     emitter.on('processEndTurn', this.processEndTurn)
     emitter.on('startTurn', this.startTurn)
 
+    // Suppress the browser's default context menu anywhere in the page.
+    // Specific elements have their own `@contextmenu.prevent` handlers
+    // for in-game tooltips; this is the catch-all so right-clicking on
+    // unwired regions (empty info-panel area, tower icon, background)
+    // doesn't show the browser menu. Mirrors DinoGame's single-player
+    // handler.
+    this.contextmenuHandlerRef = e => e.preventDefault()
+    window.addEventListener('contextmenu', this.contextmenuHandlerRef)
+
     // Track user activity for inactivity tip
     this.setupActivityTracking()
 
@@ -275,6 +285,10 @@ export default {
     emitter.off('scoutArea', this.emitScoutArea)
     emitter.off('processEndTurn', this.processEndTurn)
     emitter.off('startTurn', this.startTurn)
+
+    if (this.contextmenuHandlerRef) {
+      window.removeEventListener('contextmenu', this.contextmenuHandlerRef)
+    }
 
     // Clean up inactivity timer and event listeners
     this.clearInactivityTimer()
@@ -573,6 +587,22 @@ export default {
       // Apply state changes from server
       log.debug('applyStatePatch called with patch:', patch)
 
+      // If the enemy unit became visible only on its very last step,
+      // the slice has length 1 — no walk to animate, but the user
+      // should still see the camera move to wherever the unit ended up.
+      // Scroll there before the field merge so the new unit appears
+      // in view rather than off-screen.
+      const lastStepOnlyScroll =
+        Array.isArray(patch.pathSlice) &&
+        patch.pathSlice.length === 1 &&
+        patch.movingUnit &&
+        this.myPlayerOrder !== null &&
+        patch.movingUnit.player !== this.myPlayerOrder
+      if (lastStepOnlyScroll && SCROLL_TO_MOVES) {
+        await this.centerOnCell(patch.pathSlice[0])
+        if (this.wasUnmounted) return
+      }
+
       // Animate the visible slice of the move BEFORE swapping in the new field.
       // The slice is already filtered to coords this recipient can see.
       if (
@@ -629,15 +659,34 @@ export default {
       // `dying` so GameUnit shows the damage flash + fade-out, hold for
       // `DEATH_ANIMATION_DELAY`, then fall through to merge the post-move
       // field (which has them removed).
-      const killedCells = Array.isArray(patch.killedCells) ? patch.killedCells : null
-      if (killedCells && killedCells.length > 0) {
+      //
+      // This combines TWO sources of kills:
+      //   - `patch.killedCells`: neighbour-kills from a move (move-kill).
+      //   - per-birth `killedCoords`: kill-at-birth — fresh spawns that
+      //     killed adjacent enemies. The field merge below removes them
+      //     too, so we must mark dying BEFORE the merge or the user
+      //     never sees their unit die (it just vanishes, sometimes
+      //     together with the fog closing in around the now-empty cell).
+      const births = Array.isArray(patch.births) ? patch.births : null
+      const allKilled = []
+      if (Array.isArray(patch.killedCells)) {
+        for (const c of patch.killedCells) allKilled.push(c)
+      }
+      if (births) {
+        for (const b of births) {
+          if (Array.isArray(b.killedCoords)) {
+            for (const c of b.killedCoords) allKilled.push(c)
+          }
+        }
+      }
+      if (allKilled.length > 0) {
         const next = new Set(this.dyingCells)
-        for (const [kx, ky] of killedCells) next.add(`${kx},${ky}`)
+        for (const [kx, ky] of allKilled) next.add(`${kx},${ky}`)
         this.dyingCells = next
         await sleep(DEATH_ANIMATION_DELAY)
         if (this.wasUnmounted) return
         const after = new Set(this.dyingCells)
-        for (const [kx, ky] of killedCells) after.delete(`${kx},${ky}`)
+        for (const [kx, ky] of allKilled) after.delete(`${kx},${ky}`)
         this.dyingCells = after
       }
 
@@ -647,7 +696,6 @@ export default {
       // already paints the freshly-spawned units at opacity 0, and the
       // user opens the new turn looking at empty bases. The fade-in
       // sequence runs after the merge.
-      const births = Array.isArray(patch.births) ? patch.births : null
       if (births && births.length > 0) {
         const next = new Set(this.pendingBirthCells)
         for (const b of births) {
@@ -1240,7 +1288,7 @@ export default {
       this.ensureScoutRevealedVisible()
     },
 
-    showNotification(message, type = 'info', playerOrder = null, autoDismiss = type !== 'turn') {
+    showNotification(message, type = 'info', playerOrder = null) {
       // Turn notifications collapse: a new one replaces any stale turn
       // notification still sitting on the stack so we don't accumulate
       // "X turn" / "Y turn" pile-ups across fast rotations. Other types
@@ -1251,25 +1299,18 @@ export default {
       const id = Date.now() + Math.random()
       this.notifications.push({ id, message, type, playerOrder })
 
-      // `autoDismiss` defaults to true for everything except turn
-      // notifications — those persist until replaced by the next turn so
-      // the player always sees who's playing. Caller can override; we
-      // use that to make the local user's own "Your turn!" still
-      // disappear after 5s (otherwise it lingers during their thinking).
-      if (autoDismiss) {
-        setTimeout(() => {
-          this.dismissNotification(id)
-        }, 5000)
-      }
+      // Auto-dismiss after 5 seconds for all notification types.
+      setTimeout(() => {
+        this.dismissNotification(id)
+      }, 5000)
     },
 
     showTurnNotification(playerOrder) {
-      const isMine = playerOrder === this.myPlayerOrder
-      const message = isMine ? 'Your turn!' : `${this.getPlayerNameByOrder(playerOrder)} turn`
-      // Auto-dismiss the local user's own "Your turn!" after 5s so it
-      // doesn't sit on screen the whole time they're deciding.
-      // Opponent toasts stay until the next turn replaces them.
-      this.showNotification(message, 'turn', playerOrder, isMine)
+      const message =
+        playerOrder === this.myPlayerOrder
+          ? 'Your turn!'
+          : `${this.getPlayerNameByOrder(playerOrder)} turn`
+      this.showNotification(message, 'turn', playerOrder)
     },
 
     dismissNotification(id) {
