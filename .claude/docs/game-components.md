@@ -6,10 +6,15 @@ The game has two main controller components that manage game state and logic:
 
 | Component | Purpose | Uses Mixin |
 |-----------|---------|------------|
-| `DinoGame.vue` | Single-player game | `gameCoreMixin` |
+| `DinoGame.vue` | Single-player game and tutorial mode | `gameCoreMixin` |
 | `MultiplayerDinoGame.vue` | Multiplayer game | `gameCoreMixin` |
 
 Both components use `gameCoreMixin` for shared logic.
+
+Tutorial scenarios reuse `DinoGame.vue` (with a `tutorialScenario`
+prop) and mount a child `TutorialController` from
+`components/tutorial/`. See [`tutorial.md`](./tutorial.md) for the
+full tutorial subsystem.
 
 ---
 
@@ -36,6 +41,7 @@ Controls single-player games with bot opponents. Manages local game state, AI tu
 | `maxBasesNum` | Number | Maximum bases per player |
 | `enableUndo` | Boolean | Allow undo moves |
 | `loadGame` | Boolean | Load from localStorage |
+| `tutorialScenario` | Object \| null | Tutorial scenario object (see `tutorial.md`). When set, swaps in scripted field/players, mounts `TutorialController`, and toggles a number of tutorial-only behavioural guards. |
 
 ### Data (Component-Specific)
 
@@ -64,6 +70,14 @@ Controls single-player games with bot opponents. Manages local game state, AI tu
 
   // Visibility
   tempVisibilityCoords: Set,
+
+  // Tutorial-only state is provided by `tutorialMixin`:
+  //   tutorialInputBlocked / tutorialEndTurnBlocked / tutorialUndoBlocked
+  //     — independent lock gates (cells+Next-unit / End-turn+'e' /
+  //       Undo+middle-mouse), managed via the matching
+  //       `tutorial:*BlockChanged` emitter events
+  //   tutorialFirstProductionDone — latch for the first-batch
+  //     `firstProducedSpeed` / `firstProducedSpeedForbidden` override
 }
 ```
 
@@ -95,6 +109,57 @@ Controls single-player games with bot opponents. Manages local game state, AI tu
 - `WaveEngine` - Pathfinding
 - `FieldEngine` - Game operations
 - `BotEngine` - AI logic
+
+### Tutorial Mode
+
+`DinoGame` opts in via `mixins: [gameCoreMixin, tutorialMixin]`.
+`tutorialMixin.js` owns the lock-state data flags, the
+`tutorial:*BlockChanged` subscriptions, the
+`isAnimating → tutorial:animatingChanged` watcher, the first-batch
+production override, and the `getTutorialContext()` helper. Inline
+guards left in `DinoGame.vue` are marked with `// [tutorial]`
+comments so they're easy to find.
+
+When the `tutorialScenario` prop is non-null:
+
+- `loadFieldOrGenerateNewField` calls `scenario.buildField()` instead
+  of generating a random field.
+- `loadOrCreatePlayers` calls `scenario.buildPlayers()` instead of
+  `createPlayers(...)`.
+- `FieldEngine` receives the scenario's `playerOverrides` via
+  `setPlayerOverrides(...)` (per-player `minSpeed` / `maxSpeed` /
+  `maxUnitsNum` / `maxBasesNum`).
+- `saveState` is a no-op (tutorial sessions never touch localStorage).
+- `checkEndOfGame` skips the elimination check unless
+  `scenario.useEliminationWin === true`, and never sets
+  `state = STATES.ready`. Still emits `tutorial:gameWon`.
+- `checkSkipReadyLabel` always returns true (no "get ready" / "Player
+  N wins" overlay during a scenario).
+- `selectNextPlayerAndCheckPhases` skips the `lastPlayerPhase`
+  trigger so the "only player left" notice can't fire mid-scenario.
+- `startTurn` skips the scroll-restore to `scrollCoords` when births
+  ran, so the camera stays parked on the last birth.
+- `processEndTurn`, the `'e'` shortcut, and `undoLastMove` short-
+  circuit on `tutorialEndTurnBlocked` / `tutorialUndoBlocked`.
+- `exitGame` routes to `GAME_STATES.tutorial` (back to the scenario
+  list) instead of `window.location.reload()`.
+- `applyTutorialFirstProductionOverride(births)` runs after the first
+  production batch and honours `firstProducedSpeed` (force a value
+  and recompute visibility under `visibilitySpeedRelation`) or
+  `firstProducedSpeedForbidden` (re-roll if matched).
+
+`DinoGame` also emits the tutorial event surface
+(`tutorial:moveFinished`, `tutorial:turnEnded`, `tutorial:turnStarted`
+**after** production, `tutorial:towerCaptured`, `tutorial:undone`,
+`tutorial:unitKilled` for move-kills and birth-kills, `tutorial:gameWon`,
+`tutorial:animatingChanged`) and subscribes to the three lock-state
+events `tutorial:inputBlockChanged` / `tutorial:endTurnBlockChanged` /
+`tutorial:undoBlockChanged`. Subscriptions are registered in
+`created()` (not `mounted()`) so the initial emissions from the child
+controller's `immediate: true` watchers aren't lost.
+
+See [`tutorial.md`](./tutorial.md) for the full event table and the
+scenario / step schema.
 
 ---
 
@@ -245,6 +310,39 @@ Displays unit visibility radius as a colored frame overlay.
 - Frame color matches player color (blue for P1, mint for P2, etc.)
 - Border width scales with zoom (1px at min, 3px at default, 7px at max)
 - Clips to map boundaries
+
+---
+
+## Tutorial Components
+
+Live in `frontend/src/components/tutorial/`. See [`tutorial.md`](./tutorial.md)
+for the full subsystem.
+
+### TutorialPage.vue
+Scenario-list screen. Reads `loadCompletedScenarios()` and shows a ✓
+on each completed scenario. Clicking a scenario emits
+`startTutorialScenario` with its id; `App.vue` resolves it and switches
+to `GAME_STATES.tutorialGame`.
+
+### TutorialController.vue
+Mounted as a child of `DinoGame` when `tutorialScenario` is set. Owns
+the `stepIndex` cursor and three lock-state computeds
+(`inputBlocked`, `endTurnBlocked`, `undoBlocked`) that emit
+`tutorial:inputBlockChanged` / `tutorial:endTurnBlockChanged` /
+`tutorial:undoBlockChanged` to `DinoGame`. Subscribes to the tutorial
+event surface, advances steps, runs `resolveSkipIf` on entry, and
+renders `TutorialHint`. Owns the end-of-scenario completion overlay
+(`Next scenario` / `Back to tutorial menu` buttons).
+
+### TutorialHint.vue
+The on-screen hint. Renders text + optional `note` + optional `image`
+(resolved via `getImagePath`) + either an OK button or pulsing dots.
+Anchor types: `center`, `top|bottom`, the four corners,
+`near-{end-turn,undo,next-unit,menu}`, plus `anchorCell: [x, y]`
+which looks up the rendered `GameCell` by its `data-cell-x` /
+`data-cell-y` attributes and tracks scroll/resize. Click-to-shift
+(when `note` is set) flips the hint to the opposite screen edge so
+the player can push it out of the way.
 
 ---
 

@@ -121,7 +121,11 @@ export const GAME_STATES = {
   setup: 'setup',
   game: 'game',
   help: 'help',
+  tutorial: 'tutorial',
+  tutorialGame: 'tutorialGame',
 }
+
+export const TUTORIAL_COMPLETED_KEY = 'tutorial-completed'
 
 export const INITIAL_SETTINGS = {
   width: 20,

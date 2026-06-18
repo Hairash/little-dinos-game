@@ -57,17 +57,30 @@ export const gameCoreMixin = {
     getCurrentStats(playerNum = this.currentPlayer) {
       const settings = this._getSettings()
       const field = this._getField()
+      // Tutorial scenarios may set per-player overrides (e.g. enemy has
+      // a tighter unit cap than the human). Honour them here so the
+      // bottom-panel limit and the info pop-ups reflect what the
+      // FieldEngine will actually enforce during production.
+      const overrides = this.tutorialScenario?.playerOverrides?.[playerNum] || null
+      const maxUnitsNum =
+        overrides && overrides.maxUnitsNum !== undefined
+          ? overrides.maxUnitsNum
+          : settings.maxUnitsNum || 0
+      const maxBasesNum =
+        overrides && overrides.maxBasesNum !== undefined
+          ? overrides.maxBasesNum
+          : settings.maxBasesNum || 0
 
       const stats = {
         units: {
           active: 0,
           total: 0,
-          max: settings.maxUnitsNum || 0,
+          max: maxUnitsNum,
           coordsArr: [],
         },
         towers: {
           total: 0,
-          max: settings.maxBasesNum || 0,
+          max: maxBasesNum,
           empty: 0,
         },
       }
@@ -97,8 +110,7 @@ export const gameCoreMixin = {
               // Check if unit is on a building that should be excluded from priority
               const isOnExcludedBuilding =
                 building &&
-                ((building._type === Models.BuildingTypes.BASE &&
-                  building.player === playerNum) ||
+                ((building._type === Models.BuildingTypes.BASE && building.player === playerNum) ||
                   (building._type === Models.BuildingTypes.BASE && building.player === null) ||
                   building._type === Models.BuildingTypes.OBELISK)
 

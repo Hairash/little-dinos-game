@@ -1,6 +1,10 @@
 <template>
+  <!-- [tutorial] The `!tutorialScenario` guard + the tutorial-prefixed
+       props below (input-blocked, end-turn-blocked) + the
+       <TutorialController> mount are the only template-level
+       tutorial touchpoints. Full reference: .claude/docs/tutorial.md -->
   <ReadyLabel
-    v-if="state === STATES.ready"
+    v-if="state === STATES.ready && !tutorialScenario"
     :on-click-action="readyBtnClick"
     :current-player="currentPlayer"
     :is-active-player="players[currentPlayer].active"
@@ -28,6 +32,7 @@
     :dying-cells="dyingCells"
     :borning-cells="borningCells"
     :pending-birth-cells="pendingBirthCells"
+    :tutorial-input-blocked="tutorialInputBlocked"
   />
   <InfoPanel
     v-if="state === STATES.play"
@@ -52,12 +57,19 @@
     :fog-of-war-radius="fogOfWarRadius"
     :can-undo="canUndo"
     :handle-undo-click="undoLastMove"
+    :tutorial-input-blocked="tutorialInputBlocked"
+    :tutorial-end-turn-blocked="tutorialEndTurnBlocked"
     @menu-open="handleMenuOpen"
   />
   <ExitDialog
     v-if="state === STATES.exitDialog"
     :handle-cancel="() => (state = STATES.play)"
     :handle-confirm="exitGame"
+  />
+  <TutorialController
+    v-if="tutorialScenario"
+    :scenario="tutorialScenario"
+    :get-context="getTutorialContext"
   />
   <!-- Notifications -->
   <div id="notifications-container">
@@ -85,6 +97,7 @@ import ReadyLabel from '@/components/game/ReadyLabel.vue'
 import GameGrid from '@/components/game/GameGrid.vue'
 import InfoPanel from '@/components/game/InfoPanel.vue'
 import ExitDialog from '@/components/dialogs/ExitDialog.vue'
+import TutorialController from '@/components/tutorial/TutorialController.vue'
 import Models from '@/game/models'
 import { CreateFieldEngine } from '@/game/createFieldEngine'
 import { WaveEngine } from '@/game/waveEngine'
@@ -104,6 +117,7 @@ import {
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 import { gameCoreMixin } from '@/game/mixins/gameCoreMixin'
+import { tutorialMixin } from '@/game/mixins/tutorialMixin'
 import { computeFieldDiff, applyFieldDiff } from '@/game/fieldDiff'
 import { animateMovePath } from '@/game/moveAnimator'
 
@@ -111,12 +125,13 @@ import emitter from '@/game/eventBus'
 
 export default {
   name: 'DinoGame',
-  mixins: [gameCoreMixin],
+  mixins: [gameCoreMixin, tutorialMixin],
   components: {
     ReadyLabel,
     GameGrid,
     InfoPanel,
     ExitDialog,
+    TutorialController,
   },
   props: {
     humanPlayersNum: Number,
@@ -145,6 +160,12 @@ export default {
     // Note: field is intentionally both a prop and data property - the data property shadows the prop
     // when in single-player mode (generates field locally), but uses the prop in multiplayer mode
     field: Array, // Optional: pre-generated field from backend (for multiplayer)
+    // [tutorial] When provided, DinoGame uses the scenario's field +
+    // players (bypassing CreateFieldEngine and createPlayers) and mounts
+    // the TutorialController overlay that drives the scripted hints.
+    // tutorialMixin owns the lock state and first-production override.
+    // Full reference: .claude/docs/tutorial.md
+    tutorialScenario: { type: Object, default: null },
   },
   data() {
     // Phase constants (single-player specific)
@@ -240,6 +261,9 @@ export default {
       // each bot's stats between human turns. Initialised to the first
       // human once players are created.
       lastHumanPlayer: null,
+      // [tutorial] Lock + first-production state lives in
+      // tutorialMixin: tutorialInputBlocked, tutorialEndTurnBlocked,
+      // tutorialUndoBlocked, tutorialFirstProductionDone.
     }
   },
   computed: {
@@ -301,6 +325,10 @@ export default {
       if (this.players[this.currentPlayer]._type === Models.PlayerTypes.BOT) return false
       // Don't expose the undo button while a move is animating.
       if (this.isAnimating) return false
+      // [tutorial] Separate undo gate (owned by tutorialMixin) so a
+      // forceUndo step can keep Undo enabled while everything else
+      // (cells, Next-unit, End turn) is locked.
+      if (this.tutorialUndoBlocked) return false
       if (this.scoutUndoState) return this.scoutUndoState.canUndo
       if (this.moveUndoState) return this.moveUndoState.canUndo
       return false
@@ -360,6 +388,12 @@ export default {
       this.killAtBirth,
       this.visibilitySpeedRelation
     )
+    // [tutorial] Per-player FieldEngine setting overrides (e.g. enemy
+    // uses a slower speed range and a tighter unit cap than the
+    // human).
+    if (this.tutorialScenario?.playerOverrides) {
+      this.fieldEngine.setPlayerOverrides(this.tutorialScenario.playerOverrides)
+    }
     this.botEngine = new BotEngine(
       this.localField,
       this.width,
@@ -372,7 +406,14 @@ export default {
     // Store handler references for cleanup in beforeUnmount
     this.keyupHandlerRef = e => {
       if (e.key === 'Enter') this.state = this.STATES.play
-      if (e.key === 'e' && this.state === this.STATES.play) this.processEndTurn()
+      // [tutorial] Skip the 'e' shortcut while the End-turn lock is
+      // engaged (forceUndo / lockAll / OK step).
+      if (
+        e.key === 'e' &&
+        this.state === this.STATES.play &&
+        !this.tutorialEndTurnBlocked
+      )
+        this.processEndTurn()
       // TODO: Add test mode
       // if (e.key === 'Enter') this.makeBotUnitMove();
     }
@@ -389,6 +430,10 @@ export default {
     window.addEventListener('keyup', this.keyupHandlerRef)
     window.addEventListener('contextmenu', this.contextmenuHandlerRef)
     window.addEventListener('mouseup', this.mouseupHandlerRef)
+    // [tutorial] Subscriptions for `tutorial:inputBlockChanged` /
+    // `endTurnBlockChanged` / `undoBlockChanged` are wired up by
+    // tutorialMixin (also in `created`, for the same "child-watcher-
+    // fires-before-parent-mounted" reason).
   },
   mounted() {
     emitter.on('makeBotMove', this.makeBotMove)
@@ -410,6 +455,7 @@ export default {
     emitter.off('startTurn', this.startTurn)
     emitter.off('moveUnit', this.emitMoveUnit)
     emitter.off('scoutArea', this.handleScoutArea)
+    // [tutorial] tutorialMixin handles tutorial:*BlockChanged cleanup.
     // Clean up window event listeners to prevent memory leaks
     if (this.keyupHandlerRef) {
       window.removeEventListener('keyup', this.keyupHandlerRef)
@@ -447,11 +493,22 @@ export default {
       })
       const births = counters.births || []
 
+      // [tutorial] Re-roll / force the speed of the very first
+      // produced batch when the scenario sets firstProducedSpeed or
+      // firstProducedSpeedForbidden. Latched inside the mixin so this
+      // call is a no-op for subsequent turns. No-op outside tutorial.
+      this.applyTutorialFirstProductionOverride(births)
+
       if (counters.buildingsNum === 0 && counters.unitsNum === 0) {
         this.players[this.currentPlayer].active = false
       }
 
       this.setVisibilityStartTurn()
+      // [tutorial] Announce turn start AFTER production so passive
+      // checks (e.g. scenario 2's "reach 10 dinos" goal) see the new
+      // headcount immediately, instead of having to wait for the
+      // next turn cycle.
+      emitter.emit('tutorial:turnStarted', this.currentPlayer)
 
       // Decide whether the field is about to be visible. The animation
       // only makes sense to play once the field is — otherwise the ready-
@@ -475,7 +532,14 @@ export default {
         if (isBot) {
           emitter.emit('makeBotMove')
         } else {
-          emitter.emit('initTurn', this.players[this.currentPlayer].scrollCoords)
+          // When births just ran, the camera is parked on the last birth
+          // cell — that's a more useful resting point than the saved
+          // pre-end-turn coords, so don't pass scrollCoords back to
+          // initTurn (which would yank the viewport back).
+          const restoreCoords = births.length > 0
+            ? null
+            : this.players[this.currentPlayer].scrollCoords
+          emitter.emit('initTurn', restoreCoords)
         }
       } else {
         // Multi-human flow: ready-label is up until the player dismisses
@@ -547,6 +611,16 @@ export default {
           this._setBorning([birth.coords], false)
           this._setDying(birth.killedCoords, false)
           this.fieldEngine.applyKillsAtCoords(this.currentPlayer, birth.killedCoords)
+          // [tutorial] Surface kill-at-birth victims so scenarios can
+          // gate hints on them (e.g. scenario 3's spawn-kill lesson).
+          if (birth.killedCoords.length > 0) {
+            emitter.emit('tutorial:unitKilled', {
+              coords: birth.killedCoords,
+              killerPlayer: this.currentPlayer,
+              count: birth.killedCoords.length,
+              cause: 'birth',
+            })
+          }
         }
 
         // Defensive: clear any residual pending flags (e.g. cancelled
@@ -674,24 +748,31 @@ export default {
       this.isAnimating = true
       try {
         await animateMovePath(this.localField, path, unit, {
-          isVisible: ([cx, cy]) =>
-            humanVisibility === null || humanVisibility.has(`${cx},${cy}`),
+          isVisible: ([cx, cy]) => humanVisibility === null || humanVisibility.has(`${cx},${cy}`),
           isCancelled: () => this.wasUnmounted,
         })
         if (this.wasUnmounted) return
         unit.hasMoved = true
 
+        // [tutorial] Snapshot the destination tower's previous owner
+        // so we can tell a real ownership transfer from a no-op step
+        // onto our own base. Used to gate the `towerCaptured` trigger.
+        const destBuilding = this.localField[x1][y1].building
+        const prevBaseOwner =
+          destBuilding && destBuilding._type === Models.BuildingTypes.BASE
+            ? destBuilding.player
+            : undefined
         const buildingCaptured = this.fieldEngine.captureBuildingIfNeeded(x1, y1, unit.player)
+        if (buildingCaptured && prevBaseOwner !== unit.player) {
+          emitter.emit('tutorial:towerCaptured', { x: x1, y: y1, player: unit.player })
+        }
         // Triggered actions (e.g. obelisk → scouting) belong to the moving
         // player. Only surface the prompt to a human player; otherwise a bot
         // landing on an obelisk would flash "Select area for scouting" UI to
         // the human.
         // Triggered actions only matter with fog of war on — scouting an
         // obelisk reveals fog, and with no fog there's nothing to reveal.
-        if (
-          this.enableFogOfWar &&
-          this.players[unit.player]?._type === Models.PlayerTypes.HUMAN
-        ) {
+        if (this.enableFogOfWar && this.players[unit.player]?._type === Models.PlayerTypes.HUMAN) {
           const action = this.fieldEngine.getActionTriggered(x1, y1)
           if (action) {
             emitter.emit('setAction', action)
@@ -705,6 +786,15 @@ export default {
         await this.playDeathAnimation(killedCoords)
         if (this.wasUnmounted) return
         this.fieldEngine.killNeighbours(x1, y1, unit.player)
+        // [tutorial] Mirror of the birth-kill emit in runBirthSequence —
+        // lets scenarios gate hints on the player's own kills.
+        if (killedCoords.length > 0) {
+          emitter.emit('tutorial:unitKilled', {
+            coords: killedCoords,
+            killerPlayer: unit.player,
+            count: killedCoords.length,
+          })
+        }
 
         this.checkEndOfGame()
         if (this.doesVisibilityMakeSense()) {
@@ -737,6 +827,10 @@ export default {
         // A new move replaces the move-undo layer and invalidates any pending scout-undo.
         this.moveUndoState = { diff, canUndo }
         this.scoutUndoState = null
+        // [tutorial] Announce a fully-applied move so the controller
+        // can re-check `unitReached` / `check` predicates against the
+        // post-move field state.
+        emitter.emit('tutorial:moveFinished', { fromCoords: [x0, y0], toCoords: [x1, y1] })
       } finally {
         this.isAnimating = false
         // Release the snapshot so displayVisibilityCoords falls back to the
@@ -778,9 +872,14 @@ export default {
       }
       return null
     },
+    // [tutorial] handleTutorial{Input,EndTurn,Undo}Block live in
+    // tutorialMixin and own the matching data flags above.
     processEndTurn() {
       if (this.isAnimating) return
       if (this.state === this.STATES.ready) return
+      // [tutorial] Block the button + 'e' path while the End-turn
+      // lock is engaged (forceUndo / lockAll / OK step).
+      if (this.tutorialEndTurnBlocked) return
       // Clear unit selection and move highlights before transitioning —
       // otherwise they bleed into the ready-label / next turn.
       emitter.emit('initTurn')
@@ -790,6 +889,10 @@ export default {
       this.scoutUndoState = null
       this.selectNextPlayerAndCheckPhases()
       emitter.emit('startTurn')
+      // [tutorial] The button click path invokes this method
+      // directly (no 'processEndTurn' emit), so announce the end of
+      // turn explicitly for the controller's `turnEnded` waitFor.
+      emitter.emit('tutorial:turnEnded', this.currentPlayer)
     },
     async readyBtnClick() {
       this.state = this.STATES.play
@@ -832,6 +935,11 @@ export default {
     },
     checkEndOfGame() {
       if (this.winPhase !== this.WIN_PHASES.progress) return
+      // [tutorial] Scenarios opt in to the elimination win check via
+      // `useEliminationWin: true`. Without this guard, single-human
+      // scenarios would auto-end on the first move because
+      // getLastPlayerIdx() === currentPlayer.
+      if (this.tutorialScenario && !this.tutorialScenario.useEliminationWin) return
       if (
         this.getLastPlayerIdx() === this.currentPlayer ||
         (this.scoresToWin > 0 && this.players[this.currentPlayer].score >= this.scoresToWin) ||
@@ -839,9 +947,18 @@ export default {
       ) {
         this.winPhase = this.WIN_PHASES.has_winner
         this.winner = this.currentPlayer
-        if (this.players[this.currentPlayer]._type === Models.PlayerTypes.HUMAN) {
+        // [tutorial] Scenarios drive their own end-of-game UI via the
+        // controller's `win` step + the scenario completion overlay,
+        // so we never drop into the "Player X wins!" ReadyLabel.
+        if (
+          !this.tutorialScenario &&
+          this.players[this.currentPlayer]._type === Models.PlayerTypes.HUMAN
+        ) {
           this.state = this.STATES.ready
         }
+        // [tutorial] Surface the win event regardless of mode (no-op
+        // outside tutorial — nobody listens).
+        emitter.emit('tutorial:gameWon', this.currentPlayer)
       }
     },
     selectNextPlayerAndCheckPhases() {
@@ -856,7 +973,15 @@ export default {
           ) {
             this.humanPhase = this.HUMAN_PHASES.all_eliminated
           }
-          if (this.lastPlayerPhase === this.LAST_PLAYER_PHASES.progress) {
+          // [tutorial] Skip the "only player left" phase entirely
+          // for tutorials — scenarios often have a single human
+          // player or end via a custom goal/win step, so this label
+          // would either flash on every turn or pre-empt the
+          // scenario's own end message.
+          if (
+            !this.tutorialScenario &&
+            this.lastPlayerPhase === this.LAST_PLAYER_PHASES.progress
+          ) {
             const lastPlayerIdx = this.getLastPlayerIdx()
             if (lastPlayerIdx !== null) {
               this.lastPlayerPhase = this.LAST_PLAYER_PHASES.last_player
@@ -999,6 +1124,9 @@ export default {
 
     // Save-load operations
     saveState() {
+      // [tutorial] Throwaway sessions — skip persistence so a
+      // tutorial run doesn't clobber the player's regular saved game.
+      if (this.tutorialScenario) return
       // TODO: Save only game situation, not game settings
       for (const field of FIELDS_TO_SAVE) {
         if (field === 'field') {
@@ -1020,6 +1148,12 @@ export default {
       }
     },
     loadFieldOrGenerateNewField() {
+      // [tutorial] Scenario hands us a fully prepared field (skips
+      // CreateFieldEngine + random generation).
+      if (this.tutorialScenario && typeof this.tutorialScenario.buildField === 'function') {
+        this.localField = this.tutorialScenario.buildField()
+        return
+      }
       if (this.field) {
         // Field provided as prop (from backend in multiplayer mode)
         // Make a deep copy and normalize to model instances to avoid mutating the prop
@@ -1045,6 +1179,12 @@ export default {
       }
     },
     loadOrCreatePlayers() {
+      // [tutorial] Scenario builds its own players (skips
+      // createPlayers — used to pin types and counts per scenario).
+      if (this.tutorialScenario && typeof this.tutorialScenario.buildPlayers === 'function') {
+        this.players = this.tutorialScenario.buildPlayers()
+        return
+      }
       if (this.loadGame) {
         const players = localStorage.getItem('players')
         const parsedPlayers = this.safeParseJSON(players)
@@ -1087,6 +1227,9 @@ export default {
     },
     undoLastMove() {
       if (this.isAnimating) return
+      // [tutorial] Independent gate so a non-forceUndo step can lock
+      // Undo (e.g. OK / forceEndTurn / lockAll steps).
+      if (this.tutorialUndoBlocked) return
       // Scout-undo: revert the scout choice only and put the player back into
       // scout-target-selection mode. Move-undo is null at this point because
       // committing a scout target locked the move.
@@ -1112,6 +1255,9 @@ export default {
         this.setVisibility()
       }
       this.moveUndoState = null
+      // [tutorial] Surface a successful move-undo so scenarios can
+      // gate on the `undone` waitFor.
+      emitter.emit('tutorial:undone')
     },
 
     // Bot move high level logic
@@ -1167,6 +1313,10 @@ export default {
       return this.lastPlayer
     },
     checkSkipReadyLabel() {
+      // [tutorial] Scenarios never want the "get ready" / "Player N
+      // wins" ReadyLabel — the controller handles intros and
+      // end-of-scenario messaging itself.
+      if (this.tutorialScenario) return true
       return (
         (this.humanPlayersNum === 1 &&
           this.players[this.currentPlayer].active &&
@@ -1177,6 +1327,13 @@ export default {
       )
     },
     exitGame() {
+      // [tutorial] Return to the scenario list instead of a full
+      // page reload so the player keeps their progress ticks (already
+      // saved) and doesn't see the boot flash.
+      if (this.tutorialScenario) {
+        emitter.emit('goToPage', 'tutorial')
+        return
+      }
       window.location.reload()
     },
     showNotification(message, type = 'info', playerOrder = null) {
@@ -1200,6 +1357,8 @@ export default {
       const message = isHuman ? 'Your turn!' : `Player ${playerOrder + 1} turn`
       this.showNotification(message, 'turn', playerOrder)
     },
+    // [tutorial] applyTutorialFirstProductionOverride and
+    // getTutorialContext live in tutorialMixin.
     dismissNotification(id) {
       const index = this.notifications.findIndex(n => n.id === id)
       if (index !== -1) {

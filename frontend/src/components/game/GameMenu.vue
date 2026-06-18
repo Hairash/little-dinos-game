@@ -18,6 +18,7 @@
           />
           <template v-else>Multiplayer</template>
         </button>
+        <button @click="handleTutorialBtnClick">Tutorial</button>
         <button @click="handleHelpBtnClick">Help</button>
       </div>
     </div>
@@ -57,6 +58,9 @@ export default {
       if (this.multiplayerLoading) return
       this.multiplayerLoading = true
       emitter.emit('startMultiplayer')
+    },
+    handleTutorialBtnClick() {
+      emitter.emit('goToPage', GAME_STATES.tutorial)
     },
     handleHelpBtnClick() {
       emitter.emit('goToPage', GAME_STATES.help)

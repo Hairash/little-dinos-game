@@ -72,6 +72,67 @@ getCurrentStats() returns:
 }
 ```
 
+### Per-Player Overrides (Tutorial Mode)
+
+`getCurrentStats(playerNum)` consults
+`this.tutorialScenario?.playerOverrides?.[playerNum]` for `maxUnitsNum`
+and `maxBasesNum`. The HUD limit you see for each player matches what
+`FieldEngine.restoreAndProduceUnits` actually enforces during
+production. See [`tutorial.md`](./tutorial.md) for the scenario
+override surface.
+
+---
+
+## tutorialMixin
+
+**Location:** `frontend/src/game/mixins/tutorialMixin.js`
+
+**Used by:** `DinoGame.vue` (alongside `gameCoreMixin`)
+
+Encapsulates tutorial-only state and plumbing so `DinoGame` keeps just
+the narrow `if (this.tutorialScenario) …` guards at the call sites
+where they actually change game behaviour.
+
+### Data
+
+- `tutorialInputBlocked` — locks cells + Next-unit
+- `tutorialEndTurnBlocked` — locks End turn button + `'e'` shortcut
+- `tutorialUndoBlocked` — locks Undo button + middle-mouse undo
+- `tutorialFirstProductionDone` — latch ensuring the first-batch
+  production override fires only once per scenario
+
+### Methods
+
+- `handleTutorialInputBlock(b)` / `handleTutorialEndTurnBlock(b)` /
+  `handleTutorialUndoBlock(b)` — toggle the matching data flag in
+  response to the matching `tutorial:*BlockChanged` event.
+- `applyTutorialFirstProductionOverride(births)` — honours the
+  scenario's `firstProducedSpeed` (force) or
+  `firstProducedSpeedForbidden` (re-roll) on the very first production
+  batch; recomputes visibility via `calculateUnitVisibility` when
+  `visibilitySpeedRelation` is on.
+- `getTutorialContext()` — returns the `ctx` object handed to step
+  predicates (`getField`, `getCurrentPlayer`, `getCurrentStats`,
+  `fieldEngine`, `players`).
+
+### Lifecycle
+
+- `created` subscribes to `tutorial:inputBlockChanged`,
+  `tutorial:endTurnBlockChanged`, `tutorial:undoBlockChanged`. The
+  subscriptions live here (not in `mounted`) because the child
+  `TutorialController`'s `immediate: true` watchers fire during the
+  parent's render cycle, before the parent's `mounted` hook.
+- `beforeUnmount` unsubscribes.
+- A `watch.isAnimating` mirror emits `tutorial:animatingChanged` so
+  the controller can suppress hints during move / birth / death
+  animations.
+
+Outside a tutorial scenario the mixin is dormant: all flags stay
+`false`, the override is a no-op, the emit on `isAnimating` is sent
+but nobody listens, and `getTutorialContext()` is simply never called.
+
+See [`tutorial.md`](./tutorial.md) for the full subsystem reference.
+
 ### Abstraction Pattern
 
 The mixin handles differences between single-player and multiplayer:

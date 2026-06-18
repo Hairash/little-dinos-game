@@ -35,6 +35,22 @@ export class FieldEngine {
     this.baseModifier = baseModifier
     this.killAtBirth = killAtBirth
     this.visibilitySpeedRelation = visibilitySpeedRelation
+    // Optional per-player overrides for tutorial scenarios where each
+    // side should have different production rules. Shape:
+    //   { [playerIdx]: { minSpeed?, maxSpeed?, maxUnitsNum?, ... } }
+    // Defaults fall back to the engine-wide values above.
+    this.playerOverrides = null
+  }
+
+  // Set per-player overrides after construction (called by DinoGame when
+  // a tutorial scenario provides them).
+  setPlayerOverrides(overrides) {
+    this.playerOverrides = overrides || null
+  }
+
+  playerSetting(player, key) {
+    const override = this.playerOverrides?.[player]?.[key]
+    return override !== undefined ? override : this[key]
   }
 
   getCurrentVisibilitySet(player) {
@@ -292,15 +308,18 @@ export class FieldEngine {
     }
     const killedCoords = []
     const births = []
+    const playerMinSpeed = this.playerSetting(curPlayer, 'minSpeed')
+    const playerMaxSpeed = this.playerSetting(curPlayer, 'maxSpeed')
+    const playerMaxUnitsNum = this.playerSetting(curPlayer, 'maxUnitsNum')
     if (
-      !this.maxUnitsNum ||
-      unitsNum + producedNum <= this.maxUnitsNum + habitationsOccupied * this.unitModifier
+      !playerMaxUnitsNum ||
+      unitsNum + producedNum <= playerMaxUnitsNum + habitationsOccupied * this.unitModifier
     ) {
       for (let [x, y] of unitsToCreateCoords) {
         this.field[x][y].unit = createNewUnit(
           curPlayer,
-          this.minSpeed,
-          this.maxSpeed,
+          playerMinSpeed,
+          playerMaxSpeed,
           this.speedMinVisibility,
           this.fogOfWarRadius,
           this.visibilitySpeedRelation,

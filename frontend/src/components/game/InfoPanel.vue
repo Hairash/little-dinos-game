@@ -43,7 +43,12 @@
           class="infoBtn"
           @click="handleUnitClick"
           @contextmenu.prevent="showContextHelp($event, 'Next unit')"
-          :disabled="menuOpen || !isMyTurn || (currentStats.units.active || 0) === 0"
+          :disabled="
+            menuOpen ||
+            !isMyTurn ||
+            (currentStats.units.active || 0) === 0 ||
+            tutorialInputBlocked
+          "
         >
           <img
             v-if="areAllUnitsOnBuildings && currentStats.units.active > 0"
@@ -126,7 +131,7 @@
           class="infoBtn endTurnBtn"
           @click="handleEndTurnBtnClick"
           @contextmenu.prevent="showContextHelp($event, 'End turn')"
-          :disabled="!isMyTurn || menuOpen"
+          :disabled="!isMyTurn || menuOpen || tutorialEndTurnBlocked"
           title="End turn"
         >
           <img
@@ -156,25 +161,30 @@
         <br /><span class="warning-text">❗Limit reached❗</span>
       </template>
     </div>
-    <!-- Game Menu Overlay -->
-    <GameMenuOverlay
-      v-if="menuOpen"
-      :field="field"
-      :field-engine="fieldEngine"
-      :current-player="currentPlayer"
-      :players="players"
-      :enable-fog-of-war="enableFogOfWar"
-      :min-speed="minSpeed"
-      :max-speed="maxSpeed"
-      :building-totals-override="buildingTotalsOverride"
-      :unit-modifier="unitModifier"
-      :base-modifier="baseModifier"
-      :fog-of-war-radius="fogOfWarRadius"
-      :handle-exit="handleMenuExit"
-      :handle-zoom-in="handleMenuZoomIn"
-      :handle-zoom-out="handleMenuZoomOut"
-      :handle-resume="toggleMenu"
-    />
+    <!-- Game Menu Overlay. Teleported to <body> so it escapes the
+         InfoPanel's `z-index: 1` stacking context — otherwise tutorial
+         hints (z-index 10050+) sit on top of it because they're outside
+         this panel. -->
+    <Teleport to="body">
+      <GameMenuOverlay
+        v-if="menuOpen"
+        :field="field"
+        :field-engine="fieldEngine"
+        :current-player="currentPlayer"
+        :players="players"
+        :enable-fog-of-war="enableFogOfWar"
+        :min-speed="minSpeed"
+        :max-speed="maxSpeed"
+        :building-totals-override="buildingTotalsOverride"
+        :unit-modifier="unitModifier"
+        :base-modifier="baseModifier"
+        :fog-of-war-radius="fogOfWarRadius"
+        :handle-exit="handleMenuExit"
+        :handle-zoom-in="handleMenuZoomIn"
+        :handle-zoom-out="handleMenuZoomOut"
+        :handle-resume="toggleMenu"
+      />
+    </Teleport>
   </div>
 </template>
 
@@ -250,6 +260,21 @@ export default {
     fogOfWarRadius: {
       type: Number,
       default: 3,
+    },
+    // [tutorial] Disable Next unit + Undo (Undo via the parent's
+    // canUndo) while the tutorial input lock is engaged. Cells are
+    // gated separately in GameGrid via its own tutorialInputBlocked
+    // prop. The gear (Menu) button and right-click stay enabled.
+    tutorialInputBlocked: {
+      type: Boolean,
+      default: false,
+    },
+    // [tutorial] Independent gate for the End turn button so a
+    // forceEndTurn step can lock everything else while still
+    // allowing the player to end the turn.
+    tutorialEndTurnBlocked: {
+      type: Boolean,
+      default: false,
     },
   },
   emits: ['menuOpen'],

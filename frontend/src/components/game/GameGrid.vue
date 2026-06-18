@@ -28,6 +28,7 @@
                 :dying="dyingCells ? dyingCells.has(`${x},${y}`) : false"
                 :borning="borningCells ? borningCells.has(`${x},${y}`) : false"
                 :pending-birth="pendingBirthCells ? pendingBirthCells.has(`${x},${y}`) : false"
+                :tutorial-highlight="tutorialHighlightCoords.has(`${x},${y}`)"
                 :width="cellSize"
                 :height="cellSize"
                 :terrain="cellData.terrain"
@@ -198,6 +199,14 @@ export default {
       type: Set,
       default: null,
     },
+    // [tutorial] Swallow left clicks (cell selection / move) while
+    // the tutorial input lock is engaged (OK / forceEndTurn /
+    // forceUndo / lockAll). Right-click context help stays available
+    // so the player can still inspect cells.
+    tutorialInputBlocked: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -215,6 +224,9 @@ export default {
       visibilityFrameUnit: null,
       // Scout preview state: {x, y} or null (shown on hover/right-click in scout mode)
       scoutPreviewCoords: null,
+      // Tutorial-only: extra cells flagged for a pulsing highlight overlay.
+      // Set is empty unless the TutorialController emits 'tutorialHighlight'.
+      tutorialHighlightCoords: new Set(),
     }
   },
   computed: {
@@ -354,6 +366,8 @@ export default {
     emitter.on('setAction', this.setAction)
     emitter.on('saveCoords', this.saveCoords)
     emitter.on('getScrollCoordsByCell', this.getScrollCoordsByCell)
+    emitter.on('tutorialHighlight', this.setTutorialHighlight)
+    emitter.on('tutorialCenterOn', this.handleTutorialCenterOn)
     // Hide context help when clicking outside
     document.addEventListener('click', this.hideContextHelpOnOutsideClick)
   },
@@ -365,6 +379,8 @@ export default {
     emitter.off('setAction', this.setAction)
     emitter.off('saveCoords', this.saveCoords)
     emitter.off('getScrollCoordsByCell', this.getScrollCoordsByCell)
+    emitter.off('tutorialHighlight', this.setTutorialHighlight)
+    emitter.off('tutorialCenterOn', this.handleTutorialCenterOn)
     document.removeEventListener('click', this.hideContextHelpOnOutsideClick)
   },
   methods: {
@@ -398,18 +414,27 @@ export default {
       const unit = this.field[x][y].unit
       if (unit) {
         this.selectUnit(x, y, unit.movePoints)
-        const scrollCoords = this.getScrollCoordsByCell([x, y])
-        this.$refs.gameGridContainer.scrollTo(...scrollCoords)
+        // Trial: smooth-scroll instead of the previous instant teleport.
+        // `centerOnCell` is a no-op when the cell is already close to
+        // the viewport centre. Easy to revert by restoring scrollTo.
+        this.centerOnCell([x, y])
       }
     },
     selectUnit(x, y, movePoints) {
       this.selectedCoords = [x, y]
       this.removeHighlights()
       this.setHighlights(x, y, movePoints)
+      emitter.emit('tutorial:unitSelected', { x, y })
     },
     processClick(event, x, y) {
       // Don't process clicks if menu is open
       if (this.menuOpen) {
+        return
+      }
+      // [tutorial] Tutorial input lock active — swallow left clicks
+      // so they can't skip past the hint. Right-click still goes
+      // through handleContextMenu.
+      if (this.tutorialInputBlocked) {
         return
       }
 
@@ -624,6 +649,26 @@ export default {
       // We clear it on any leave since right-click will re-set it anyway
       if (this.selectedAction === ACTIONS.scouting) {
         this.scoutPreviewCoords = null
+      }
+    },
+    setTutorialHighlight(coords) {
+      const next = new Set()
+      if (coords && Array.isArray(coords)) {
+        for (const [x, y] of coords) next.add(`${x},${y}`)
+      }
+      this.tutorialHighlightCoords = next
+    },
+    async handleTutorialCenterOn(coords) {
+      if (!coords || !Array.isArray(coords) || coords.length < 2) return
+      // Tell the tutorial controller that a scroll is in flight so it
+      // can hide the next hint until the camera has actually settled —
+      // otherwise the hint paints on top of an in-progress smooth scroll
+      // and the player misses the camera moving.
+      emitter.emit('tutorial:scrollingChanged', true)
+      try {
+        await this.centerOnCell(coords)
+      } finally {
+        emitter.emit('tutorial:scrollingChanged', false)
       }
     },
   },

@@ -4,161 +4,159 @@
       <div class="menu-inner">
         <h2>Game Statistics</h2>
 
-      <!-- Game Statistics -->
-      <div class="statistics-section">
-        <!-- Speed Range -->
-        <div
-          class="speed-range"
-          @contextmenu.prevent="showHint($event, 'Speed range (min / max)')"
-        >
-          <div class="speed-icon-wrapper">
-            <img class="speed-icon" :src="getImagePath('speed_icon')" alt="Speed" loading="lazy" />
+        <!-- Game Statistics -->
+        <div class="statistics-section">
+          <!-- Speed Range -->
+          <div
+            class="speed-range"
+            @contextmenu.prevent="showHint($event, 'Speed range (min / max)')"
+          >
+            <div class="speed-icon-wrapper">
+              <img
+                class="speed-icon"
+                :src="getImagePath('speed_icon')"
+                alt="Speed"
+                loading="lazy"
+              />
+            </div>
+            <span class="speed-number">{{ speedRangeMin }}</span>
+            <span class="speed-dash">-</span>
+            <span class="speed-number">{{ speedRangeMax }}</span>
           </div>
-          <span class="speed-number">{{ speedRangeMin }}</span>
-          <span class="speed-dash">-</span>
-          <span class="speed-number">{{ speedRangeMax }}</span>
+
+          <!-- Building Stats Table -->
+          <div class="table-container">
+            <table class="buildings-table">
+              <thead>
+                <tr>
+                  <th class="player-header"></th>
+                  <th class="dino-header" @contextmenu.prevent="showHint($event, 'Dinos')">
+                    <img
+                      :src="getImagePath('dino_icon')"
+                      alt="Dinos"
+                      class="building-icon"
+                      loading="lazy"
+                    />
+                  </th>
+                  <th
+                    v-for="buildingType in visibleBuildingTypes"
+                    :key="buildingType.type"
+                    class="building-header"
+                    @contextmenu.prevent="showHint($event, buildingHint(buildingType.type))"
+                  >
+                    <img
+                      :src="getImagePath(buildingType.icon)"
+                      :alt="buildingType.name"
+                      class="building-icon"
+                      loading="lazy"
+                    />
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(playerBuildings, playerIndex) in allPlayersBuildings"
+                  :key="playerIndex"
+                  :class="{ 'current-player-row': playerIndex === currentPlayer }"
+                  :style="
+                    playerIndex === currentPlayer
+                      ? { backgroundColor: getPlayerColor(playerIndex) }
+                      : {}
+                  "
+                >
+                  <td
+                    class="player-cell"
+                    @contextmenu.prevent="showHint($event, playerHintLabel(playerIndex))"
+                  >
+                    <img
+                      :src="getImagePath('dino' + (playerIndex + 1))"
+                      :alt="`Player ${playerIndex + 1}`"
+                      class="player-icon"
+                      loading="lazy"
+                    />
+                  </td>
+                  <td class="dino-cell" @contextmenu.prevent="showHint($event, 'Dinos')">
+                    <span>{{ allPlayersDinos[playerIndex] || 0 }}</span>
+                  </td>
+                  <td
+                    v-for="buildingType in visibleBuildingTypes"
+                    :key="buildingType.type"
+                    class="building-cell"
+                    @contextmenu.prevent="showHint($event, buildingHint(buildingType.type))"
+                  >
+                    <span>
+                      {{ playerBuildings[buildingType.type] || 0 }}
+                    </span>
+                  </td>
+                </tr>
+                <tr class="total-row">
+                  <td
+                    class="player-cell total-label"
+                    @contextmenu.prevent="showHint($event, 'Total on the map')"
+                  >
+                    TOTAL
+                  </td>
+                  <td class="dino-cell"></td>
+                  <td
+                    v-for="buildingType in visibleBuildingTypes"
+                    :key="buildingType.type"
+                    class="building-cell"
+                    @contextmenu.prevent="showHint($event, buildingHint(buildingType.type))"
+                  >
+                    <span>
+                      {{ totalBuildings[buildingType.type] || 0 }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <!-- Building Stats Table -->
-        <div class="table-container">
-          <table class="buildings-table">
-            <thead>
-              <tr>
-                <th class="player-header"></th>
-                <th class="dino-header" @contextmenu.prevent="showHint($event, 'Dinos')">
-                  <img
-                    :src="getImagePath('dino_icon')"
-                    alt="Dinos"
-                    class="building-icon"
-                    loading="lazy"
-                  />
-                </th>
-                <th
-                  v-for="buildingType in visibleBuildingTypes"
-                  :key="buildingType.type"
-                  class="building-header"
-                  @contextmenu.prevent="showHint($event, buildingHint(buildingType.type))"
-                >
-                  <img
-                    :src="getImagePath(buildingType.icon)"
-                    :alt="buildingType.name"
-                    class="building-icon"
-                    loading="lazy"
-                  />
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(playerBuildings, playerIndex) in allPlayersBuildings"
-                :key="playerIndex"
-                :class="{ 'current-player-row': playerIndex === currentPlayer }"
-                :style="
-                  playerIndex === currentPlayer
-                    ? { backgroundColor: getPlayerColor(playerIndex) }
-                    : {}
-                "
-              >
-                <td
-                  class="player-cell"
-                  @contextmenu.prevent="showHint($event, playerHintLabel(playerIndex))"
-                >
-                  <img
-                    :src="getImagePath('dino' + (playerIndex + 1))"
-                    :alt="`Player ${playerIndex + 1}`"
-                    class="player-icon"
-                    loading="lazy"
-                  />
-                </td>
-                <td
-                  class="dino-cell"
-                  @contextmenu.prevent="showHint($event, 'Dinos')"
-                >
-                  <span>{{ allPlayersDinos[playerIndex] || 0 }}</span>
-                </td>
-                <td
-                  v-for="buildingType in visibleBuildingTypes"
-                  :key="buildingType.type"
-                  class="building-cell"
-                  @contextmenu.prevent="showHint($event, buildingHint(buildingType.type))"
-                >
-                  <span>
-                    {{ playerBuildings[buildingType.type] || 0 }}
-                  </span>
-                </td>
-              </tr>
-              <tr class="total-row">
-                <td
-                  class="player-cell total-label"
-                  @contextmenu.prevent="showHint($event, 'Total on the map')"
-                >
-                  TOTAL
-                </td>
-                <td class="dino-cell"></td>
-                <td
-                  v-for="buildingType in visibleBuildingTypes"
-                  :key="buildingType.type"
-                  class="building-cell"
-                  @contextmenu.prevent="showHint($event, buildingHint(buildingType.type))"
-                >
-                  <span>
-                    {{ totalBuildings[buildingType.type] || 0 }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- Menu Buttons -->
+        <div class="menu-buttons">
+          <button
+            @click="handleResume"
+            @contextmenu.prevent="showHint($event, 'Resume')"
+            class="menu-btn"
+            title="Resume"
+          >
+            <img
+              class="btn-icon btn-icon-resume"
+              :src="getImagePath('arrow')"
+              alt="Resume"
+              loading="lazy"
+            />
+          </button>
+          <button
+            @click="handleZoomIn"
+            @contextmenu.prevent="showHint($event, 'Zoom In')"
+            class="menu-btn"
+            title="Zoom In"
+          >
+            <img class="btn-icon" :src="getImagePath('plus')" alt="Zoom In" loading="lazy" />
+          </button>
+          <button
+            @click="handleZoomOut"
+            @contextmenu.prevent="showHint($event, 'Zoom Out')"
+            class="menu-btn"
+            title="Zoom Out"
+          >
+            <img class="btn-icon" :src="getImagePath('minus')" alt="Zoom Out" loading="lazy" />
+          </button>
+          <button
+            @click="handleExit"
+            @contextmenu.prevent="showHint($event, 'Exit')"
+            class="menu-btn"
+            title="Exit"
+          >
+            <img class="btn-icon" :src="getImagePath('exit_icon')" alt="Exit" loading="lazy" />
+          </button>
         </div>
-      </div>
-
-      <!-- Menu Buttons -->
-      <div class="menu-buttons">
-        <button
-          @click="handleResume"
-          @contextmenu.prevent="showHint($event, 'Resume')"
-          class="menu-btn"
-          title="Resume"
-        >
-          <img
-            class="btn-icon btn-icon-resume"
-            :src="getImagePath('arrow')"
-            alt="Resume"
-            loading="lazy"
-          />
-        </button>
-        <button
-          @click="handleZoomIn"
-          @contextmenu.prevent="showHint($event, 'Zoom In')"
-          class="menu-btn"
-          title="Zoom In"
-        >
-          <img class="btn-icon" :src="getImagePath('plus')" alt="Zoom In" loading="lazy" />
-        </button>
-        <button
-          @click="handleZoomOut"
-          @contextmenu.prevent="showHint($event, 'Zoom Out')"
-          class="menu-btn"
-          title="Zoom Out"
-        >
-          <img class="btn-icon" :src="getImagePath('minus')" alt="Zoom Out" loading="lazy" />
-        </button>
-        <button
-          @click="handleExit"
-          @contextmenu.prevent="showHint($event, 'Exit')"
-          class="menu-btn"
-          title="Exit"
-        >
-          <img class="btn-icon" :src="getImagePath('exit_icon')" alt="Exit" loading="lazy" />
-        </button>
-      </div>
       </div>
     </div>
     <!-- Right-click hint tooltip (positioned in viewport coords). -->
-    <div
-      v-if="hintVisible"
-      class="menu-hint"
-      :style="{ left: hintX + 'px', top: hintY + 'px' }"
-    >
+    <div v-if="hintVisible" class="menu-hint" :style="{ left: hintX + 'px', top: hintY + 'px' }">
       <b :style="hintContent.titleStyle">{{ hintContent.title }}</b>
       <template v-if="hintContent.description"> <br />{{ hintContent.description }} </template>
       <template v-if="hintContent.warning">
@@ -469,7 +467,9 @@ export default {
       event.stopPropagation()
       const rect = event.currentTarget.getBoundingClientRect()
       this.hintContent =
-        typeof content === 'string' ? { title: content, titleStyle: null, description: null, warning: false } : content
+        typeof content === 'string'
+          ? { title: content, titleStyle: null, description: null, warning: false }
+          : content
       this.hintX = rect.left + rect.width / 2
       this.hintY = rect.top - 6
       this.hintVisible = true
@@ -534,7 +534,13 @@ export default {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.7);
-  z-index: 10001;
+  /* Sits above TutorialHint (10050) and the end-of-scenario overlay
+     (10060) so the player can always quit a tutorial scenario via the
+     gear button. */
+  z-index: 10080;
+  /* Teleported to <body>, which doesn't inherit #app's font — restate
+     the project font here so the menu looks the same as before. */
+  font-family: 'RocknRoll One', Avenir, Helvetica, Arial, sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -547,7 +553,7 @@ export default {
    `transform` centres horizontally and lifts it above the click target. */
 .menu-hint {
   position: fixed;
-  z-index: 10002;
+  z-index: 10081;
   background-color: rgba(0, 0, 0, 0.85);
   color: white;
   padding: 6px 12px;
