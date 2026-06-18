@@ -8,6 +8,17 @@
       pendingBirth: pendingBirth,
     }"
   >
+    <!-- Birth "sun": procedurally seeded ray-burst that grows from the
+         cell centre out past the cell edge while the unit fades in. The
+         conic gradient draws evenly-spaced spokes; a radial mask soft-
+         edges them so the burst reads as a glow rather than a hard disc.
+         Per-instance seed (rotation, ray count, ray width) keeps each
+         birth visually distinct. -->
+    <div
+      v-if="borning"
+      class="birthSun"
+      :style="birthSunStyle"
+    ></div>
     <img
       class="unitImg"
       :style="{ width: calculatedWidth, height: calculatedHeight, left: left, top: top }"
@@ -71,9 +82,26 @@ export default {
     pendingBirth: Boolean,
   },
   data() {
-    // const fontSize = Math.max(this.width * 0.3, 12);
-    // const labelHeight = fontSize + 2;
+    // Per-instance random seed for the birth sun. GameUnit is created
+    // fresh whenever a unit spawns into an empty cell, so this is rolled
+    // once per birth — every burst has a slightly different ray layout.
+    // The silhouette is a clip-path polygon whose inner vertices sit close
+    // to the centre (`innerRatio` small), producing thin triangular spikes
+    // with gaps between them — the cell terrain is visible in the gaps.
+    // Each outer point gets a small length jitter so the rays don't look
+    // mechanically uniform.
+    const pointCount = 7 + Math.floor(Math.random() * 4) // 7–10 rays
+    const outerJitter = Array.from({ length: pointCount }, () => 0.85 + Math.random() * 0.15)
     return {
+      birthSunSeed: {
+        pointCount,
+        rotationDeg: Math.random() * 360,
+        // 0.22–0.4: valleys pulled back from the centre give each ray a
+        // thicker base so they read as broad sunbeams instead of thin
+        // spokes, while still leaving visible gaps between them.
+        innerRatio: 0.22 + Math.random() * 0.18,
+        outerJitter,
+      },
       cssProps: {
         // width: `${this.width * 0.9}px`,
         // height: `${this.height * 0.9}px`,
@@ -113,6 +141,37 @@ export default {
       // if (this.fontSize > 6) return this.fontSize + 1;
       return this.fontSize + 1
     },
+    // Inline style for the birth sun. Sized to ~130% of the cell so the
+    // ray tips poke into the neighbouring cells without sprawling far
+    // beyond. The clip-path polygon is generated from the per-instance
+    // seed: outer vertices (with a touch of length jitter) sit near the
+    // bounding box, inner vertices sit close to the centre, producing thin
+    // triangular spikes with the cell terrain visible in the gaps.
+    birthSunStyle() {
+      const { pointCount, rotationDeg, innerRatio, outerJitter } = this.birthSunSeed
+      const sunSize = 1.3
+      const offset = (1 - sunSize) / 2 // -0.15
+      const rotation = (rotationDeg * Math.PI) / 180
+      const totalVertices = pointCount * 2
+      const points = []
+      for (let i = 0; i < totalVertices; i++) {
+        const angle = (i / totalVertices) * Math.PI * 2 + rotation
+        const isOuter = i % 2 === 0
+        const r = isOuter ? outerJitter[i / 2] : innerRatio
+        const x = 50 + r * Math.cos(angle) * 50
+        const y = 50 + r * Math.sin(angle) * 50
+        points.push(`${x.toFixed(2)}% ${y.toFixed(2)}%`)
+      }
+      const clipPath = `polygon(${points.join(', ')})`
+      return {
+        width: `${this.width * sunSize}px`,
+        height: `${this.height * sunSize}px`,
+        left: `${this.width * offset}px`,
+        top: `${this.height * offset}px`,
+        clipPath,
+        WebkitClipPath: clipPath,
+      }
+    },
   },
 }
 </script>
@@ -131,6 +190,9 @@ img.unitImg {
   position: absolute;
   /*left: v-bind('cssProps.left');*/
   /*top: v-bind('cssProps.top');*/
+  /* Sit above the birth-sun ray burst (z-index 0) so the dino reads
+   * as appearing in front of the rays, not behind them. */
+  z-index: 1;
 }
 span.movePointsLabel {
   position: absolute;
@@ -189,21 +251,71 @@ img.damageOverlay {
   }
 }
 
-/* Birth animation: simple fade-in from fully transparent to fully solid
- * over BIRTH_ANIMATION_DELAY. `forwards` keeps the unit at full opacity
- * once the keyframe finishes — even if the controller's flag clears a
- * frame later, there's no blink. */
+/* Birth animation: the dino fades in fast over BIRTH_ANIMATION_DELAY
+ * while a procedural sun-ray burst (`.birthSun` below) grows past the
+ * cell edge behind it. `forwards` locks the unit at full opacity once
+ * the keyframe ends — the controller may clear the flag a frame later
+ * but there's no blink. */
 div.unitContainer.borning img.unitImg {
-  animation: dinoBirthFade v-bind('cssProps.birthDuration') forwards;
+  animation: dinoBirthFade v-bind('cssProps.birthDuration') ease-out forwards;
 }
 @keyframes dinoBirthFade {
   0% {
     opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
   }
   100% {
     opacity: 1;
+    transform: scale(1);
   }
 }
+
+/* The sun: a star with a handful of triangular rays radiating from the
+ * centre (silhouette set by the inline clip-path). The radial gradient
+ * keeps the inner core bright white and tapers the rays to a soft, semi-
+ * transparent tip so they read as light beams rather than a solid star.
+ *
+ * Scales from a pinprick at the cell centre out to ~130% of the cell,
+ * pops to peak opacity, holds briefly, then fades as the dino settles
+ * in front. `filter: drop-shadow` paints a soft halo around the clipped
+ * silhouette (background blur would get clipped) — gives the rays a
+ * faint glow instead of looking like cut-out construction paper. */
+div.birthSun {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  transform-origin: center center;
+  background: radial-gradient(
+    circle,
+    #ffffff 0%,
+    #ffffff 55%,
+    rgba(255, 252, 235, 0.92) 80%,
+    rgba(255, 240, 170, 0.45) 100%
+  );
+  filter: drop-shadow(0 0 4px rgba(255, 240, 180, 0.7));
+  animation: birthSunBurst v-bind('cssProps.birthDuration') ease-out forwards;
+}
+@keyframes birthSunBurst {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  25% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.1);
+    opacity: 0;
+  }
+}
+
 /* Pending-birth: the unit is on the field but its turn to fade in hasn't
  * come yet. Hold at opacity 0 (no animation) until the controller swaps
  * the class for `borning`. */

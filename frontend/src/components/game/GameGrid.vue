@@ -207,6 +207,14 @@ export default {
       type: Boolean,
       default: false,
     },
+    // Set by the controller while a birth/move/death animation is in
+    // flight. Mirrors `tutorialInputBlocked` — left clicks are swallowed
+    // so a unit can't be selected (and a follow-up move issued) before
+    // the current animation finishes; right-click inspection stays open.
+    isAnimating: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -435,6 +443,15 @@ export default {
       // so they can't skip past the hint. Right-click still goes
       // through handleContextMenu.
       if (this.tutorialInputBlocked) {
+        return
+      }
+      // Animation in flight — same swallow-left-click behaviour. Without
+      // this, a user could click another unit (or the same one's new
+      // destination) before the current walk/birth/death finishes; the
+      // controller's emitMoveUnit guard would silently drop the second
+      // move, leaving stale selection state. Right-click inspection is
+      // still allowed.
+      if (this.isAnimating) {
         return
       }
 

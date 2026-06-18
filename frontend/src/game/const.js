@@ -28,7 +28,7 @@ export const SCROLL_TO_BIRTHS = true
 // independent so the cadence can be tuned. Acts as the death-animation
 // window for that birth's kill-at-birth victims; pick >= DEATH_ANIMATION_DELAY
 // if you want the fade-out to fully complete before the camera moves on.
-export const BIRTH_ANIMATION_DELAY = 1000
+export const BIRTH_ANIMATION_DELAY = 300
 
 // Cell size constants for zoom levels
 export const MIN_CELL_SIZE = 10

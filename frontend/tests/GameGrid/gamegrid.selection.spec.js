@@ -183,5 +183,16 @@ describe('GameGrid unit selection and deselection', () => {
       vm.processClick({}, 2, 2)
       expect(vm.selectedCoords).toBeNull()
     })
+
+    it('cannot select while an animation is in flight', async () => {
+      field[2][2].unit = createUnit(0, 3, false)
+
+      wrapper = mountGameGrid({ isAnimating: true })
+      const vm = wrapper.vm
+
+      // Animation lock active — left click is swallowed before selection.
+      vm.processClick({}, 2, 2)
+      expect(vm.selectedCoords).toBeNull()
+    })
   })
 })
