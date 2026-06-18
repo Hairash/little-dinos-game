@@ -208,6 +208,11 @@ export const gameCoreMixin = {
      * Find and select the next available unit.
      */
     findNextUnit() {
+      // Don't cycle to a new unit while an animation is in flight — the
+      // InfoPanel button is also disabled in that window, but defence in
+      // depth keeps the multiplayer path (which can race with server
+      // patches) safe.
+      if (this.isAnimating) return
       const coordsArr = this.getCurrentUnitCoords()
       if (coordsArr.length === 0) return
       emitter.emit('selectNextUnit', coordsArr)

@@ -47,7 +47,8 @@
             menuOpen ||
             !isMyTurn ||
             (currentStats.units.active || 0) === 0 ||
-            tutorialInputBlocked
+            tutorialInputBlocked ||
+            isAnimating
           "
         >
           <img
@@ -131,7 +132,7 @@
           class="infoBtn endTurnBtn"
           @click="handleEndTurnBtnClick"
           @contextmenu.prevent="showContextHelp($event, 'End turn')"
-          :disabled="!isMyTurn || menuOpen || tutorialEndTurnBlocked"
+          :disabled="!isMyTurn || menuOpen || tutorialEndTurnBlocked || isAnimating"
           title="End turn"
         >
           <img
@@ -273,6 +274,13 @@ export default {
     // forceEndTurn step can lock everything else while still
     // allowing the player to end the turn.
     tutorialEndTurnBlocked: {
+      type: Boolean,
+      default: false,
+    },
+    // Disable Next-unit / End-turn while the controller is animating a
+    // birth / move / death. Undo is gated separately via the parent's
+    // canUndo (which already factors isAnimating in).
+    isAnimating: {
       type: Boolean,
       default: false,
     },

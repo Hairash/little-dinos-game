@@ -33,6 +33,7 @@
     :borning-cells="borningCells"
     :pending-birth-cells="pendingBirthCells"
     :tutorial-input-blocked="tutorialInputBlocked"
+    :is-animating="isAnimating"
   />
   <InfoPanel
     v-if="state === STATES.play"
@@ -59,6 +60,7 @@
     :handle-undo-click="undoLastMove"
     :tutorial-input-blocked="tutorialInputBlocked"
     :tutorial-end-turn-blocked="tutorialEndTurnBlocked"
+    :is-animating="isAnimating"
     @menu-open="handleMenuOpen"
   />
   <ExitDialog

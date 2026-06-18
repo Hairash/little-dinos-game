@@ -27,6 +27,7 @@
     :dying-cells="dyingCells"
     :borning-cells="borningCells"
     :pending-birth-cells="pendingBirthCells"
+    :is-animating="isAnimating"
   />
   <InfoPanel
     v-if="state === STATES.play || (state === STATES.ready && !showReadyLabel)"
@@ -55,6 +56,7 @@
     :fog-of-war-radius="fogOfWarRadius"
     :can-undo="canUndo && isMyTurn && winner === null"
     :handle-undo-click="undoLastMove"
+    :is-animating="isAnimating"
     @menu-open="handleMenuOpen"
   />
   <ExitDialog

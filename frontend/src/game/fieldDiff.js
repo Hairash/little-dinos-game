@@ -4,6 +4,8 @@
  * storing only the changed cells for memory efficiency.
  */
 
+import Models from '@/game/models'
+
 /**
  * Compute the diff between two field states.
  * Returns an array of cells that changed, storing the ORIGINAL values (from oldField).
@@ -87,9 +89,11 @@ function cellsEqual(cellA, cellB) {
  */
 export function applyFieldDiff(field, diff) {
   for (const { x, y, cell } of diff) {
-    // Restore the original cell (deep clone to avoid reference issues)
-    // Use JSON.parse/stringify for compatibility with Vue reactive proxies
-    field[x][y].unit = cell.unit ? JSON.parse(JSON.stringify(cell.unit)) : null
-    field[x][y].building = cell.building ? JSON.parse(JSON.stringify(cell.building)) : null
+    // Rebuild as Unit/Building instances — GameCell's prop validators
+    // require `instanceof`, and the stored cell was deep-cloned to plain
+    // objects to survive Vue reactive proxies. fromJSON also gives us a
+    // fresh copy, so no reference leak back into the diff.
+    field[x][y].unit = Models.Unit.fromJSON(cell.unit)
+    field[x][y].building = Models.Building.fromJSON(cell.building)
   }
 }
