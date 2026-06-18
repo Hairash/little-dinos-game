@@ -1153,7 +1153,6 @@ span.labelForInput {
   padding-top: 4px;
 }
 
-
 #buildings-settings {
   width: 360px;
   margin: 0 auto;

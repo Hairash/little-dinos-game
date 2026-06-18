@@ -4,11 +4,7 @@ import DinoGame from '@/components/game/DinoGame.vue'
 import { FieldEngine } from '@/game/fieldEngine.js'
 import { WaveEngine } from '@/game/waveEngine.js'
 import Models from '@/game/models.js'
-import {
-  BIRTH_ANIMATION_DELAY,
-  DEATH_ANIMATION_DELAY,
-  MOVE_ANIMATION_DELAY,
-} from '@/game/const'
+import { BIRTH_ANIMATION_DELAY, DEATH_ANIMATION_DELAY, MOVE_ANIMATION_DELAY } from '@/game/const'
 
 function makeGrid(w, h, hidden = false) {
   return Array.from({ length: w }, () =>
@@ -191,7 +187,7 @@ describe('DinoGame animation input gating', () => {
     vi.useRealTimers()
   })
 
-  it('does not call centerOnCell for the human player\'s own move', async () => {
+  it("does not call centerOnCell for the human player's own move", async () => {
     // The human is driving the move themselves — the camera should stay
     // where they clicked. Centering only kicks in for moves of units
     // that aren't theirs (e.g. bot moves).
@@ -388,7 +384,7 @@ describe('DinoGame animation input gating', () => {
     vi.useRealTimers()
   })
 
-  it('skips enemy births that are in the human player\'s fog', async () => {
+  it("skips enemy births that are in the human player's fog", async () => {
     vi.useFakeTimers()
     const vm = makeWrapper(5, 5, true)
     vm.players = [

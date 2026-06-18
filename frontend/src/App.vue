@@ -57,6 +57,34 @@
     @exit-game="handleExitMultiplayerGame"
   />
   <GameHelp v-if="state === GAME_STATES.help" />
+  <TutorialPage v-if="state === GAME_STATES.tutorial" />
+  <DinoGame
+    v-if="state === GAME_STATES.tutorialGame && currentTutorialScenario"
+    :key="`tutorial-${currentTutorialScenario.id}-${tutorialRunId}`"
+    :tutorial-scenario="currentTutorialScenario"
+    :human-players-num="currentTutorialScenario.settings.humanPlayersNum"
+    :bot-players-num="currentTutorialScenario.settings.botPlayersNum"
+    :width="currentTutorialScenario.settings.width"
+    :height="currentTutorialScenario.settings.height"
+    :scores-to-win="currentTutorialScenario.settings.scoresToWin"
+    :sectors-num="currentTutorialScenario.settings.sectorsNum"
+    :enable-fog-of-war="currentTutorialScenario.settings.enableFogOfWar"
+    :fog-of-war-radius="currentTutorialScenario.settings.fogOfWarRadius"
+    :enable-scout-mode="currentTutorialScenario.settings.enableScoutMode"
+    :visibility-speed-relation="currentTutorialScenario.settings.visibilitySpeedRelation"
+    :min-speed="currentTutorialScenario.settings.minSpeed"
+    :speed-min-visibility="currentTutorialScenario.settings.speedMinVisibility"
+    :max-speed="currentTutorialScenario.settings.maxSpeed"
+    :max-units-num="currentTutorialScenario.settings.maxUnitsNum"
+    :max-bases-num="currentTutorialScenario.settings.maxBasesNum"
+    :unit-modifier="currentTutorialScenario.settings.unitModifier"
+    :base-modifier="currentTutorialScenario.settings.baseModifier"
+    :building-rates="currentTutorialScenario.settings.buildingRates"
+    :enable-undo="currentTutorialScenario.settings.enableUndo"
+    :hide-enemy-speed="currentTutorialScenario.settings.hideEnemySpeed"
+    :kill-at-birth="currentTutorialScenario.settings.killAtBirth"
+    :load-game="false"
+  />
 </template>
 
 <script>
@@ -65,8 +93,10 @@ import GameSetup from '@/components/game/GameSetup.vue'
 import DinoGame from '@/components/game/DinoGame.vue'
 import MultiplayerDinoGame from '@/components/game/MultiplayerDinoGame.vue'
 import GameHelp from '@/components/game/GameHelp.vue'
+import TutorialPage from '@/components/tutorial/TutorialPage.vue'
 import LoginPage from '@/components/pages/LoginPage.vue'
 import LobbyPage from '@/components/pages/LobbyPage.vue'
+import { getScenarioById } from '@/game/tutorialScenarios'
 import emitter from '@/game/eventBus'
 import {
   DEFAULT_BUILDING_RATES,
@@ -88,6 +118,7 @@ export default {
     DinoGame,
     MultiplayerDinoGame,
     GameHelp,
+    TutorialPage,
   },
   data() {
     return {
@@ -98,6 +129,10 @@ export default {
       currentGameCode: null,
       currentGameState: null,
       multiplayerSettings: null, // Store custom settings for multiplayer game
+      currentTutorialScenario: null,
+      // Bumped each time a tutorial scenario starts so the DinoGame instance
+      // is fully remounted (rebuilds field, players, engines from scratch).
+      tutorialRunId: 0,
     }
   },
   mounted() {
@@ -105,6 +140,7 @@ export default {
     emitter.on('loadGame', this.loadGame)
     emitter.on('goToPage', this.goToPage)
     emitter.on('startMultiplayer', this.startMultiplayer)
+    emitter.on('startTutorialScenario', this.startTutorialScenario)
 
     emitter.on('joinGame', this.callJoinGame)
     emitter.on('createGame', this.callCreateGame)
@@ -307,6 +343,16 @@ export default {
     goToPage(page) {
       this.state = page
     },
+    startTutorialScenario(scenarioId) {
+      const scenario = getScenarioById(scenarioId)
+      if (!scenario) {
+        console.warn('Unknown tutorial scenario:', scenarioId)
+        return
+      }
+      this.currentTutorialScenario = scenario
+      this.tutorialRunId += 1
+      this.state = this.GAME_STATES.tutorialGame
+    },
     loadGame() {
       const loadGamePossible = !!localStorage.getItem('field')
       if (!loadGamePossible) {
@@ -392,6 +438,7 @@ export default {
     emitter.off('loadGame', this.loadGame)
     emitter.off('goToPage', this.goToPage)
     emitter.off('startMultiplayer', this.startMultiplayer)
+    emitter.off('startTutorialScenario', this.startTutorialScenario)
     emitter.off('multiplayerSettingsConfigured', this.handleMultiplayerSettingsConfigured)
     // TODO: Check we didn't forget smth
   },

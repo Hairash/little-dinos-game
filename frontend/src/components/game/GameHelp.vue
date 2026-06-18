@@ -6,6 +6,14 @@
       </button>
       <div id="contentBlock">
         <h1>Game rules</h1>
+        <h3>Tutorial</h3>
+        <p class="tutorial-intro">
+          Prefer learning by doing? Try the interactive tutorial — it walks you
+          through every mechanic with hands-on scenarios.
+        </p>
+        <button type="button" class="tutorialBtn" @click="handleTutorialBtnClick">
+          Start tutorial
+        </button>
         <h3>Summary</h3>
         <div class="text-block">
           🌿 At the start of each turn, every empty tower of your color spawns a new dino with a
@@ -101,11 +109,12 @@
           To apply effect of first four buildings, your dino should stay on them at the beginning of
           the turn. Effect of obelisk applies when dino ends move on it.<br />
           <div class="context-help-example">
-            Right-click on a dino to see it's visibility radius - handy
-            for planning moves with fog of war enabled.
+            Right-click on a dino to see it's visibility radius - handy for planning moves with fog
+            of war enabled.
           </div>
           <div class="context-help-example">
-            Right-click on a cell during scouting action (staying on an obelisk) to see the area it will reveal.
+            Right-click on a cell during scouting action (staying on an obelisk) to see the area it
+            will reveal.
           </div>
           <br />
           <br />
@@ -173,6 +182,9 @@ export default {
     handleBackBtnClick() {
       emitter.emit('goToPage', GAME_STATES.menu)
     },
+    handleTutorialBtnClick() {
+      emitter.emit('goToPage', GAME_STATES.tutorial)
+    },
   },
 }
 </script>
@@ -215,6 +227,47 @@ export default {
 h1 {
   margin: 0;
   padding: 30px;
+}
+
+.tutorial-intro {
+  margin: 0 auto 16px;
+  max-width: 540px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* Same plate-image button style as the main menu (long_menu_button.png),
+ * sized down a bit so it fits inside the help page without dominating
+ * the section. Width / height proportions match the menu (~3.7:1). */
+button.tutorialBtn {
+  display: block;
+  margin: 0 auto 40px;
+  width: 100%;
+  max-width: 220px;
+  height: 60px;
+  min-height: 44px;
+  background: url('/images/long_menu_button.png') no-repeat center center;
+  background-size: 100% 100%;
+  background-color: transparent;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  font-family: inherit;
+  font-weight: bold;
+  text-shadow: 2px 2px 4px #000;
+  cursor: pointer;
+  outline: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
+}
+
+button.tutorialBtn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 .text-block {

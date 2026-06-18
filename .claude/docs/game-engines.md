@@ -48,10 +48,14 @@ new FieldEngine(
 
 | Method | Parameters | Returns | Description |
 |--------|------------|---------|-------------|
-| `restoreAndProduceUnits(player)` | player index | `{buildingsNum, unitsNum, producedNum}` | Reset movement, spawn units at bases |
+| `restoreAndProduceUnits(player, opts?)` | player index, optional `{deferKills}` | `{buildingsNum, unitsNum, producedNum, killedCoords, births}` | Reset movement, spawn units at bases. With `deferKills: true` returns per-birth records (and would-be victims) without applying kill-at-birth; the caller animates and calls `applyKillsAtCoords` to actually remove them. Reads `minSpeed` / `maxSpeed` / `maxUnitsNum` via `playerSetting(player, key)` so tutorial scenarios can give each player its own production rules. |
+| `applyKillsAtCoords(player, coords)` | player, `[[x,y], ...]` | void | Apply kill-at-birth at the supplied cells (paired with `deferKills`). Used by the tutorial flow so the death animation can play before the units disappear. |
+| `setPlayerOverrides(overrides)` | `{ [playerIdx]: {...} }` or null | void | Tutorial hook. Stores per-player setting overrides (consulted by `playerSetting`). Affects production only — initial unit placement uses the values handed to the constructor. |
+| `playerSetting(player, key)` | player index, setting name | value | Returns `playerOverrides?.[player]?.[key]` if defined, else `this[key]`. |
 | `moveUnit(from, to)` | coord arrays | void | Move unit, handle capture |
 | `killNeighbours(x, y, player)` | coords, player | void | Kill adjacent enemy units |
-| `captureBuilding(x, y, player)` | coords, player | boolean | Capture building for player |
+| `findKillNeighbours(x, y, player)` | coords, player | `[[x,y], ...]` | Same predicate as `killNeighbours` but read-only; used to drive the death animation before the units are actually removed. |
+| `captureBuildingIfNeeded(x, y, player)` | coords, player | boolean | Capture building for player (respects base limit) |
 | `getVisibleObjRadius(x, y, player, ...)` | coords, player | number | Get visibility radius of object |
 | `areAllUnitsOnBuildings(player)` | player index | boolean | Check if all units are on buildings |
 

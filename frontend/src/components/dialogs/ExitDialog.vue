@@ -29,7 +29,10 @@ export default {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  /* Sits above every tutorial layer (TutorialHint 10050, end-of-
+     scenario overlay 10060, in-game gear menu 10080) so the exit
+     confirmation is always reachable from anywhere in a scenario. */
+  z-index: 10090;
 }
 
 .exit-dialog-btn {
@@ -42,7 +45,7 @@ export default {
   padding: 10px 20px;
   border-radius: 5px;
   cursor: pointer;
-  z-index: 1001;
+  z-index: 10091;
   font-family: inherit;
 }
 

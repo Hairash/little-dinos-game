@@ -7,7 +7,7 @@ little-dinos-game/
 ├── frontend/                    # Vue.js 3 + Vite
 │   ├── src/
 │   │   ├── components/          # Vue components
-│   │   │   ├── DinoGame.vue     # Single-player game controller
+│   │   │   ├── DinoGame.vue     # Single-player + tutorial game controller
 │   │   │   ├── MultiplayerDinoGame.vue  # Multiplayer game controller
 │   │   │   ├── GameGrid.vue     # Game board rendering
 │   │   │   ├── GameCell.vue     # Individual cell
@@ -15,15 +15,21 @@ little-dinos-game/
 │   │   │   ├── GameBuilding.vue # Building rendering
 │   │   │   ├── InfoPanel.vue    # Bottom HUD panel
 │   │   │   ├── ReadyLabel.vue   # Turn start overlay (single-player)
-│   │   │   └── MultiplayerReadyLabel.vue  # Turn overlay (multiplayer)
+│   │   │   ├── MultiplayerReadyLabel.vue  # Turn overlay (multiplayer)
+│   │   │   └── tutorial/        # Tutorial mode (see tutorial.md)
+│   │   │       ├── TutorialPage.vue        # Scenario-list screen
+│   │   │       ├── TutorialController.vue  # Orchestrator (child of DinoGame)
+│   │   │       └── TutorialHint.vue        # Hint UI
 │   │   ├── game/                # Game logic (non-Vue)
 │   │   │   ├── models.js        # Data models (Unit, Building, Cell, Player)
 │   │   │   ├── const.js         # Game constants and settings
 │   │   │   ├── helpers.js       # Utility functions
 │   │   │   ├── fieldEngine.js   # Field operations, visibility, production
+│   │   │   │                    #   (incl. per-player setting overrides)
 │   │   │   ├── waveEngine.js    # Pathfinding (BFS wave algorithm)
 │   │   │   ├── botEngine.js     # AI player logic
 │   │   │   ├── createFieldEngine.js  # Field generation
+│   │   │   ├── tutorialScenarios.js  # Tutorial scenarios + helpers
 │   │   │   ├── mixins/          # Vue mixins
 │   │   │   │   └── gameCoreMixin.js  # Shared component logic
 │   │   │   ├── gameWebSocket.js # WebSocket client for game
@@ -138,6 +144,20 @@ User Input → Vue Component → WebSocket → Server → WebSocket → State Up
 5. Server broadcasts state patch
 6. Client applies patch to local state
 7. Vue updates UI
+
+## Tutorial Mode
+
+The tutorial is a third "mode" of the game, but it does **not** have a
+dedicated controller. It reuses `DinoGame.vue` and every engine
+underneath it; a `tutorialScenario` prop is the only switch. A child
+`TutorialController` mounts inside `DinoGame` when the prop is set,
+listens to the event bus, drives the on-screen hint, and emits the
+input-lock state.
+
+Scenarios are pure data (field layout, players, scripted hint steps)
+in `frontend/src/game/tutorialScenarios.js`. See `tutorial.md` for the
+full data model, event surface, and the list of behavioural guards
+`DinoGame` applies in tutorial mode.
 
 ## State Management
 

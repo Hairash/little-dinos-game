@@ -786,12 +786,7 @@ export default {
         // Check if the last move was to an obelisk and trigger scouting
         // action. Skipped when fog of war is off — scouting reveals fog,
         // and with no fog there's nothing to reveal.
-        if (
-          this.enableFogOfWar &&
-          patch.lastMove &&
-          patch.lastMove.toCoords &&
-          this.fieldEngine
-        ) {
+        if (this.enableFogOfWar && patch.lastMove && patch.lastMove.toCoords && this.fieldEngine) {
           const [x, y] = patch.lastMove.toCoords
           if (
             this.localField[x] &&

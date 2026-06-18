@@ -6,7 +6,13 @@ import Models from '@/game/models'
  */
 export function getBuildingHintContent(
   buildingType,
-  { unitModifier = 3, baseModifier = 3, fogOfWarRadius = 3, playerColor = null, warning = false } = {}
+  {
+    unitModifier = 3,
+    baseModifier = 3,
+    fogOfWarRadius = 3,
+    playerColor = null,
+    warning = false,
+  } = {}
 ) {
   const towerTitleStyle = playerColor ? { color: playerColor } : null
 

@@ -3,6 +3,8 @@
     class="cell"
     :class="{ hidden: hidden, selected: selected, highlighted: highlighted }"
     :style="{ width: `${width}px`, height: `${height}px` }"
+    :data-cell-x="cellX"
+    :data-cell-y="cellY"
     @contextmenu.prevent="handleContextMenu"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
@@ -16,6 +18,11 @@
     <div
       class="cellSelection"
       :class="{ selected: selected, highlighted: highlighted }"
+      :style="{ width: `${width}px`, height: `${height}px` }"
+    ></div>
+    <div
+      v-if="tutorialHighlight"
+      class="tutorialHighlight"
       :style="{ width: `${width}px`, height: `${height}px` }"
     ></div>
     <GameBuilding
@@ -108,6 +115,9 @@ export default {
     // hasn't started yet. GameUnit holds opacity 0 (no animation) until
     // the controller swaps to `borning`.
     pendingBirth: Boolean,
+    // Tutorial-only: pulse a marker on this cell to draw the player's
+    // attention (e.g., "move your dino here"). Off in normal play.
+    tutorialHighlight: Boolean,
   },
   computed: {
     transitionOpacity() {
@@ -236,5 +246,29 @@ div.cell .cellSelection.highlighted {
   width: 40%;
   height: 40%;
   pointer-events: none;
+}
+
+div.tutorialHighlight {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 3;
+  box-sizing: border-box;
+  border: 3px solid #ffd700;
+  background-color: rgba(255, 215, 0, 0.25);
+  animation: tutorial-cell-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes tutorial-cell-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px 1px rgba(255, 215, 0, 0.6);
+    background-color: rgba(255, 215, 0, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 12px 4px rgba(255, 215, 0, 0.9);
+    background-color: rgba(255, 215, 0, 0.4);
+  }
 }
 </style>
