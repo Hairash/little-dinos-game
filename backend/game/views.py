@@ -13,8 +13,9 @@ from django.views.decorators.http import require_http_methods
 
 from server.utils.decorators import login_required_json
 
-from .models import Game, GamePlayer
+from .models import Game, GamePlayer, SavedMap
 from .services.field import generate_field
+from .services.map_snapshot import capture_initial_snapshot, hydrate_field_for_game
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -189,9 +190,37 @@ def start_game(request, game_code):
     settings_dict["humanPlayersNum"] = GamePlayer.objects.filter(game=game).count()
     # TODO: Get bot players number
     settings_dict["botPlayersNum"] = 0
+
+    # Saved-map launch: when the host picked a map via the lobby's "Load
+    # Map" button, the client sends the full canonical Map under
+    # `initialMap`. We use its field directly and merge its settings
+    # over the request's settings so the game runs with the map's tuning.
+    initial_map = settings_dict.pop("initialMap", None)
+    if initial_map and isinstance(initial_map, dict) and initial_map.get("field"):
+        meta = initial_map.get("metadata", {}) or {}
+        # Map settings + width/height/playersNum override the lobby's.
+        settings_dict.update(initial_map.get("settings", {}) or {})
+        settings_dict["humanPlayersNum"] = meta.get(
+            "humanPlayersNum", settings_dict["humanPlayersNum"]
+        )
+        settings_dict["botPlayersNum"] = meta.get("botPlayersNum", settings_dict["botPlayersNum"])
+        if "width" in meta:
+            settings_dict["width"] = meta["width"]
+        if "height" in meta:
+            settings_dict["height"] = meta["height"]
+        # Re-derive per-cell isHidden and per-unit movePoints/visibility/
+        # hasMoved from settings — the canonical schema strips those so
+        # the saved map stays portable, but the engine needs them seeded
+        # before turn 1 or units land with undefined speed.
+        game.field = hydrate_field_for_game(initial_map["field"], settings_dict)
+    else:
+        game.field = generate_field(settings_dict)
+
     game.settings = settings_dict
-    game.field = generate_field(settings_dict)
     game.save(update_fields=["status", "settings", "field"])
+    # Snapshot the starting field once, before any move arrives. Idempotent —
+    # safe even if a future code path re-enters this view.
+    capture_initial_snapshot(game)
 
     # Broadcast game state to all connected players in lobby
     # Note: Don't send field here - each player will get their filtered field when connecting to GameConsumer
@@ -300,3 +329,27 @@ def get_active_games(request):
     except Exception as e:
         logger.error(f"Error getting active games: {e}", exc_info=True)
         return JsonResponse({"games": [], "total": 0, "hasMore": False})
+
+
+@login_required_json
+@require_http_methods(["GET"])
+def list_saved_maps(request):
+    """Return the current user's saved maps as a JSON array.
+
+    Each entry is the full canonical Map document — the SavedMapsPage
+    needs the field data to render the preview, so a thin list response
+    isn't enough.
+    """
+    maps = SavedMap.objects.filter(user=request.user).order_by("-created_at")
+    return JsonResponse({"savedMaps": [m.data for m in maps]})
+
+
+@csrf_exempt
+@login_required_json
+@require_http_methods(["DELETE"])
+def delete_saved_map(request, name):
+    """Delete one of the current user's saved maps by name."""
+    deleted, _ = SavedMap.objects.filter(user=request.user, name=name).delete()
+    if not deleted:
+        return JsonResponse({"error": "Saved map not found"}, status=404)
+    return JsonResponse({"message": "Deleted"})

@@ -4,27 +4,12 @@
     :class="finalAnchorClass"
     :style="finalCellPos ? cellPositionStyle : null"
   >
-    <div
-      class="tutorial-hint"
-      :class="{ 'has-shift': clickable }"
-      @click="toggleShift"
-    >
-      <img
-        v-if="imageSrc"
-        class="tutorial-hint-image"
-        :src="imageSrc"
-        :alt="image"
-      />
+    <div class="tutorial-hint" :class="{ 'has-shift': clickable }" @click="toggleShift">
+      <img v-if="imageSrc" class="tutorial-hint-image" :src="imageSrc" :alt="image" />
       <div class="tutorial-hint-text">{{ text }}</div>
       <div v-if="hintNote" class="tutorial-hint-note">{{ hintNote }}</div>
       <div v-if="showOk" class="tutorial-hint-actions">
-        <button
-          type="button"
-          class="tutorial-hint-btn"
-          @click.stop="$emit('ok')"
-        >
-          OK
-        </button>
+        <button type="button" class="tutorial-hint-btn" @click.stop="$emit('ok')">OK</button>
       </div>
       <div v-else class="tutorial-hint-waiting">
         <span class="tutorial-hint-dot"></span>
@@ -261,7 +246,6 @@ export default {
   cursor: pointer;
   text-shadow: 1px 1px 2px #000;
 }
-
 
 .tutorial-hint-waiting {
   display: flex;

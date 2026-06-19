@@ -45,7 +45,9 @@ export default {
   },
   methods: {
     handleBackBtnClick() {
-      emitter.emit('goToPage', GAME_STATES.menu)
+      // Tutorial lives under the New Game submenu now; back returns
+      // there rather than jumping all the way to the main menu.
+      emitter.emit('goToPage', GAME_STATES.newGame)
     },
     handleScenarioClick(id) {
       emitter.emit('startTutorialScenario', id)

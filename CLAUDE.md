@@ -79,4 +79,4 @@ Frontend: `VITE_API_BASE` — defaults to `http://localhost:8008`.
 
 ## Further Reading
 
-`.claude/docs/` contains deeper docs maintained alongside the code: `architecture.md`, `game-engines.md`, `game-components.md`, `game-rules.md`, `mixins.md`, `troubleshooting.md`, `deployment-guide.md`, `security-guidelines.md`, `api/`. Also: `LINTING.md` (lint ordering rationale), `HOWTO.md` (first-time setup).
+`.claude/docs/` contains deeper docs maintained alongside the code: `architecture.md`, `game-engines.md`, `game-components.md`, `game-rules.md`, `mixins.md`, `sub-menu-pages.md` (back-arrow / title layout pattern + confirm-dialog usage for sub-menu pages — read this before adding a new full-screen page outside the in-game view), `troubleshooting.md`, `deployment-guide.md`, `security-guidelines.md`, `api/`. Also: `LINTING.md` (lint ordering rationale), `HOWTO.md` (first-time setup).

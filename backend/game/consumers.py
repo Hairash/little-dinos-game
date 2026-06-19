@@ -4,7 +4,7 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth.models import AnonymousUser
 
-from .models import Game, GamePlayer, Move
+from .models import Game, GamePlayer, Move, SavedMap
 from .services.game_logic import (
     apply_end_turn_txn,
     apply_move_txn,
@@ -12,6 +12,7 @@ from .services.game_logic import (
     apply_undo_txn,
     get_active_players,
 )
+from .services.map_snapshot import to_canonical_map
 from .services.visibility import calculate_visibility, filter_field_for_player
 
 
@@ -45,6 +46,68 @@ def _compute_building_totals(field, width, height):
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
+
+
+def _save_map_txn(game_code, user_id, name):
+    """Persist a SavedMap from the current Game's ``initial_field``.
+
+    Returns ``(True, {"name": ...})`` on success, or
+    ``(False, {"reason": ...})`` on validation/auth failure. Runs in a
+    sync context — the consumer wraps the call in
+    ``database_sync_to_async``.
+    """
+    from datetime import datetime, timezone
+
+    name = (name or "").strip()
+    if not name:
+        return False, {"reason": "Name is required"}
+    if len(name) > 120:
+        return False, {"reason": "Name is too long (max 120 chars)"}
+    if user_id is None:
+        return False, {"reason": "Not authenticated"}
+
+    try:
+        game = Game.objects.get(game_code=game_code)
+    except Game.DoesNotExist:
+        return False, {"reason": "Game not found"}
+
+    # Membership check: only players in the game can save its map.
+    if not GamePlayer.objects.filter(game=game, player_id=user_id).exists():
+        return False, {"reason": "Not a member of this game"}
+
+    if not game.initial_field:
+        return False, {"reason": "No starting snapshot available for this game"}
+
+    # Name conflict (unique per user). Surfaced explicitly so the
+    # client can swap to a postfixed default.
+    if SavedMap.objects.filter(user_id=user_id, name=name).exists():
+        return False, {"reason": f'Map "{name}" already exists'}
+
+    settings = game.settings or {}
+    # Materialise a minimal "players" list from the GamePlayer rows.
+    # Human/bot mix isn't modelled per-seat in this codebase today — every
+    # multiplayer seat is a human. If/when bots arrive, this is the only
+    # place that has to learn about them.
+    players = [{"_type": "human"} for _ in GamePlayer.objects.filter(game=game).order_by("order")]
+
+    canonical = to_canonical_map(
+        field=game.initial_field,
+        settings=settings,
+        players=players,
+        name=name,
+        saved_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    )
+
+    meta = canonical["metadata"]
+    SavedMap.objects.create(
+        user_id=user_id,
+        name=name,
+        data=canonical,
+        players_num=meta["playersNum"],
+        width=meta["width"],
+        height=meta["height"],
+    )
+    return True, {"name": name}
 
 
 def room(game_code):
@@ -163,6 +226,18 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 {"t": "err", "code": "AUTH_REQUIRED", "message": "Authentication required"}
             )
             return
+
+        # Handle "save current game's starting state as a map".
+        if msg.get("t") == "save_map":
+            payload = msg.get("payload", {}) or {}
+            name = (payload.get("name") or "").strip()
+            user_id = getattr(self.user, "id", None)
+            ok, res = await database_sync_to_async(_save_map_txn)(self.game_code, user_id, name)
+            if ok:
+                return await self.send_json({"t": "map_saved", "payload": {"name": res["name"]}})
+            return await self.send_json(
+                {"t": "map_save_error", "payload": {"reason": res["reason"]}}
+            )
 
         # Handle game move messages
         if msg.get("t") != "move":

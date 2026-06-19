@@ -57,12 +57,22 @@
     :can-undo="canUndo && isMyTurn && winner === null"
     :handle-undo-click="undoLastMove"
     :is-animating="isAnimating"
+    :can-save-map="true"
     @menu-open="handleMenuOpen"
   />
   <ExitDialog
     v-if="state === STATES.exitDialog"
     :handle-cancel="() => (state = STATES.play)"
     :handle-confirm="exitGame"
+  />
+  <SaveMapDialog
+    v-if="showSaveMapDialog"
+    :default-name="saveMapDefaultName"
+    :exists-check="() => false"
+    :server-error="saveMapError"
+    :busy="saveMapBusy"
+    @save="handleSaveMapConfirm"
+    @cancel="handleSaveMapCancel"
   />
   <!-- Notifications -->
   <div id="notifications-container">
@@ -86,6 +96,7 @@
 import GameGrid from '@/components/game/GameGrid.vue'
 import InfoPanel from '@/components/game/InfoPanel.vue'
 import ExitDialog from '@/components/dialogs/ExitDialog.vue'
+import SaveMapDialog from '@/components/dialogs/SaveMapDialog.vue'
 import MultiplayerReadyLabel from '@/components/game/MultiplayerReadyLabel.vue'
 import Models from '@/game/models'
 import { WaveEngine } from '@/game/waveEngine'
@@ -93,6 +104,7 @@ import { FieldEngine } from '@/game/fieldEngine'
 import { GameWebSocket } from '@/game/websocket/gameWebSocket'
 import { whoami } from '@/services/auth'
 import { normalizeField, getPlayerColor } from '@/game/helpers'
+import { todayDateStr } from '@/game/mapStorage'
 import {
   ACTIONS,
   BIRTH_ANIMATION_DELAY,
@@ -118,6 +130,7 @@ export default {
     GameGrid,
     InfoPanel,
     ExitDialog,
+    SaveMapDialog,
   },
   emits: ['exitGame'],
   props: {
@@ -209,6 +222,12 @@ export default {
       // opens the new turn looking at empty bases) and drained one at a
       // time as the fade-ins play.
       pendingBirthCells: new Set(),
+      // Save-map dialog state (MP). Server validates name + persists,
+      // so the dialog stays open while we wait for `map_saved` /
+      // `map_save_error` over WS.
+      showSaveMapDialog: false,
+      saveMapBusy: false,
+      saveMapError: '',
     }
   },
   computed: {
@@ -235,6 +254,18 @@ export default {
     maxSpeed() {
       const settings = this.localSettings || this.settings || {}
       return settings.maxSpeed || 5
+    },
+    saveMapDefaultName() {
+      const s = this.localSettings || this.settings || {}
+      const human = s.humanPlayersNum || (this.playersData?.length ?? 0)
+      const bot = s.botPlayersNum || 0
+      const total = human + bot || this.playersData?.length || 2
+      const w = s.width || this.width || 20
+      const h = s.height || this.height || 20
+      // No client-side mapNameExists check in MP — the server is the
+      // source of truth, and a duplicate just bounces back as a
+      // map_save_error. Always start from the bare default.
+      return `${total}-${w}x${h}-${todayDateStr()}`
     },
   },
   async created() {
@@ -265,6 +296,7 @@ export default {
     emitter.on('scoutArea', this.emitScoutArea)
     emitter.on('processEndTurn', this.processEndTurn)
     emitter.on('startTurn', this.startTurn)
+    emitter.on('openSaveMapDialog', this.openSaveMapDialog)
 
     // Suppress the browser's default context menu anywhere in the page.
     // Specific elements have their own `@contextmenu.prevent` handlers
@@ -287,6 +319,7 @@ export default {
     emitter.off('scoutArea', this.emitScoutArea)
     emitter.off('processEndTurn', this.processEndTurn)
     emitter.off('startTurn', this.startTurn)
+    emitter.off('openSaveMapDialog', this.openSaveMapDialog)
 
     if (this.contextmenuHandlerRef) {
       window.removeEventListener('contextmenu', this.contextmenuHandlerRef)
@@ -308,6 +341,23 @@ export default {
   methods: {
     handleMenuOpen(isOpen) {
       this.menuOpen = isOpen
+    },
+    openSaveMapDialog() {
+      this.saveMapError = ''
+      this.saveMapBusy = false
+      this.showSaveMapDialog = true
+    },
+    handleSaveMapCancel() {
+      if (this.saveMapBusy) return
+      this.showSaveMapDialog = false
+    },
+    handleSaveMapConfirm(finalName) {
+      if (!this.gameWs) return
+      this.saveMapBusy = true
+      this.saveMapError = ''
+      this.gameWs.sendSaveMap(finalName)
+      // The dialog stays open; map_saved / map_save_error from the
+      // server flips saveMapBusy back and either closes or shows error.
     },
     initializeFromProps() {
       // Initialize field from prop and normalize to model instances
@@ -566,6 +616,18 @@ export default {
             log.debug('Player reconnected:', player)
             // Show notification for other player's reconnection
             this.showNotification(`Player ${player.username} reconnected`, 'reconnect')
+          },
+          onMapSaved: payload => {
+            log.debug('Map saved:', payload)
+            this.saveMapBusy = false
+            this.saveMapError = ''
+            this.showSaveMapDialog = false
+            this.showNotification(`Map "${payload.name}" saved`, 'info')
+          },
+          onMapSaveError: payload => {
+            log.debug('Map save error:', payload)
+            this.saveMapBusy = false
+            this.saveMapError = payload.reason || 'Could not save map'
           },
         },
         this.getAppState // Pass state getter for reconnect logic

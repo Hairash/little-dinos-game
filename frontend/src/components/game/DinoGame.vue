@@ -61,12 +61,20 @@
     :tutorial-input-blocked="tutorialInputBlocked"
     :tutorial-end-turn-blocked="tutorialEndTurnBlocked"
     :is-animating="isAnimating"
+    :can-save-map="canSaveMap"
     @menu-open="handleMenuOpen"
   />
   <ExitDialog
     v-if="state === STATES.exitDialog"
     :handle-cancel="() => (state = STATES.play)"
     :handle-confirm="exitGame"
+  />
+  <SaveMapDialog
+    v-if="showSaveMapDialog"
+    :default-name="saveMapDefaultName"
+    :exists-check="checkMapNameExists"
+    @save="handleSaveMapConfirm"
+    @cancel="handleSaveMapCancel"
   />
   <TutorialController
     v-if="tutorialScenario"
@@ -99,13 +107,16 @@ import ReadyLabel from '@/components/game/ReadyLabel.vue'
 import GameGrid from '@/components/game/GameGrid.vue'
 import InfoPanel from '@/components/game/InfoPanel.vue'
 import ExitDialog from '@/components/dialogs/ExitDialog.vue'
+import SaveMapDialog from '@/components/dialogs/SaveMapDialog.vue'
 import TutorialController from '@/components/tutorial/TutorialController.vue'
 import Models from '@/game/models'
 import { CreateFieldEngine } from '@/game/createFieldEngine'
 import { WaveEngine } from '@/game/waveEngine'
 import { FieldEngine } from '@/game/fieldEngine'
 import { BotEngine } from '@/game/botEngine'
-import { createPlayers, getPlayerColor, normalizeField } from '@/game/helpers'
+import { createPlayers, createNewUnit, getPlayerColor, normalizeField } from '@/game/helpers'
+import { toCanonicalMap } from '@/game/mapSchema'
+import { mapNameExists, nextDefaultName, saveMap, todayDateStr } from '@/game/mapStorage'
 import {
   ACTIONS,
   BIRTH_ANIMATION_DELAY,
@@ -133,6 +144,7 @@ export default {
     GameGrid,
     InfoPanel,
     ExitDialog,
+    SaveMapDialog,
     TutorialController,
   },
   props: {
@@ -158,6 +170,13 @@ export default {
     killAtBirth: Boolean,
     enableUndo: Boolean,
     loadGame: Boolean,
+    // Canonical Map JSON used to seed the starting field/players/
+    // settings when launching from a saved map. Mutually exclusive with
+    // `loadGame` (which restores autosave instead) and with `field`
+    // (which comes from the multiplayer server). When provided, the
+    // engines are still constructed locally — only the initial state
+    // differs from a random roll.
+    initialMap: { type: Object, default: null },
     // eslint-disable-next-line vue/no-dupe-keys
     // Note: field is intentionally both a prop and data property - the data property shadows the prop
     // when in single-player mode (generates field locally), but uses the prop in multiplayer mode
@@ -266,6 +285,17 @@ export default {
       // [tutorial] Lock + first-production state lives in
       // tutorialMixin: tutorialInputBlocked, tutorialEndTurnBlocked,
       // tutorialUndoBlocked, tutorialFirstProductionDone.
+      //
+      // Canonical Map snapshot taken at the start of the game (before
+      // any move). Persisted via FIELDS_TO_SAVE so it survives autosave
+      // and resume. Stays null for tutorial sessions (we don't expose
+      // Save map in tutorials). Used by the SaveMapDialog to write a
+      // saved map to localStorage.
+      initialMapSnapshot: null,
+      // Set true while the SaveMapDialog is mounted. The dialog is
+      // teleported above the in-game menu; closing the menu before
+      // showing the dialog mirrors the Exit-confirmation flow.
+      showSaveMapDialog: false,
     }
   },
   computed: {
@@ -318,6 +348,17 @@ export default {
         set.add(key)
       }
       return set
+    },
+    // Save map button shows iff we have an initial snapshot AND this
+    // isn't a tutorial session. Resumed games keep the snapshot via
+    // localStorage so they can save too.
+    canSaveMap() {
+      return !!this.initialMapSnapshot && !this.tutorialScenario
+    },
+    saveMapDefaultName() {
+      if (!this.initialMapSnapshot) return ''
+      const m = this.initialMapSnapshot.metadata
+      return nextDefaultName(m.playersNum, m.width, m.height, todayDateStr())
     },
     canUndo() {
       // Game-over states lock undo: a player must not be able to revert the
@@ -373,6 +414,50 @@ export default {
     this.loadOrCreatePlayers()
     if (this.loadGame) {
       this.loadGameStatus()
+      // Restore the snapshot from autosave so a resumed game can still
+      // be saved as a map (the snapshot was captured before any move on
+      // the original session).
+      const stored = localStorage.getItem('initialMapSnapshot')
+      if (stored) {
+        try {
+          this.initialMapSnapshot = JSON.parse(stored)
+        } catch {
+          this.initialMapSnapshot = null
+        }
+      }
+    } else if (!this.tutorialScenario) {
+      // Fresh game (not a tutorial, not a resume): capture the canonical
+      // Map *now*, before the first turn starts. Per-cell `isHidden` /
+      // per-unit runtime fields are stripped by toCanonicalMap, so this
+      // matches what saving from mid-game would later produce.
+      this.initialMapSnapshot = toCanonicalMap({
+        field: this.localField,
+        players: this.players,
+        settings: {
+          humanPlayersNum: this.humanPlayersNum,
+          botPlayersNum: this.botPlayersNum,
+          sectorsNum: this.sectorsNum,
+          enableFogOfWar: this.enableFogOfWar,
+          fogOfWarRadius: this.fogOfWarRadius,
+          visibilitySpeedRelation: this.visibilitySpeedRelation,
+          speedMinVisibility: this.speedMinVisibility,
+          minSpeed: this.minSpeed,
+          maxSpeed: this.maxSpeed,
+          maxUnitsNum: this.maxUnitsNum,
+          maxBasesNum: this.maxBasesNum,
+          unitModifier: this.unitModifier,
+          baseModifier: this.baseModifier,
+          buildingRates: this.buildingRates,
+          hideEnemySpeed: this.hideEnemySpeed,
+          killAtBirth: this.killAtBirth,
+          enableUndo: this.enableUndo,
+        },
+        // `name` is filled in by the SaveMapDialog at save time.
+        name: '',
+        // `savedAt` is filled in at save time so the snapshot itself
+        // stays clock-free and tests can pin it.
+        savedAt: '',
+      })
     }
     this.fieldEngine = new FieldEngine(
       this.localField,
@@ -410,11 +495,7 @@ export default {
       if (e.key === 'Enter') this.state = this.STATES.play
       // [tutorial] Skip the 'e' shortcut while the End-turn lock is
       // engaged (forceUndo / lockAll / OK step).
-      if (
-        e.key === 'e' &&
-        this.state === this.STATES.play &&
-        !this.tutorialEndTurnBlocked
-      )
+      if (e.key === 'e' && this.state === this.STATES.play && !this.tutorialEndTurnBlocked)
         this.processEndTurn()
       // TODO: Add test mode
       // if (e.key === 'Enter') this.makeBotUnitMove();
@@ -443,6 +524,7 @@ export default {
     emitter.on('startTurn', this.startTurn)
     emitter.on('moveUnit', this.emitMoveUnit)
     emitter.on('scoutArea', this.handleScoutArea)
+    emitter.on('openSaveMapDialog', this.openSaveMapDialog)
 
     if (!this.loadGame) {
       this.initPlayersScrollCoords()
@@ -457,6 +539,7 @@ export default {
     emitter.off('startTurn', this.startTurn)
     emitter.off('moveUnit', this.emitMoveUnit)
     emitter.off('scoutArea', this.handleScoutArea)
+    emitter.off('openSaveMapDialog', this.openSaveMapDialog)
     // [tutorial] tutorialMixin handles tutorial:*BlockChanged cleanup.
     // Clean up window event listeners to prevent memory leaks
     if (this.keyupHandlerRef) {
@@ -538,9 +621,8 @@ export default {
           // cell — that's a more useful resting point than the saved
           // pre-end-turn coords, so don't pass scrollCoords back to
           // initTurn (which would yank the viewport back).
-          const restoreCoords = births.length > 0
-            ? null
-            : this.players[this.currentPlayer].scrollCoords
+          const restoreCoords =
+            births.length > 0 ? null : this.players[this.currentPlayer].scrollCoords
           emitter.emit('initTurn', restoreCoords)
         }
       } else {
@@ -980,10 +1062,7 @@ export default {
           // player or end via a custom goal/win step, so this label
           // would either flash on every turn or pre-empt the
           // scenario's own end message.
-          if (
-            !this.tutorialScenario &&
-            this.lastPlayerPhase === this.LAST_PLAYER_PHASES.progress
-          ) {
+          if (!this.tutorialScenario && this.lastPlayerPhase === this.LAST_PLAYER_PHASES.progress) {
             const lastPlayerIdx = this.getLastPlayerIdx()
             if (lastPlayerIdx !== null) {
               this.lastPlayerPhase = this.LAST_PLAYER_PHASES.last_player
@@ -1124,6 +1203,35 @@ export default {
       }
     },
 
+    // Save-map dialog flow (single-player). Multiplayer's controller
+    // overrides the save path; the dialog open/cancel is the same.
+    openSaveMapDialog() {
+      if (!this.canSaveMap) return
+      this.showSaveMapDialog = true
+    },
+    handleSaveMapCancel() {
+      this.showSaveMapDialog = false
+    },
+    checkMapNameExists(name) {
+      return mapNameExists(name)
+    },
+    handleSaveMapConfirm(finalName) {
+      const map = {
+        ...this.initialMapSnapshot,
+        name: finalName,
+        savedAt: new Date().toISOString(),
+      }
+      try {
+        saveMap(map)
+        this.showSaveMapDialog = false
+      } catch (e) {
+        // Surface the storage error to the dialog. The dialog's
+        // existsCheck should normally catch the collision first, but
+        // keep this as a defense in depth.
+        console.warn('saveMap failed:', e)
+        this.showSaveMapDialog = false
+      }
+    },
     // Save-load operations
     saveState() {
       // [tutorial] Throwaway sessions — skip persistence so a
@@ -1162,6 +1270,42 @@ export default {
         this.localField = normalizeField(JSON.parse(JSON.stringify(this.field)))
         return
       }
+      if (this.initialMap) {
+        // Saved-map launch: rehydrate the canonical Map into model
+        // instances. Canonical units carry only {player, _type} — the
+        // engine expects starting movePoints + visibility on the field
+        // (those are pre-game runtime values, not "map" data), so we
+        // reseed them here using the same helper that createFieldEngine
+        // uses for a random roll. Without this the unit reads
+        // `movePoints = undefined`, which silently breaks the wave
+        // engine (any distance "valid") and the fog calc (nothing
+        // visible).
+        this.localField = this.initialMap.field.map(row =>
+          row.map(cellData => Models.Cell.fromJSON(cellData))
+        )
+        for (let x = 0; x < this.localField.length; x++) {
+          for (let y = 0; y < this.localField[x].length; y++) {
+            const cell = this.localField[x][y]
+            if (!cell?.unit) continue
+            cell.unit = createNewUnit(
+              cell.unit.player,
+              this.minSpeed,
+              this.minSpeed,
+              this.speedMinVisibility,
+              this.fogOfWarRadius,
+              this.visibilitySpeedRelation,
+              0
+            )
+            // Preserve the unit's original _type label from the map
+            // (e.g. dinoN) — createNewUnit derives it from player+1,
+            // which matches in practice but is worth keeping if a
+            // future map encodes a different visual.
+            const savedType = this.initialMap.field[x][y]?.unit?._type
+            if (savedType) cell.unit._type = savedType
+          }
+        }
+        return
+      }
       if (this.loadGame) {
         const fieldFromStorage = localStorage.getItem('field')
         const parsedField = this.safeParseJSON(fieldFromStorage)
@@ -1185,6 +1329,11 @@ export default {
       // createPlayers — used to pin types and counts per scenario).
       if (this.tutorialScenario && typeof this.tutorialScenario.buildPlayers === 'function') {
         this.players = this.tutorialScenario.buildPlayers()
+        return
+      }
+      if (this.initialMap) {
+        // Saved-map launch: honour seat types stored in the map.
+        this.players = this.initialMap.players.map(p => Models.Player.fromJSON({ ...p }))
         return
       }
       if (this.loadGame) {

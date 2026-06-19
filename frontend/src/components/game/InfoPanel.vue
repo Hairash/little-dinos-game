@@ -184,6 +184,8 @@
         :handle-zoom-in="handleMenuZoomIn"
         :handle-zoom-out="handleMenuZoomOut"
         :handle-resume="toggleMenu"
+        :handle-save-map="canSaveMap ? handleMenuSaveMap : null"
+        :can-save-map="canSaveMap"
       />
     </Teleport>
   </div>
@@ -281,6 +283,12 @@ export default {
     // birth / move / death. Undo is gated separately via the parent's
     // canUndo (which already factors isAnimating in).
     isAnimating: {
+      type: Boolean,
+      default: false,
+    },
+    // Show the in-menu "Save map" button. The controller turns this off
+    // for tutorials and for resumed games that lack an initial snapshot.
+    canSaveMap: {
       type: Boolean,
       default: false,
     },
@@ -454,6 +462,13 @@ export default {
       this.menuOpen = false
       this.$emit('menuOpen', false)
       this.handleExitBtnClick()
+    },
+    handleMenuSaveMap() {
+      // Close the menu so the SaveMapDialog (rendered at the controller)
+      // shows on its own, like the Exit confirmation does.
+      this.menuOpen = false
+      this.$emit('menuOpen', false)
+      emitter.emit('openSaveMapDialog')
     },
     handleMenuZoomIn() {
       this.handleChangeCellSize(10)

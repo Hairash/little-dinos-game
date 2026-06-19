@@ -211,9 +211,8 @@ const SETTINGS_DEFAULTS = {
 // so there's nothing left to scroll to. Used by scenario 1's "scroll
 // to the bottom-right" step to skip itself when it would be a no-op.
 function scrolledToBottomRight() {
-  const container = typeof document !== 'undefined'
-    ? document.querySelector('.game-grid-container')
-    : null
+  const container =
+    typeof document !== 'undefined' ? document.querySelector('.game-grid-container') : null
   if (!container) return false
   const tolerance = 30
   const maxLeft = container.scrollWidth - container.clientWidth
@@ -365,7 +364,7 @@ const scenarioMoving = {
       highlightCells: [[13, 10]],
     },
     {
-      text: "Hurray! Pretty solid for a first try. Onward!",
+      text: 'Hurray! Pretty solid for a first try. Onward!',
       anchor: 'center',
       waitFor: 'ok',
       isEnd: true,
@@ -485,7 +484,7 @@ const scenarioTowers = {
       waitFor: 'ok',
     },
     {
-      text: "Don't forget the \"Next unit\" button at the bottom (the dino icon) — it cycles through dinos that haven't moved yet.",
+      text: 'Don\'t forget the "Next unit" button at the bottom (the dino icon) — it cycles through dinos that haven\'t moved yet.',
       anchor: 'bottom',
       waitFor: 'ok',
     },
@@ -698,7 +697,7 @@ const scenarioCombat = {
       waitFor: 'ok',
     },
     {
-      text: "Now capture the tower properly — move one of your dinos onto it.",
+      text: 'Now capture the tower properly — move one of your dinos onto it.',
       note: 'Click message to move it.',
       anchor: 'bottom',
       waitFor: 'towerCaptured',
@@ -710,7 +709,7 @@ const scenarioCombat = {
       waitFor: 'win',
     },
     {
-      text: 'Victory! You\'ve got the basics of combat down.',
+      text: "Victory! You've got the basics of combat down.",
       anchor: 'center',
       waitFor: 'ok',
       isEnd: true,
@@ -964,7 +963,7 @@ const scenarioBuildings = {
       waitFor: 'ok',
     },
     {
-      text: "Occupy means: keep one of your dinos on the building at the start of a turn. Step off, and the bonus is gone.",
+      text: 'Occupy means: keep one of your dinos on the building at the start of a turn. Step off, and the bonus is gone.',
       anchor: 'center',
       waitFor: 'ok',
     },
@@ -1001,7 +1000,7 @@ const scenarioBuildings = {
       },
     },
     {
-      text: 'Cool! Let\'s check the other buildings.',
+      text: "Cool! Let's check the other buildings.",
       anchor: 'bottom',
       waitFor: 'ok',
     },
@@ -1041,7 +1040,7 @@ const scenarioBuildings = {
       },
     },
     {
-      text: 'Nice progress! Let\'s move on to the other buildings.',
+      text: "Nice progress! Let's move on to the other buildings.",
       anchor: 'bottom',
       waitFor: 'ok',
     },
@@ -1288,12 +1287,12 @@ const scenarioFog = {
       waitFor: 'scouted',
     },
     {
-      text: "Wow — you can see halfway across the map now!",
+      text: 'Wow — you can see halfway across the map now!',
       anchor: 'bottom',
       waitFor: 'ok',
     },
     {
-      text: "Unlike the others, an obelisk is one-and-done per visit. Step off, then come back later to use it again.",
+      text: 'Unlike the others, an obelisk is one-and-done per visit. Step off, then come back later to use it again.',
       anchor: 'bottom',
       waitFor: 'ok',
     },
@@ -1303,7 +1302,7 @@ const scenarioFog = {
       waitFor: 'ok',
     },
     {
-      text: 'Same rule for moves: undo only works if the move didn\'t reveal new cells.',
+      text: "Same rule for moves: undo only works if the move didn't reveal new cells.",
       anchor: 'bottom',
       waitFor: 'ok',
     },
