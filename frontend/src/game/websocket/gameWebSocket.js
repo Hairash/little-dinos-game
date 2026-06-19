@@ -146,6 +146,16 @@ export class GameWebSocket {
               }
             }
             break
+          case 'map_saved':
+            if (this.callbacks.onMapSaved) {
+              this.callbacks.onMapSaved(data.payload || {})
+            }
+            break
+          case 'map_save_error':
+            if (this.callbacks.onMapSaveError) {
+              this.callbacks.onMapSaveError(data.payload || {})
+            }
+            break
           default:
             console.warn('[WS] Unknown message type:', data.t)
         }
@@ -223,6 +233,15 @@ export class GameWebSocket {
       // If reconnecting, the move will be lost, but server will sync state on reconnect
       return false
     }
+  }
+
+  sendSaveMap(name) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ t: 'save_map', payload: { name } }))
+      return true
+    }
+    console.warn('[WS] Cannot send save_map - WebSocket not connected')
+    return false
   }
 
   isReady() {

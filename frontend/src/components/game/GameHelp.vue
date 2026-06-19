@@ -8,8 +8,8 @@
         <h1>Game rules</h1>
         <h3>Tutorial</h3>
         <p class="tutorial-intro">
-          Prefer learning by doing? Try the interactive tutorial — it walks you
-          through every mechanic with hands-on scenarios.
+          Prefer learning by doing? Try the interactive tutorial — it walks you through every
+          mechanic with hands-on scenarios.
         </p>
         <button type="button" class="tutorialBtn" @click="handleTutorialBtnClick">
           Start tutorial

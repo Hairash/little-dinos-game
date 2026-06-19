@@ -145,6 +145,16 @@
             <img class="btn-icon" :src="getImagePath('minus')" alt="Zoom Out" loading="lazy" />
           </button>
           <button
+            v-if="handleSaveMap"
+            @click="handleSaveMap"
+            @contextmenu.prevent="showHint($event, 'Save map')"
+            class="menu-btn"
+            title="Save map"
+            :disabled="!canSaveMap"
+          >
+            <img class="btn-icon" :src="getImagePath('save_icon')" alt="Save map" loading="lazy" />
+          </button>
+          <button
             @click="handleExit"
             @contextmenu.prevent="showHint($event, 'Exit')"
             class="menu-btn"
@@ -218,6 +228,19 @@ export default {
     handleResume: {
       type: Function,
       required: true,
+    },
+    // Optional: when supplied, a "Save map" button is rendered between
+    // Zoom Out and Exit. The handler is called with no args; the parent
+    // resumes the menu and opens the SaveMapDialog. `canSaveMap` gates
+    // the button so games that lack an initial snapshot (e.g. an
+    // autosave from before this feature) don't show an enabled button.
+    handleSaveMap: {
+      type: Function,
+      default: null,
+    },
+    canSaveMap: {
+      type: Boolean,
+      default: true,
     },
     // Authoritative per-type building totals supplied by the server in
     // multiplayer. When null, fall back to counting from the local field —

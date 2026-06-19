@@ -9,12 +9,26 @@
     ref="lobbyPageRef"
     :game-code="currentGameCode"
     :get-app-state="getAppState"
+    :error="currentError"
+    :set-error="setError"
     @game-started="handleGameStarted"
     @connect-to-game="connectToGame"
     @sign-out="handleSignOut"
     @setup-game="handleSetupGame"
   />
   <GameMenu v-if="state === GAME_STATES.menu" :error="currentError" :set-error="setError" />
+  <NewGameSubmenu
+    v-if="state === GAME_STATES.newGame"
+    :error="currentError"
+    :set-error="setError"
+  />
+  <SavedMapsPage
+    v-if="state === GAME_STATES.savedMaps"
+    :mode="savedMapsMode"
+    :list-source="savedMapsListSource"
+    :delete-source="savedMapsDeleteSource"
+    @map-picked="handleMapPickedForLobby"
+  />
   <GameSetup
     v-if="state === GAME_STATES.setup"
     :is-multiplayer-mode="!!currentGameCode"
@@ -22,6 +36,7 @@
   />
   <DinoGame
     v-if="state === GAME_STATES.game && !currentGameCode"
+    :key="`spgame-${gameInstanceId}`"
     :human-players-num="settings.humanPlayersNum"
     :bot-players-num="settings.botPlayersNum"
     :width="settings.width"
@@ -45,6 +60,7 @@
     :kill-at-birth="settings.killAtBirth"
     :load-game="settings.loadGame"
     :field="settings.field"
+    :initial-map="settings.initialMap"
   />
   <MultiplayerDinoGame
     v-if="state === GAME_STATES.game && currentGameCode"
@@ -89,6 +105,8 @@
 
 <script>
 import GameMenu from '@/components/game/GameMenu.vue'
+import NewGameSubmenu from '@/components/game/NewGameSubmenu.vue'
+import SavedMapsPage from '@/components/game/SavedMapsPage.vue'
 import GameSetup from '@/components/game/GameSetup.vue'
 import DinoGame from '@/components/game/DinoGame.vue'
 import MultiplayerDinoGame from '@/components/game/MultiplayerDinoGame.vue'
@@ -107,6 +125,10 @@ import {
 } from '@/game/const'
 import { whoami } from '@/services/auth'
 import { joinGame, createGame, startMultiplayerGame, leaveGame } from '@/game/service'
+import {
+  listSavedMaps as listSavedMapsRemote,
+  deleteSavedMap as deleteSavedMapRemote,
+} from '@/game/savedMapsApi'
 
 export default {
   name: 'App',
@@ -114,6 +136,8 @@ export default {
     LoginPage,
     LobbyPage,
     GameMenu,
+    NewGameSubmenu,
+    SavedMapsPage,
     GameSetup,
     DinoGame,
     MultiplayerDinoGame,
@@ -133,6 +157,16 @@ export default {
       // Bumped each time a tutorial scenario starts so the DinoGame instance
       // is fully remounted (rebuilds field, players, engines from scratch).
       tutorialRunId: 0,
+      // Bumped on every single-player start (random + saved map + load
+      // game) so the DinoGame remounts cleanly. Without this, going from
+      // a saved-map launch back to the menu and re-launching the same
+      // map would not re-run `created()` and the initial snapshot would
+      // not refresh.
+      gameInstanceId: 0,
+      // Controls how SavedMapsPage behaves when mounted. 'launch' is the
+      // default SP flow; 'pick' is the MP lobby's "Load Map" flow where
+      // selecting a map returns the user to the lobby with the map.
+      savedMapsMode: 'launch',
     }
   },
   mounted() {
@@ -146,8 +180,20 @@ export default {
     emitter.on('createGame', this.callCreateGame)
     emitter.on('callStartMultiplayerGame', this.callStartMultiplayerGame)
     emitter.on('multiplayerSettingsConfigured', this.handleMultiplayerSettingsConfigured)
+    emitter.on('openSavedMapsForLobby', this.openSavedMapsForLobby)
+    emitter.on('setError', this.setError)
 
     this.state = GAME_STATES.menu
+  },
+  computed: {
+    savedMapsListSource() {
+      // In MP-picker mode the SavedMapsPage reads from the server;
+      // otherwise it falls back to localStorage (its built-in default).
+      return this.savedMapsMode === 'pick' ? listSavedMapsRemote : null
+    },
+    savedMapsDeleteSource() {
+      return this.savedMapsMode === 'pick' ? deleteSavedMapRemote : null
+    },
   },
   methods: {
     // State getter function for WebSocket reconnect logic
@@ -260,12 +306,24 @@ export default {
         this.$refs.lobbyPageRef.lobbyWs = null
       }
     },
-    callStartMultiplayerGame() {
-      console.log('Starting multiplayer game')
-      // Use custom settings if available, otherwise load from localStorage
+    callStartMultiplayerGame(opts = {}) {
+      console.log('Starting multiplayer game', opts)
       let settings = this.multiplayerSettings
 
-      if (!settings) {
+      if (opts.initialMap) {
+        // Saved-map flow: the map's settings + field win over anything
+        // staged via Setup Random Game. We send the canonical map as
+        // `initialMap` in the start request; the server uses it instead
+        // of generating a random field.
+        settings = {
+          ...opts.initialMap.settings,
+          humanPlayersNum: opts.initialMap.metadata.humanPlayersNum,
+          botPlayersNum: opts.initialMap.metadata.botPlayersNum,
+          width: opts.initialMap.metadata.width,
+          height: opts.initialMap.metadata.height,
+          initialMap: opts.initialMap,
+        }
+      } else if (!settings) {
         // Load settings from localStorage if available
         const storedSettings = this.loadStoredMultiplayerSettings()
         if (storedSettings) {
@@ -338,10 +396,32 @@ export default {
     startGame(settings) {
       console.log(settings)
       this.settings = settings
+      this.gameInstanceId += 1
       this.state = this.GAME_STATES.game
     },
     goToPage(page) {
+      // Reset the picker mode to 'launch' (default SP) whenever we
+      // leave the saved-maps page so a future entry doesn't inherit a
+      // stale lobby-pick mode.
+      if (page !== this.GAME_STATES.savedMaps) {
+        this.savedMapsMode = 'launch'
+      }
       this.state = page
+    },
+    openSavedMapsForLobby() {
+      this.savedMapsMode = 'pick'
+      this.state = this.GAME_STATES.savedMaps
+    },
+    handleMapPickedForLobby(map) {
+      // Return to the lobby with the picked map. LobbyPage exposes
+      // `setPickedMap` so we plumb the choice through the ref.
+      this.state = this.GAME_STATES.lobby
+      this.savedMapsMode = 'launch'
+      this.$nextTick(() => {
+        if (this.$refs.lobbyPageRef) {
+          this.$refs.lobbyPageRef.setPickedMap(map)
+        }
+      })
     },
     startTutorialScenario(scenarioId) {
       const scenario = getScenarioById(scenarioId)

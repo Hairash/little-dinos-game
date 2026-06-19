@@ -18,7 +18,6 @@
           />
           <template v-else>Multiplayer</template>
         </button>
-        <button @click="handleTutorialBtnClick">Tutorial</button>
         <button @click="handleHelpBtnClick">Help</button>
       </div>
     </div>
@@ -49,7 +48,10 @@ export default {
   },
   methods: {
     handleStartBtnClick() {
-      emitter.emit('goToPage', GAME_STATES.setup)
+      // Routes to the New Game submenu (Tutorial / Random map / Saved
+      // map). Tutorial used to be its own top-level button — it's been
+      // relocated under New Game alongside the other start flows.
+      emitter.emit('goToPage', GAME_STATES.newGame)
     },
     handleLoadBtnClick() {
       emitter.emit('loadGame')
@@ -58,9 +60,6 @@ export default {
       if (this.multiplayerLoading) return
       this.multiplayerLoading = true
       emitter.emit('startMultiplayer')
-    },
-    handleTutorialBtnClick() {
-      emitter.emit('goToPage', GAME_STATES.tutorial)
     },
     handleHelpBtnClick() {
       emitter.emit('goToPage', GAME_STATES.help)

@@ -34,4 +34,8 @@ urlpatterns = [
     path("games/<str:game_code>/leave/", views.leave_game, name="leave-game"),  # POST
     path("games/<str:game_code>/start/", views.start_game, name="start-game"),  # POST
     path("games/<str:game_code>/", views.get_game, name="get-game"),  # GET
+    # Saved-map CRUD for multiplayer. Listing returns full documents so the
+    # picker can render previews without a separate fetch-by-name round trip.
+    path("saved-maps/", views.list_saved_maps, name="list-saved-maps"),  # GET
+    path("saved-maps/<str:name>/", views.delete_saved_map, name="delete-saved-map"),  # DELETE
 ]

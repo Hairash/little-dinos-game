@@ -16,6 +16,12 @@ class Game(models.Model):
     status = models.CharField(max_length=20, choices=STATUS, default="ready")
     settings = models.JSONField(default=dict)  # initial settings
     field = models.JSONField(default=dict)  # The game field/grid with all units, buildings, etc.
+    # Frozen copy of `field` at the moment status transitions ready→playing.
+    # Survives mid-game mutations so a "save as map" action always emits the
+    # same starting state regardless of how far the game has progressed.
+    # None for games created before this feature shipped; the save flow
+    # rejects gracefully in that case.
+    initial_field = models.JSONField(null=True, blank=True)
     # Optional: store whose turn
     turn_player = models.ForeignKey(
         User, null=True, blank=True, on_delete=models.SET_NULL, related_name="games_they_play"
@@ -68,6 +74,31 @@ class GamePlayer(models.Model):
 
     def __str__(self):
         return f"{self.player} in Game {self.game.game_code} (order {self.order})"
+
+
+class SavedMap(models.Model):
+    """A canonical Map JSON saved by a user. Used by the multiplayer
+    "Save map" action and the lobby's "Load Map" picker.
+
+    ``data`` holds the full v1 canonical Map document (see
+    ``services/map_snapshot.py``). The denormalised columns at the
+    side are populated from metadata for quick listing/filtering.
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="saved_maps")
+    name = models.CharField(max_length=120)
+    data = models.JSONField()
+    players_num = models.PositiveSmallIntegerField()
+    width = models.PositiveSmallIntegerField()
+    height = models.PositiveSmallIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("user", "name")]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"SavedMap {self.name} by {self.user}"
 
 
 class Move(models.Model):

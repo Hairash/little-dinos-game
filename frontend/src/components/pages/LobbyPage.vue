@@ -6,8 +6,9 @@
     <h1>Welcome, {{ username || 'Player' }}!</h1>
     <button id="lobby-page-signout-button" @click="handleSignOut" title="Sign Out">Sign Out</button>
 
-    <!-- Current Game Section (Top) -->
-    <div id="lobby-page-current-game">
+    <div id="lobby-page-content">
+      <!-- Current Game Section (Top) -->
+      <div id="lobby-page-current-game">
       <div id="lobby-page-current-game-header">
         <h2>Current Game</h2>
       </div>
@@ -51,15 +52,23 @@
             <button id="lobby-page-button" @click="joinGame">Join Game</button>
           </div>
           <div v-if="gameCode && isGameCreator" id="lobby-page-setup-start-section">
-            <button id="lobby-page-button" @click="setupGame">Setup Game</button>
-            <button
-              id="lobby-page-button"
-              @click="startMultiplayerGame"
-              :disabled="players.length < 2"
-              :title="players.length < 2 ? 'At least 2 players are required to start the game' : ''"
-            >
-              Start Game
-            </button>
+            <div class="lobby-page-selection-label">
+              Selected: <strong>{{ pickedMap ? pickedMap.name : 'Random game' }}</strong>
+            </div>
+            <div class="lobby-page-setup-row">
+              <button id="lobby-page-button" @click="setupGame">Setup Random Game</button>
+              <button id="lobby-page-button" @click="openMapPicker">Load Map</button>
+              <button
+                id="lobby-page-button"
+                @click="startMultiplayerGame"
+                :disabled="players.length < 2"
+                :title="
+                  players.length < 2 ? 'At least 2 players are required to start the game' : ''
+                "
+              >
+                Start Game
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -105,6 +114,8 @@
         </div>
       </div>
     </div>
+    </div>
+    <MenuError v-if="error" :error="error" :set-error="setError" />
   </div>
 </template>
 
@@ -115,9 +126,11 @@ import { getActiveGames } from '@/game/service'
 import { whoami, signout } from '@/services/auth'
 import { GAME_STATES } from '@/game/const'
 import { getPlayerColor } from '@/game/helpers'
+import MenuError from '@/components/ui/MenuError.vue'
 
 export default {
   name: 'LobbyPage',
+  components: { MenuError },
   props: {
     gameCode: {
       type: String,
@@ -127,6 +140,11 @@ export default {
       type: Function,
       default: null,
     },
+    // Surfaced when SavedMapsPage (in pick mode) bounces back because
+    // the server returned no saved maps. Same setError / MenuError
+    // pattern GameMenu and NewGameSubmenu use.
+    error: { type: String, default: null },
+    setError: { type: Function, default: null },
   },
   data() {
     return {
@@ -140,6 +158,11 @@ export default {
       loadingAllGames: false,
       currentUserId: null, // Store current user ID to check if creator
       preventReconnect: false, // Flag to prevent automatic reconnection during transitions
+      // Canonical Map picked via "Load Map". Null means start with the
+      // random-game flow (the existing default). Setup Random Game
+      // clears this back to null so the two options are mutually
+      // exclusive.
+      pickedMap: null,
     }
   },
   mounted() {
@@ -232,8 +255,13 @@ export default {
         console.warn('Cannot start game: At least 2 players are required')
         return
       }
-      console.log('Starting game')
-      emitter.emit('callStartMultiplayerGame')
+      console.log('Starting game', this.pickedMap ? `with map ${this.pickedMap.name}` : '(random)')
+      emitter.emit('callStartMultiplayerGame', { initialMap: this.pickedMap })
+    },
+    openMapPicker() {
+      // Route to SavedMapsPage in pick mode. App.vue knows we came from
+      // the lobby so it returns the picked map here on `mapPicked`.
+      emitter.emit('openSavedMapsForLobby')
     },
     async loadActiveGames() {
       this.loadingGames = true
@@ -279,8 +307,14 @@ export default {
       }
     },
     setupGame() {
-      console.log('Setting up game')
+      console.log('Setting up random game')
+      // Clearing the picked map keeps "Setup Random Game" and "Load
+      // Map" mutually exclusive — picking one resets the other.
+      this.pickedMap = null
       this.$emit('setupGame')
+    },
+    setPickedMap(map) {
+      this.pickedMap = map
     },
     getPlayerColor(order) {
       return getPlayerColor(order)
@@ -317,10 +351,32 @@ export default {
   overflow: auto;
   height: 100vh;
   width: 100vw;
+}
 
+/* Inner content container — holds the two main panels (current
+   game, active games) with horizontal padding so they don't touch
+   the viewport edges. The page wrapper itself stays bare so the
+   absolutely-positioned back button and sign-out button keep their
+   coordinates relative to the actual screen corners. Same shape
+   TutorialPage / SavedMapsPage use. */
+#lobby-page-content {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  padding: 0 16px 30px 16px;
+}
+
+.lobby-page-selection-label {
+  text-align: center;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.lobby-page-setup-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .goBackBtn {

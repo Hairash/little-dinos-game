@@ -68,6 +68,11 @@ export const FIELDS_TO_SAVE = [
   'hideEnemySpeed',
   'killAtBirth',
   'enableUndo',
+  // Canonical Map snapshot captured at game start (before any move).
+  // Persisted so a resumed game can still be saved as a map. Stays null
+  // for tutorial sessions and for games started before this feature
+  // shipped (in which case the in-game "Save map" button is hidden).
+  'initialMapSnapshot',
 ].concat(GAME_STATUS_FIELDS)
 
 export const SCORE_MOD = {
@@ -118,6 +123,14 @@ export const GAME_STATES = {
   login: 'login',
   lobby: 'lobby',
   menu: 'menu',
+  // Submenu for "New Game": picks between Tutorial, Random map, Saved map.
+  newGame: 'newGame',
+  // Browser/picker for saved maps. The same view is used in two modes:
+  //   - launch (default): Start Game launches a fresh SP game from the
+  //     selected map.
+  //   - pick: Start Game emits the chosen map back to the caller (used
+  //     by LobbyPage to seed a multiplayer game).
+  savedMaps: 'savedMaps',
   setup: 'setup',
   game: 'game',
   help: 'help',

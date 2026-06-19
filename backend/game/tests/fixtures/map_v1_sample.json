@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "name": "2-3x3-2026-06-18",
+  "metadata": {
+    "playersNum": 2,
+    "humanPlayersNum": 1,
+    "botPlayersNum": 1,
+    "width": 3,
+    "height": 3,
+    "savedAt": "2026-06-18T12:00:00Z"
+  },
+  "settings": {
+    "sectorsNum": 2,
+    "enableFogOfWar": true,
+    "fogOfWarRadius": 2,
+    "visibilitySpeedRelation": false,
+    "speedMinVisibility": 2,
+    "minSpeed": 3,
+    "maxSpeed": 6,
+    "maxUnitsNum": 10,
+    "maxBasesNum": 3,
+    "unitModifier": 3,
+    "baseModifier": 3,
+    "buildingRates": { "base": 1, "habitation": 0, "temple": 0, "well": 0, "storage": 0, "obelisk": 0 },
+    "hideEnemySpeed": false,
+    "killAtBirth": true,
+    "enableUndo": false
+  },
+  "field": [
+    [
+      {
+        "terrain": { "kind": "empty", "idx": 1 },
+        "building": { "player": 0, "_type": "base" },
+        "unit": { "player": 0, "_type": "dino1" }
+      },
+      {
+        "terrain": { "kind": "empty", "idx": 2 },
+        "building": null,
+        "unit": null
+      },
+      {
+        "terrain": { "kind": "mountain", "idx": 3 },
+        "building": null,
+        "unit": null
+      }
+    ],
+    [
+      {
+        "terrain": { "kind": "empty", "idx": 4 },
+        "building": null,
+        "unit": null
+      },
+      {
+        "terrain": { "kind": "empty", "idx": 5 },
+        "building": { "player": null, "_type": "habitation" },
+        "unit": null
+      },
+      {
+        "terrain": { "kind": "empty", "idx": 6 },
+        "building": null,
+        "unit": null
+      }
+    ],
+    [
+      {
+        "terrain": { "kind": "mountain", "idx": 7 },
+        "building": null,
+        "unit": null
+      },
+      {
+        "terrain": { "kind": "empty", "idx": 8 },
+        "building": null,
+        "unit": null
+      },
+      {
+        "terrain": { "kind": "empty", "idx": 9 },
+        "building": { "player": 1, "_type": "base" },
+        "unit": { "player": 1, "_type": "dino2" }
+      }
+    ]
+  ],
+  "players": [
+    { "_type": "human" },
+    { "_type": "bot" }
+  ]
+}

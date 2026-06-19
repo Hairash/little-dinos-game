@@ -14,11 +14,7 @@
          edges them so the burst reads as a glow rather than a hard disc.
          Per-instance seed (rotation, ray count, ray width) keeps each
          birth visually distinct. -->
-    <div
-      v-if="borning"
-      class="birthSun"
-      :style="birthSunStyle"
-    ></div>
+    <div v-if="borning" class="birthSun" :style="birthSunStyle"></div>
     <img
       class="unitImg"
       :style="{ width: calculatedWidth, height: calculatedHeight, left: left, top: top }"
