@@ -11,145 +11,151 @@
     </button>
     <h1>Saved maps</h1>
     <div class="saved-maps-content">
-
-    <!-- Two-column layout above 760px (list on the left, preview on
+      <!-- Two-column layout above 760px (list on the left, preview on
          the right). Below 760px the columns stack: list first, then
          preview, with a "Back to the list" link under the preview.
          Mirrors GameSetup.vue's responsive layout pattern. -->
-    <div class="saved-maps-body">
-      <div ref="listRef" class="saved-maps-list-pane">
-        <div class="saved-maps-list">
-          <button
-            v-for="m in maps"
-            :key="m.name"
-            class="saved-maps-list-item"
-            :class="{ 'saved-maps-list-item-selected': selectedName === m.name }"
-            @click="handleSelectMap(m.name)"
-          >
-            <div class="saved-maps-list-name">{{ m.name }}</div>
-            <div class="saved-maps-list-meta">
-              {{ m.metadata.playersNum }}p · {{ m.metadata.width }}×{{ m.metadata.height }} ·
-              {{ formatDate(m.metadata.savedAt) }}
-            </div>
-          </button>
+      <div class="saved-maps-body">
+        <div ref="listRef" class="saved-maps-list-pane">
+          <div class="saved-maps-list">
+            <button
+              v-for="m in maps"
+              :key="m.name"
+              class="saved-maps-list-item"
+              :class="{ 'saved-maps-list-item-selected': selectedName === m.name }"
+              @click="handleSelectMap(m.name)"
+            >
+              <div class="saved-maps-list-name">{{ m.name }}</div>
+              <div class="saved-maps-list-meta">
+                {{ m.metadata.playersNum }}p · {{ m.metadata.width }}×{{ m.metadata.height }} ·
+                {{ formatDate(m.metadata.savedAt) }}
+              </div>
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div ref="previewRef" class="saved-maps-preview-pane">
-        <div v-if="selectedMap" class="saved-maps-preview">
-          <MapPreview :map="selectedMap" :max-size="320" />
-          <!-- Read-only summary of the map's settings. Each row is a
+        <div ref="previewRef" class="saved-maps-preview-pane">
+          <div v-if="selectedMap" class="saved-maps-preview">
+            <MapPreview :map="selectedMap" :max-size="320" />
+            <!-- Read-only summary of the map's settings. Each row is a
                small `icon.png`-plate icon + the value text — same
                vocabulary as GameSetup but compact (≈18 px icons, 13 px
                text) since it's information-only. -->
-          <div class="saved-maps-settings">
-            <div class="settings-row">
-              <span class="settings-icon"><img :src="getImagePath('field_icon')" alt="" /></span>
-              {{ selectedMap.metadata.width }}×{{ selectedMap.metadata.height }}
+            <div class="saved-maps-settings">
+              <div class="settings-row">
+                <span class="settings-icon"><img :src="getImagePath('field_icon')" alt="" /></span>
+                {{ selectedMap.metadata.width }}×{{ selectedMap.metadata.height }}
+              </div>
+              <div class="settings-row">
+                <span class="settings-icon"><img :src="getImagePath('human_icon')" alt="" /></span>
+                {{ selectedMap.metadata.humanPlayersNum }}
+              </div>
+              <div class="settings-row">
+                <span class="settings-icon"><img :src="getImagePath('bot_icon')" alt="" /></span>
+                {{ selectedMap.metadata.botPlayersNum }}
+              </div>
+              <div class="settings-row">
+                <span class="settings-icon"><img :src="getImagePath('speed_icon')" alt="" /></span>
+                {{ selectedMap.settings.minSpeed }}–{{ selectedMap.settings.maxSpeed }}
+              </div>
+              <div class="settings-row">
+                <span class="settings-icon"><img :src="getImagePath('dino_icon')" alt="" /></span>
+                {{ selectedMap.settings.maxUnitsNum }}
+              </div>
+              <div class="settings-row">
+                <span class="settings-icon"
+                  ><img :src="getImagePath('dino_icon_plus')" alt=""
+                /></span>
+                {{ selectedMap.settings.unitModifier }}
+              </div>
+              <div class="settings-row">
+                <span class="settings-icon"><img :src="getImagePath('tower_icon')" alt="" /></span>
+                {{ selectedMap.settings.maxBasesNum }}
+              </div>
+              <div class="settings-row">
+                <span class="settings-icon"
+                  ><img :src="getImagePath('tower_icon_plus')" alt=""
+                /></span>
+                {{ selectedMap.settings.baseModifier }}
+              </div>
+              <div class="settings-row">
+                <span class="settings-icon">
+                  <img
+                    :src="
+                      getImagePath(selectedMap.settings.enableFogOfWar ? 'closed_eye' : 'open_eye')
+                    "
+                    alt=""
+                  />
+                </span>
+                <template v-if="selectedMap.settings.enableFogOfWar">
+                  {{ selectedMap.settings.fogOfWarRadius }}
+                </template>
+              </div>
+              <div class="settings-row">
+                <span class="settings-icon">
+                  <img
+                    :src="
+                      getImagePath(
+                        selectedMap.settings.visibilitySpeedRelation
+                          ? 'visibility_speed_relation_icon'
+                          : 'visibility_speed_no_relation_icon'
+                      )
+                    "
+                    alt=""
+                  />
+                </span>
+                <template v-if="selectedMap.settings.visibilitySpeedRelation">
+                  ≥ {{ selectedMap.settings.speedMinVisibility }}
+                </template>
+              </div>
+              <div class="settings-row">
+                <span class="settings-icon">
+                  <img
+                    :src="
+                      getImagePath(
+                        selectedMap.settings.killAtBirth
+                          ? 'dino_birth_kill_icon'
+                          : 'dino_birth_icon'
+                      )
+                    "
+                    alt=""
+                  />
+                </span>
+              </div>
+              <div class="settings-row">
+                <span class="settings-icon">
+                  <img
+                    :src="
+                      getImagePath(
+                        selectedMap.settings.hideEnemySpeed ? 'hide_speed_icon' : 'show_speed_icon'
+                      )
+                    "
+                    alt=""
+                  />
+                </span>
+              </div>
             </div>
-            <div class="settings-row">
-              <span class="settings-icon"><img :src="getImagePath('human_icon')" alt="" /></span>
-              {{ selectedMap.metadata.humanPlayersNum }}
-            </div>
-            <div class="settings-row">
-              <span class="settings-icon"><img :src="getImagePath('bot_icon')" alt="" /></span>
-              {{ selectedMap.metadata.botPlayersNum }}
-            </div>
-            <div class="settings-row">
-              <span class="settings-icon"><img :src="getImagePath('speed_icon')" alt="" /></span>
-              {{ selectedMap.settings.minSpeed }}–{{ selectedMap.settings.maxSpeed }}
-            </div>
-            <div class="settings-row">
-              <span class="settings-icon"><img :src="getImagePath('dino_icon')" alt="" /></span>
-              {{ selectedMap.settings.maxUnitsNum }}
-            </div>
-            <div class="settings-row">
-              <span class="settings-icon"><img :src="getImagePath('dino_icon_plus')" alt="" /></span>
-              {{ selectedMap.settings.unitModifier }}
-            </div>
-            <div class="settings-row">
-              <span class="settings-icon"><img :src="getImagePath('tower_icon')" alt="" /></span>
-              {{ selectedMap.settings.maxBasesNum }}
-            </div>
-            <div class="settings-row">
-              <span class="settings-icon"><img :src="getImagePath('tower_icon_plus')" alt="" /></span>
-              {{ selectedMap.settings.baseModifier }}
-            </div>
-            <div class="settings-row">
-              <span class="settings-icon">
-                <img
-                  :src="getImagePath(selectedMap.settings.enableFogOfWar ? 'closed_eye' : 'open_eye')"
-                  alt=""
-                />
-              </span>
-              <template v-if="selectedMap.settings.enableFogOfWar">
-                {{ selectedMap.settings.fogOfWarRadius }}
-              </template>
-            </div>
-            <div class="settings-row">
-              <span class="settings-icon">
-                <img
-                  :src="
-                    getImagePath(
-                      selectedMap.settings.visibilitySpeedRelation
-                        ? 'visibility_speed_relation_icon'
-                        : 'visibility_speed_no_relation_icon'
-                    )
-                  "
-                  alt=""
-                />
-              </span>
-              <template v-if="selectedMap.settings.visibilitySpeedRelation">
-                ≥ {{ selectedMap.settings.speedMinVisibility }}
-              </template>
-            </div>
-            <div class="settings-row">
-              <span class="settings-icon">
-                <img
-                  :src="
-                    getImagePath(
-                      selectedMap.settings.killAtBirth ? 'dino_birth_kill_icon' : 'dino_birth_icon'
-                    )
-                  "
-                  alt=""
-                />
-              </span>
-            </div>
-            <div class="settings-row">
-              <span class="settings-icon">
-                <img
-                  :src="
-                    getImagePath(
-                      selectedMap.settings.hideEnemySpeed ? 'hide_speed_icon' : 'show_speed_icon'
-                    )
-                  "
-                  alt=""
-                />
-              </span>
-            </div>
-          </div>
-          <!-- Mobile-only "back to list" link. Hidden on desktop via
+            <!-- Mobile-only "back to list" link. Hidden on desktop via
                CSS media query so we don't show it when both panes are
                on screen at once. -->
-          <a class="saved-maps-back-to-list" href="#" @click.prevent="scrollToList">
-            ↑ Back to the list
-          </a>
+            <a class="saved-maps-back-to-list" href="#" @click.prevent="scrollToList">
+              ↑ Back to the list
+            </a>
+          </div>
+          <div v-else class="saved-maps-preview-empty">Pick a map on the left to preview it.</div>
         </div>
-        <div v-else class="saved-maps-preview-empty">Pick a map on the left to preview it.</div>
       </div>
-    </div>
 
-    <div class="saved-maps-bottom-buttons">
-      <button
-        class="saved-maps-btn saved-maps-btn-primary"
-        :disabled="!selectedMap"
-        @click="handleStart"
-      >
-        {{ mode === 'pick' ? 'Use This Map' : 'Start Game' }}
-      </button>
-      <button class="saved-maps-btn" :disabled="!selectedMap" @click="askDelete">Delete</button>
-    </div>
-
+      <div class="saved-maps-bottom-buttons">
+        <button
+          class="saved-maps-btn saved-maps-btn-primary"
+          :disabled="!selectedMap"
+          @click="handleStart"
+        >
+          {{ mode === 'pick' ? 'Use This Map' : 'Start Game' }}
+        </button>
+        <button class="saved-maps-btn" :disabled="!selectedMap" @click="askDelete">Delete</button>
+      </div>
     </div>
 
     <ConfirmDialog
@@ -165,11 +171,7 @@
 
 <script>
 import emitter from '@/game/eventBus'
-import {
-  listSavedMaps,
-  deleteSavedMap,
-  getSavedMap,
-} from '@/game/mapStorage'
+import { listSavedMaps, deleteSavedMap, getSavedMap } from '@/game/mapStorage'
 import { getImagePath } from '@/game/helpers'
 import { GAME_STATES } from '@/game/const'
 import MapPreview from '@/components/game/MapPreview.vue'

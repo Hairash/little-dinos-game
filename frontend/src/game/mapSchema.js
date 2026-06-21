@@ -17,8 +17,13 @@ export const MAP_SCHEMA_VERSION = 1
 // the backend `SETTINGS_FIELDS` list in `map_snapshot.py`. Excludes
 // dimensions (width/height) and player counts, which live in metadata,
 // and excludes any runtime/game-status fields.
+//
+// `sectorsNum` is intentionally NOT here: it controls how
+// `CreateFieldEngine` picks player start sectors during *random* map
+// generation, which never runs for a saved map or scenario (the field
+// is fully baked in `initialMap`). Carrying it on canonical maps would
+// expose an internal generation knob with no in-game effect.
 export const SETTINGS_FIELDS = [
-  'sectorsNum',
   'enableFogOfWar',
   'fogOfWarRadius',
   'visibilitySpeedRelation',

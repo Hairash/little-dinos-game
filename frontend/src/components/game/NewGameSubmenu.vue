@@ -6,6 +6,7 @@
         <button @click="goTutorial">Tutorial</button>
         <button @click="goRandom">Random map</button>
         <button @click="goSavedMaps">Saved map</button>
+        <button @click="goScenarios">Scenarios</button>
         <button class="back-btn" @click="goBack">Back</button>
       </div>
     </div>
@@ -34,6 +35,9 @@ export default {
     },
     goSavedMaps() {
       emitter.emit('goToPage', GAME_STATES.savedMaps)
+    },
+    goScenarios() {
+      emitter.emit('goToPage', GAME_STATES.scenarios)
     },
     goBack() {
       emitter.emit('goToPage', GAME_STATES.menu)
