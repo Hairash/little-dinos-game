@@ -178,9 +178,15 @@ export default {
       return getImagePath(`${this.terrain.kind}${this.terrain.idx}`)
     },
     getBuildingImg() {
-      let buildingImg = this.building._type
-      if (this.building.player !== null) buildingImg += `${this.building.player + 1}`
-      return buildingImg
+      // Only `base` ships per-player asset variants (base1.webp … base8.webp).
+      // Other building types (habitation, temple, well, storage, obelisk) are
+      // neutral structures whose bonus is awarded by occupation, not capture
+      // — they have no per-player asset, so we must NOT append a suffix even
+      // if `.player` happens to be set. (Mirrors MapPreview.buildingImage.)
+      if (this.building._type === Models.BuildingTypes.BASE && this.building.player !== null) {
+        return `${this.building._type}${this.building.player + 1}`
+      }
+      return this.building._type
     },
     showMovePoints() {
       if (!this.hideEnemySpeed) return true

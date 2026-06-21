@@ -29,6 +29,13 @@
     :delete-source="savedMapsDeleteSource"
     @map-picked="handleMapPickedForLobby"
   />
+  <ScenariosPage v-if="state === GAME_STATES.scenarios" />
+  <MapEditorListPage v-if="state === GAME_STATES.mapEditor" />
+  <MapEditorCanvasPage
+    v-if="state === GAME_STATES.mapEditorCanvas && currentEditorScenarioId"
+    :key="`editor-${currentEditorScenarioId}`"
+    :scenario-id="currentEditorScenarioId"
+  />
   <GameSetup
     v-if="state === GAME_STATES.setup"
     :is-multiplayer-mode="!!currentGameCode"
@@ -107,6 +114,9 @@
 import GameMenu from '@/components/game/GameMenu.vue'
 import NewGameSubmenu from '@/components/game/NewGameSubmenu.vue'
 import SavedMapsPage from '@/components/game/SavedMapsPage.vue'
+import ScenariosPage from '@/components/game/ScenariosPage.vue'
+import MapEditorListPage from '@/components/editor/MapEditorListPage.vue'
+import MapEditorCanvasPage from '@/components/editor/MapEditorCanvasPage.vue'
 import GameSetup from '@/components/game/GameSetup.vue'
 import DinoGame from '@/components/game/DinoGame.vue'
 import MultiplayerDinoGame from '@/components/game/MultiplayerDinoGame.vue'
@@ -138,6 +148,9 @@ export default {
     GameMenu,
     NewGameSubmenu,
     SavedMapsPage,
+    ScenariosPage,
+    MapEditorListPage,
+    MapEditorCanvasPage,
     GameSetup,
     DinoGame,
     MultiplayerDinoGame,
@@ -167,6 +180,11 @@ export default {
       // default SP flow; 'pick' is the MP lobby's "Load Map" flow where
       // selecting a map returns the user to the lobby with the map.
       savedMapsMode: 'launch',
+      // ID of the scenario currently being edited in the canvas. Stored
+      // here (not in route params or the editor page's own state) so
+      // the canvas component can be remounted with a stable key when
+      // switching between scenarios. Cleared on leaving the editor.
+      currentEditorScenarioId: null,
     }
   },
   mounted() {
@@ -175,6 +193,7 @@ export default {
     emitter.on('goToPage', this.goToPage)
     emitter.on('startMultiplayer', this.startMultiplayer)
     emitter.on('startTutorialScenario', this.startTutorialScenario)
+    emitter.on('openMapEditorCanvas', this.openMapEditorCanvas)
 
     emitter.on('joinGame', this.callJoinGame)
     emitter.on('createGame', this.callCreateGame)
@@ -423,6 +442,10 @@ export default {
         }
       })
     },
+    openMapEditorCanvas(scenarioId) {
+      this.currentEditorScenarioId = scenarioId
+      this.state = this.GAME_STATES.mapEditorCanvas
+    },
     startTutorialScenario(scenarioId) {
       const scenario = getScenarioById(scenarioId)
       if (!scenario) {
@@ -519,6 +542,7 @@ export default {
     emitter.off('goToPage', this.goToPage)
     emitter.off('startMultiplayer', this.startMultiplayer)
     emitter.off('startTutorialScenario', this.startTutorialScenario)
+    emitter.off('openMapEditorCanvas', this.openMapEditorCanvas)
     emitter.off('multiplayerSettingsConfigured', this.handleMultiplayerSettingsConfigured)
     // TODO: Check we didn't forget smth
   },

@@ -1079,10 +1079,32 @@ export default {
     // changeCellSize comes from gameCoreMixin
     initPlayersScrollCoords() {
       for (let playerNum = 0; playerNum < this.players.length; playerNum++) {
-        const coords = this.getCurrentUnitCoords(playerNum)[0]
-        // console.log('coords', coords);
+        // Map-editor scenarios are permissive — a player may start with
+        // no units on the field (and even no base). Fall back through
+        // unit → base → map centre so the mount never blows up trying
+        // to destructure `undefined` inside `getScrollCoordsByCell`.
+        const coords = this.getCurrentUnitCoords(playerNum)[0] ??
+          this.findFirstBaseCoords(playerNum) ?? [
+            Math.floor(this.width / 2),
+            Math.floor(this.height / 2),
+          ]
         this.players[playerNum].scrollCoords = this.$refs.gameGridRef.getScrollCoordsByCell(coords)
       }
+    },
+    // Helper for `initPlayersScrollCoords` — returns `[x, y]` of the
+    // first base owned by `playerNum`, or `null` if the player has no
+    // owned base on the field.
+    findFirstBaseCoords(playerNum) {
+      const field = this.localField
+      if (!field) return null
+      for (let x = 0; x < this.width; x++) {
+        if (!field[x]) continue
+        for (let y = 0; y < this.height; y++) {
+          const b = field[x][y]?.building
+          if (b && b._type === 'base' && b.player === playerNum) return [x, y]
+        }
+      }
+      return null
     },
 
     // Visibility helpers
@@ -1287,21 +1309,32 @@ export default {
           for (let y = 0; y < this.localField[x].length; y++) {
             const cell = this.localField[x][y]
             if (!cell?.unit) continue
+            const saved = this.initialMap.field[x][y]?.unit
+            // Map-editor scenarios can stamp an explicit `movePoints`
+            // (and optional `visibility`) on a starting unit so the
+            // designer can place "fast" or "slow" dinos at will. If
+            // present, honour them — collapsing min=max in
+            // createNewUnit so the same helper computes a sensible
+            // visibility from the explicit speed. Built-in/random
+            // maps don't ship this field, so they keep the original
+            // "reseed to minSpeed" behaviour.
+            const explicitSpeed =
+              typeof saved?.movePoints === 'number' && saved.movePoints > 0
+                ? saved.movePoints
+                : null
+            const minForRoll = explicitSpeed ?? this.minSpeed
+            const maxForRoll = explicitSpeed ?? this.minSpeed
             cell.unit = createNewUnit(
               cell.unit.player,
-              this.minSpeed,
-              this.minSpeed,
+              minForRoll,
+              maxForRoll,
               this.speedMinVisibility,
               this.fogOfWarRadius,
               this.visibilitySpeedRelation,
               0
             )
-            // Preserve the unit's original _type label from the map
-            // (e.g. dinoN) — createNewUnit derives it from player+1,
-            // which matches in practice but is worth keeping if a
-            // future map encodes a different visual.
-            const savedType = this.initialMap.field[x][y]?.unit?._type
-            if (savedType) cell.unit._type = savedType
+            if (saved?.visibility) cell.unit.visibility = saved.visibility
+            if (saved?._type) cell.unit._type = saved._type
           }
         }
         return

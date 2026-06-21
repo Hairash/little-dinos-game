@@ -9,111 +9,115 @@
     <div id="lobby-page-content">
       <!-- Current Game Section (Top) -->
       <div id="lobby-page-current-game">
-      <div id="lobby-page-current-game-header">
-        <h2>Current Game</h2>
+        <div id="lobby-page-current-game-header">
+          <h2>Current Game</h2>
+        </div>
+        <div id="lobby-page-current-game-content">
+          <div v-if="gameCode" id="lobby-page-current-game-info">
+            <div id="lobby-page-current-game-code">
+              <p>
+                Game Code: <strong>{{ gameCode }}</strong>
+              </p>
+            </div>
+            <div id="lobby-page-current-game-players">
+              <h3>Players</h3>
+              <div id="lobby-page-current-game-players-list">
+                <div
+                  id="lobby-page-current-game-players-player"
+                  v-for="player in players"
+                  :key="player.id"
+                  :style="{ color: getPlayerColor(player.order) }"
+                >
+                  {{ player.username }}
+                </div>
+                <div v-if="players.length === 0" id="lobby-page-current-game-players-empty">
+                  <p>No players yet. Waiting for players to join...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else id="lobby-page-current-game-empty">
+            <p>No active game. Create or join a game to start.</p>
+          </div>
+          <div id="lobby-page-current-game-actions">
+            <button id="lobby-page-button" @click="createGame">Create Game</button>
+            <div id="lobby-page-join-section">
+              <input
+                type="text"
+                id="lobby-page-input"
+                placeholder="Game Code"
+                v-model="inputGameCode"
+                required
+              />
+              <button id="lobby-page-button" @click="joinGame">Join Game</button>
+            </div>
+            <div v-if="gameCode && isGameCreator" id="lobby-page-setup-start-section">
+              <div class="lobby-page-selection-label">
+                Selected: <strong>{{ pickedMap ? pickedMap.name : 'Random game' }}</strong>
+              </div>
+              <div class="lobby-page-setup-row">
+                <button id="lobby-page-button" @click="setupGame">Setup Random Game</button>
+                <button id="lobby-page-button" @click="openMapPicker">Load Map</button>
+                <button
+                  id="lobby-page-button"
+                  @click="startMultiplayerGame"
+                  :disabled="players.length < 2"
+                  :title="
+                    players.length < 2 ? 'At least 2 players are required to start the game' : ''
+                  "
+                >
+                  Start Game
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div id="lobby-page-current-game-content">
-        <div v-if="gameCode" id="lobby-page-current-game-info">
-          <div id="lobby-page-current-game-code">
-            <p>
-              Game Code: <strong>{{ gameCode }}</strong>
-            </p>
-          </div>
-          <div id="lobby-page-current-game-players">
-            <h3>Players</h3>
-            <div id="lobby-page-current-game-players-list">
-              <div
-                id="lobby-page-current-game-players-player"
-                v-for="player in players"
-                :key="player.id"
-                :style="{ color: getPlayerColor(player.order) }"
-              >
-                {{ player.username }}
-              </div>
-              <div v-if="players.length === 0" id="lobby-page-current-game-players-empty">
-                <p>No players yet. Waiting for players to join...</p>
-              </div>
-            </div>
-          </div>
+
+      <!-- Active Games Section (Bottom) -->
+      <div id="lobby-page-active-games">
+        <div id="lobby-page-active-games-header">
+          <h2>Active Games</h2>
+          <button
+            id="lobby-page-refresh-button"
+            @click="loadActiveGames"
+            title="Refresh games list"
+          >
+            ↻
+          </button>
         </div>
-        <div v-else id="lobby-page-current-game-empty">
-          <p>No active game. Create or join a game to start.</p>
-        </div>
-        <div id="lobby-page-current-game-actions">
-          <button id="lobby-page-button" @click="createGame">Create Game</button>
-          <div id="lobby-page-join-section">
-            <input
-              type="text"
-              id="lobby-page-input"
-              placeholder="Game Code"
-              v-model="inputGameCode"
-              required
-            />
-            <button id="lobby-page-button" @click="joinGame">Join Game</button>
+        <div id="lobby-page-active-games-content">
+          <div v-if="loadingGames" id="lobby-page-active-games-loading">
+            <p>Loading games...</p>
           </div>
-          <div v-if="gameCode && isGameCreator" id="lobby-page-setup-start-section">
-            <div class="lobby-page-selection-label">
-              Selected: <strong>{{ pickedMap ? pickedMap.name : 'Random game' }}</strong>
+          <div v-else-if="activeGames.length === 0" id="lobby-page-active-games-empty">
+            <p>No active games. Create or join a game to start.</p>
+          </div>
+          <div v-else id="lobby-page-active-games-list">
+            <div v-for="game in activeGames" :key="game.gameCode" id="lobby-page-active-games-game">
+              <div id="lobby-page-active-games-game-info">
+                <h3>
+                  Game: <strong>{{ game.gameCode }}</strong>
+                </h3>
+                <p>Turn: {{ game.turnPlayer || 'N/A' }}</p>
+                <p>Players: {{ game.players.map(p => p.username).join(', ') }}</p>
+              </div>
+              <button id="lobby-page-active-games-game-connect" @click="connectToGame(game)">
+                Connect
+              </button>
             </div>
-            <div class="lobby-page-setup-row">
-              <button id="lobby-page-button" @click="setupGame">Setup Random Game</button>
-              <button id="lobby-page-button" @click="openMapPicker">Load Map</button>
+            <div v-if="hasMoreGames" id="lobby-page-active-games-load-more">
               <button
-                id="lobby-page-button"
-                @click="startMultiplayerGame"
-                :disabled="players.length < 2"
-                :title="
-                  players.length < 2 ? 'At least 2 players are required to start the game' : ''
-                "
+                id="lobby-page-load-more-button"
+                @click="loadAllGames"
+                :disabled="loadingAllGames"
               >
-                Start Game
+                {{ loadingAllGames ? 'Loading...' : 'Load More' }}
               </button>
             </div>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Active Games Section (Bottom) -->
-    <div id="lobby-page-active-games">
-      <div id="lobby-page-active-games-header">
-        <h2>Active Games</h2>
-        <button id="lobby-page-refresh-button" @click="loadActiveGames" title="Refresh games list">
-          ↻
-        </button>
-      </div>
-      <div id="lobby-page-active-games-content">
-        <div v-if="loadingGames" id="lobby-page-active-games-loading">
-          <p>Loading games...</p>
-        </div>
-        <div v-else-if="activeGames.length === 0" id="lobby-page-active-games-empty">
-          <p>No active games. Create or join a game to start.</p>
-        </div>
-        <div v-else id="lobby-page-active-games-list">
-          <div v-for="game in activeGames" :key="game.gameCode" id="lobby-page-active-games-game">
-            <div id="lobby-page-active-games-game-info">
-              <h3>
-                Game: <strong>{{ game.gameCode }}</strong>
-              </h3>
-              <p>Turn: {{ game.turnPlayer || 'N/A' }}</p>
-              <p>Players: {{ game.players.map(p => p.username).join(', ') }}</p>
-            </div>
-            <button id="lobby-page-active-games-game-connect" @click="connectToGame(game)">
-              Connect
-            </button>
-          </div>
-          <div v-if="hasMoreGames" id="lobby-page-active-games-load-more">
-            <button
-              id="lobby-page-load-more-button"
-              @click="loadAllGames"
-              :disabled="loadingAllGames"
-            >
-              {{ loadingAllGames ? 'Loading...' : 'Load More' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
     </div>
     <MenuError v-if="error" :error="error" :set-error="setError" />
   </div>

@@ -194,6 +194,7 @@ span.movePointsLabel {
   position: absolute;
   right: 2px;
   bottom: 2px;
+  z-index: 1;
   /*font-size: v-bind('cssProps.fontSize');*/
   font-weight: bold;
   background-color: white;

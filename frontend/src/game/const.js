@@ -131,6 +131,18 @@ export const GAME_STATES = {
   //   - pick: Start Game emits the chosen map back to the caller (used
   //     by LobbyPage to seed a multiplayer game).
   savedMaps: 'savedMaps',
+  // Browser for built-in pre-designed scenarios. Mirrors the savedMaps
+  // launch flow, but the source list is hard-coded in scenariosData.js
+  // and each entry carries a description shown next to the preview.
+  // User-authored scenarios from the Map Editor are merged in here too.
+  scenarios: 'scenarios',
+  // Top-level Map Editor list (sub-menu of the main menu, NOT under
+  // New Game). Lists user-authored scenarios with Edit Map / Edit
+  // Parameters / Delete and a "Create new" entry.
+  mapEditor: 'mapEditor',
+  // Full-screen canvas editor (one scenario at a time). The currently
+  // edited scenario's id is held by App.vue's `currentEditorScenarioId`.
+  mapEditorCanvas: 'mapEditorCanvas',
   setup: 'setup',
   game: 'game',
   help: 'help',
