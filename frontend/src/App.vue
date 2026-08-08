@@ -562,5 +562,35 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: white;
+  /* iOS long-press defaults aren't useful in a game — the system
+     callout (copy / save image / share) hijacks our own long-press
+     menus, and the gray text-selection drag gets in the way of
+     cells and panel buttons. Disable both app-wide; opt text inputs
+     back in below so the gear-menu name/description fields still
+     work normally. `-webkit-tap-highlight-color: transparent` kills
+     the gray tap flash, which competes with our own selection
+     cues. */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Descendants need the same rules — `-webkit-user-select` and
+   `user-select` aren't reliably inherited on iOS, and a few elements
+   (anchors, images) get their own default that we want to override. */
+#app * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Re-enable selection + the callout default for form fields, otherwise
+   the gear menu's name/description inputs can't be edited normally. */
+#app input,
+#app textarea {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
 }
 </style>

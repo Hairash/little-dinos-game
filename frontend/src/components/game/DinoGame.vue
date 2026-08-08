@@ -1318,8 +1318,14 @@ export default {
             // visibility from the explicit speed. Built-in/random
             // maps don't ship this field, so they keep the original
             // "reseed to minSpeed" behaviour.
+            //
+            // `>= 0` (not `> 0`): speed 0 is a valid explicit choice —
+            // an immobile dino, same as tutorial scenarios place. The
+            // min=max=0 collapse makes createNewUnit compute the same
+            // (max) visibility a speed-1 dino gets, so a stationary dino
+            // still sees as far as the slowest moving one.
             const explicitSpeed =
-              typeof saved?.movePoints === 'number' && saved.movePoints > 0
+              typeof saved?.movePoints === 'number' && saved.movePoints >= 0
                 ? saved.movePoints
                 : null
             const minForRoll = explicitSpeed ?? this.minSpeed

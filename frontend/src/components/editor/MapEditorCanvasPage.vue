@@ -96,10 +96,15 @@
                   dino sprite, so the in-game UI hides it. Keeping the
                   same threshold (`cellSize > 10`) means the editor
                   preview matches what a player actually sees at min
-                  zoom in the live game.
+                  zoom in the live game. The `!= null` test (not a truthy
+                  check) keeps the badge visible for speed-0 dinos —
+                  immobile units are a valid placement and `0` is a real
+                  speed, exactly as `GameUnit` shows it in the live game.
                 -->
                 <span
-                  v-if="cellData.unit?.movePoints && cellSize > MIN_CELL_SIZE"
+                  v-if="
+                    cellData.unit && cellData.unit.movePoints != null && cellSize > MIN_CELL_SIZE
+                  "
                   class="cell-speed"
                   :style="{
                     fontSize: `${labelFontSize}px`,
@@ -110,10 +115,34 @@
                 </span>
               </div>
             </div>
+            <!--
+              Move-tool selection contour. Painted inside `.board` so
+              its `top`/`left` are relative to the grid's origin and
+              its dimensions scale with `cellSize`. Visible after the
+              first corner click (1-cell highlight) and during the
+              destination stage (full rectangle).
+            -->
+            <div v-if="moveSelectionRect" class="move-selection" :style="moveSelectionRect" />
+            <!--
+              Destination preview — a dashed contour tracking the cursor
+              during the destination stage, showing where the selected
+              area will land (desktop hover only; see moveDestPreviewRect).
+            -->
+            <div
+              v-if="moveDestPreviewRect"
+              class="move-selection move-dest-preview"
+              :style="moveDestPreviewRect"
+            />
           </div>
         </div>
       </div>
     </div>
+
+    <!--
+      Move-tool hint banner. Sits above the bottom panel; auto-shows
+      whenever `moveState` is set, auto-hides on completion / cancel.
+    -->
+    <div v-if="moveHintText" class="move-hint">{{ moveHintText }}</div>
 
     <!--
       Bottom panel — only persistent UI. Same look as the in-game
@@ -149,6 +178,16 @@
           >
             <img class="curPlayerImage" :src="getImagePath('minus')" alt="Zoom Out" />
           </button>
+          <!--
+            Single-step undo. Each map-mutating user action (paint stroke,
+            cell-menu change, area move) snapshots the field first via
+            `captureUndo`; this button restores that snapshot and then
+            disables itself until the next action snapshots again. Only
+            one level deep by design — no redo, no history stack.
+          -->
+          <button class="infoBtn" @click="undo" :disabled="!undoSnapshot" title="Undo last change">
+            <img class="curPlayerImage" :src="getImagePath('undo')" alt="Undo" />
+          </button>
         </span>
         <!--
           Tool buttons. Terrain and Eraser are normal `.infoBtn`s.
@@ -168,9 +207,9 @@
                other tools' picker popups. -->
           <button
             class="infoBtn toolBtn"
-            :class="{ 'toolBtn-active': activeTool === 'terrain' }"
+            :class="{ 'toolBtn-active': activeTool === 'terrain' && !moveState }"
             title="Terrain — left-click to select, right-click to change kind"
-            @click="activeTool = 'terrain'"
+            @click="selectTool('terrain')"
             @contextmenu.prevent="openPopup('terrain', 'object')"
           >
             <img
@@ -181,11 +220,14 @@
           </button>
 
           <!-- Building (square `.infoBtn`) + separate color square. -->
-          <span class="tool-cluster" :class="{ 'toolBtn-active': activeTool === 'building' }">
+          <span
+            class="tool-cluster"
+            :class="{ 'toolBtn-active': activeTool === 'building' && !moveState }"
+          >
             <button
               class="infoBtn toolBtn"
               title="Building — left-click to select, right-click to change type"
-              @click="activeTool = 'building'"
+              @click="selectTool('building')"
               @contextmenu.prevent="openPopup('building', 'object')"
             >
               <img
@@ -198,7 +240,7 @@
               class="color-square"
               title="Owner — left-click to select tool, right-click to change color"
               :style="{ background: buildingColorSwatch }"
-              @click="activeTool = 'building'"
+              @click="selectTool('building')"
               @contextmenu.prevent="openPopup('building', 'color')"
             ></button>
 
@@ -212,11 +254,14 @@
           </span>
 
           <!-- Dino button + separate color square. -->
-          <span class="tool-cluster" :class="{ 'toolBtn-active': activeTool === 'dino' }">
+          <span
+            class="tool-cluster"
+            :class="{ 'toolBtn-active': activeTool === 'dino' && !moveState }"
+          >
             <button
               class="infoBtn toolBtn"
               title="Dino — left-click to select, right-click to change speed"
-              @click="activeTool = 'dino'"
+              @click="selectTool('dino')"
               @contextmenu.prevent="openPopup('dino', 'object')"
             >
               <img
@@ -230,7 +275,7 @@
               class="color-square"
               title="Owner — left-click to select tool, right-click to change color"
               :style="{ background: getPlayerColor(toolConfig.dino.player) }"
-              @click="activeTool = 'dino'"
+              @click="selectTool('dino')"
               @contextmenu.prevent="openPopup('dino', 'color')"
             ></button>
 
@@ -243,15 +288,32 @@
             -->
           </span>
 
-          <!-- Eraser (unchanged) -->
+          <!-- Eraser -->
           <button
             class="infoBtn toolBtn"
-            :class="{ 'toolBtn-active': activeTool === 'eraser' }"
+            :class="{ 'toolBtn-active': activeTool === 'eraser' && !moveState }"
             title="Eraser — left-click to select"
-            @click="activeTool = 'eraser'"
+            @click="selectTool('eraser')"
             @contextmenu.prevent=""
           >
             <span class="tool-eraser">✕</span>
+          </button>
+
+          <!--
+            Move tool — multi-click action that doesn't slot into the
+            normal `activeTool` model (no per-click placement). Tapping
+            the button arms `moveState`; subsequent cell clicks advance
+            its 3-stage state machine. Tapping again, or right-clicking
+            a cell, cancels.
+          -->
+          <button
+            class="infoBtn toolBtn"
+            :class="{ 'toolBtn-active': moveState !== null }"
+            title="Move area"
+            @click="toggleMove"
+            @contextmenu.prevent="showHint($event, 'Move an area of the map')"
+          >
+            <img class="curPlayerImage" :src="getImagePath('move_icon')" alt="Move" />
           </button>
         </span>
       </div>
@@ -395,6 +457,13 @@
         Change tower color
       </button>
       <button
+        v-if="cellMenuCell?.building"
+        class="cell-menu-item cell-menu-item-danger"
+        @click="removeBuildingFromCell"
+      >
+        Remove building
+      </button>
+      <button
         v-if="cellMenuCell?.unit"
         class="cell-menu-item"
         @click="openCellPicker('unit-color')"
@@ -407,6 +476,13 @@
         @click="openCellPicker('unit-speed')"
       >
         Change unit speed
+      </button>
+      <button
+        v-if="cellMenuCell?.unit"
+        class="cell-menu-item cell-menu-item-danger"
+        @click="removeUnitFromCell"
+      >
+        Remove unit
       </button>
     </div>
 
@@ -490,6 +566,16 @@
     </div>
 
     <!--
+      Floating right-click hint tooltip. Same dark pill as
+      `GameMenuOverlay.menu-hint` so right-click hinting in the
+      editor reads the same as in-game. Set/cleared by showHint /
+      hideHint; auto-hides after 3 s.
+    -->
+    <div v-if="hint" class="editor-hint" :style="{ left: `${hint.x}px`, top: `${hint.y}px` }">
+      {{ hint.text }}
+    </div>
+
+    <!--
       Gear menu overlay — mirrors GameMenuOverlay shape exactly:
       ingame_menu_border.png outer plate + ingame_menu_texture.png inner
       panel, h2 in black, button row at the bottom with small_button.png
@@ -517,7 +603,10 @@
             <div class="settings-grid">
               <!-- Dimensions: icon + value + pencil edit button -->
               <div class="setting-row setting-row-edit">
-                <span class="setting-icon">
+                <span
+                  class="setting-icon"
+                  @contextmenu.prevent="showHint($event, 'Map size (width × height)')"
+                >
                   <img :src="getImagePath('field_icon')" alt="Dimensions" />
                 </span>
                 <span class="setting-value">
@@ -528,14 +617,18 @@
                   :class="{ 'edit-btn-active': resizeOpen }"
                   title="Resize"
                   @click="resizeOpen = !resizeOpen"
+                  @contextmenu.prevent="showHint($event, 'Change map size')"
                 >
-                  ✎
+                  <img :src="getImagePath('pencil_icon')" alt="Edit" />
                 </button>
               </div>
 
               <!-- Players: icon + total + pencil edit button -->
               <div class="setting-row setting-row-edit">
-                <span class="setting-icon">
+                <span
+                  class="setting-icon"
+                  @contextmenu.prevent="showHint($event, 'Total number of players')"
+                >
                   <img :src="getImagePath('human_icon')" alt="Players" />
                 </span>
                 <span class="setting-value">{{ map.metadata.playersNum }}</span>
@@ -544,14 +637,20 @@
                   :class="{ 'edit-btn-active': playersOpen }"
                   title="Update players"
                   @click="playersOpen = !playersOpen"
+                  @contextmenu.prevent="showHint($event, 'Change number of players')"
                 >
-                  ✎
+                  <img :src="getImagePath('pencil_icon')" alt="Edit" />
                 </button>
               </div>
 
               <!-- Speed range: icon + min - max -->
               <div class="setting-row">
-                <span class="setting-icon">
+                <span
+                  class="setting-icon"
+                  @contextmenu.prevent="
+                    showHint($event, 'Speed range (min – max) for produced units')
+                  "
+                >
                   <img :src="getImagePath('speed_icon')" alt="Speed" />
                 </span>
                 <input
@@ -575,7 +674,10 @@
 
               <!-- Max units -->
               <div class="setting-row">
-                <span class="setting-icon">
+                <span
+                  class="setting-icon"
+                  @contextmenu.prevent="showHint($event, 'Maximum number of units per player')"
+                >
                   <img :src="getImagePath('dino_icon')" alt="Max units" />
                 </span>
                 <input
@@ -589,7 +691,10 @@
 
               <!-- Unit modifier -->
               <div class="setting-row">
-                <span class="setting-icon">
+                <span
+                  class="setting-icon"
+                  @contextmenu.prevent="showHint($event, 'Extra units per habitation')"
+                >
                   <img :src="getImagePath('dino_icon_plus')" alt="Unit modifier" />
                 </span>
                 <input
@@ -603,7 +708,10 @@
 
               <!-- Max bases -->
               <div class="setting-row">
-                <span class="setting-icon">
+                <span
+                  class="setting-icon"
+                  @contextmenu.prevent="showHint($event, 'Maximum number of bases per player')"
+                >
                   <img :src="getImagePath('tower_icon')" alt="Max bases" />
                 </span>
                 <input
@@ -617,7 +725,10 @@
 
               <!-- Base modifier -->
               <div class="setting-row">
-                <span class="setting-icon">
+                <span
+                  class="setting-icon"
+                  @contextmenu.prevent="showHint($event, 'Extra bases per storage')"
+                >
                   <img :src="getImagePath('tower_icon_plus')" alt="Base modifier" />
                 </span>
                 <input
@@ -635,6 +746,7 @@
                   class="setting-icon setting-icon-btn"
                   :title="map.settings.enableFogOfWar ? 'Fog on' : 'Fog off'"
                   @click="map.settings.enableFogOfWar = !map.settings.enableFogOfWar"
+                  @contextmenu.prevent="showHint($event, 'Fog of war (click to toggle)')"
                 >
                   <img
                     :src="getImagePath(map.settings.enableFogOfWar ? 'closed_eye' : 'open_eye')"
@@ -642,7 +754,10 @@
                   />
                 </button>
                 <template v-if="map.settings.enableFogOfWar">
-                  <span class="setting-icon">
+                  <span
+                    class="setting-icon"
+                    @contextmenu.prevent="showHint($event, 'Fog of war radius')"
+                  >
                     <img :src="getImagePath('radius_icon')" alt="Fog radius" />
                   </span>
                   <input
@@ -666,6 +781,9 @@
                   "
                   @click="
                     map.settings.visibilitySpeedRelation = !map.settings.visibilitySpeedRelation
+                  "
+                  @contextmenu.prevent="
+                    showHint($event, 'Visibility scales with speed (click to toggle)')
                   "
                 >
                   <img
@@ -696,6 +814,12 @@
                   class="setting-icon setting-icon-btn"
                   :title="map.settings.killAtBirth ? 'Kill at birth on' : 'Kill at birth off'"
                   @click="map.settings.killAtBirth = !map.settings.killAtBirth"
+                  @contextmenu.prevent="
+                    showHint(
+                      $event,
+                      'Kill at birth: new units adjacent to enemies die immediately (click to toggle)'
+                    )
+                  "
                 >
                   <img
                     :src="
@@ -714,6 +838,7 @@
                   class="setting-icon setting-icon-btn"
                   :title="map.settings.hideEnemySpeed ? 'Enemy speed hidden' : 'Enemy speed shown'"
                   @click="map.settings.hideEnemySpeed = !map.settings.hideEnemySpeed"
+                  @contextmenu.prevent="showHint($event, 'Hide enemy unit speed (click to toggle)')"
                 >
                   <img
                     :src="
@@ -744,18 +869,68 @@
           </div>
 
           <!--
+            Successful-save confirmation. Hides after 2 s via the
+            timer in `save()`. Shares the same vertical slot above
+            the button row as the error block so the layout is stable
+            either way.
+          -->
+          <div v-if="saveNotice" class="menu-success">Game saved</div>
+
+          <!--
+            Inline help block — toggled by the Help button in the
+            button row below. Sits in the same vertical slot as the
+            error/saved notices so the menu layout stays predictable.
+            Closes by clicking Help again or by closing the menu.
+          -->
+          <div v-if="helpOpen" class="menu-help">
+            <ul class="help-list">
+              <li>Left-click on a button in the bottom panel to select that object.</li>
+              <li>
+                Right-click on a bottom-panel button to change its options (type, color, speed).
+              </li>
+              <li>Left-click on the map to place the selected object.</li>
+              <li>Right-click on a cell with an object to change or remove its unit / building.</li>
+              <li>Don't forget to save before exit.</li>
+            </ul>
+          </div>
+
+          <!--
             Bottom button row — mirrors GameMenuOverlay exactly:
             small_button.png 26x26 buttons with 22x22 icons. Order
-            matches the in-game menu (back, +, −, save, exit).
+            matches the in-game menu (back, help, save, exit).
           -->
           <div class="menu-buttons">
-            <button class="menu-btn" @click="closeGearMenu" title="Back">
+            <button
+              class="menu-btn"
+              @click="closeGearMenu"
+              title="Back"
+              @contextmenu.prevent="showHint($event, 'Back to the editor (close menu)')"
+            >
               <img class="btn-icon btn-icon-resume" :src="getImagePath('arrow')" alt="Back" />
             </button>
-            <button class="menu-btn" @click="save" title="Save">
+            <button
+              class="menu-btn"
+              :class="{ 'menu-btn-active': helpOpen }"
+              title="Help"
+              @click="helpOpen = !helpOpen"
+              @contextmenu.prevent="showHint($event, 'Help')"
+            >
+              <img class="btn-icon" :src="getImagePath('help_icon')" alt="Help" />
+            </button>
+            <button
+              class="menu-btn"
+              @click="save"
+              title="Save"
+              @contextmenu.prevent="showHint($event, 'Save game')"
+            >
               <img class="btn-icon" :src="getImagePath('save_icon')" alt="Save" />
             </button>
-            <button class="menu-btn" @click="exitEditor" title="Exit">
+            <button
+              class="menu-btn"
+              @click="exitEditor"
+              title="Exit"
+              @contextmenu.prevent="showHint($event, 'Exit editor')"
+            >
               <img class="btn-icon" :src="getImagePath('exit_icon')" alt="Exit" />
             </button>
           </div>
@@ -924,6 +1099,21 @@ export default {
       errorMessage: '',
       resizeError: '',
       playersError: '',
+      // Brief "Game saved" confirmation shown after a successful save.
+      // Cleared by a setTimeout in `save()` and immediately on
+      // `closeGearMenu` so a stale message never lingers when the
+      // menu reopens.
+      saveNotice: false,
+      // Inline help block toggled by the gear menu's Help button.
+      // Cleared when the gear menu closes so a stale help screen
+      // doesn't reappear on next open.
+      helpOpen: false,
+      // Right-click / long-tap tooltip for elements inside the gear
+      // menu. Matches `GameMenuOverlay.menu-hint` look. Auto-hides
+      // after 3 s; any left-click also hides it via the global click
+      // handler. `{ text, x, y }` in viewport coords (from the target's
+      // bounding rect at trigger time); null when hidden.
+      hint: null,
       cellSize: DEFAULT_CELL_SIZE,
       MIN_CELL_SIZE,
       MAX_CELL_SIZE,
@@ -957,6 +1147,37 @@ export default {
       // 'unit-speed'. Both null when nothing is open.
       cellMenu: null,
       cellPicker: null,
+      // 3-stage state machine for the Move tool. Null when idle.
+      // Stages:
+      //   'corner1'    — waiting for the first corner click
+      //   'corner2'    — first corner picked (`x1`,`y1`); waiting on
+      //                  the second corner click
+      //   'destination'— both corners picked; waiting on the
+      //                  destination click (top-left of the new spot)
+      // Set by `toggleMove`, advanced by `advanceMoveStage`, cleared
+      // by completion / cancellation / closeGearMenu / exit.
+      moveState: null,
+      // PC drag-select for the Move tool's area step. While the user
+      // holds the mouse down over the board in the `corner1` stage,
+      // this holds `{ x1, y1, x2, y2 }` — the press cell and the cell
+      // currently hovered — so we can live-preview the rectangle. On
+      // release: a real drag (end cell ≠ start cell) sets both corners
+      // at once and jumps to the `destination` stage; a same-cell press
+      // (a click, including every touch tap) falls back to the
+      // two-click corner flow. `null` when not dragging.
+      moveDrag: null,
+      // Cursor cell during the Move tool's destination stage, driving a
+      // live "where it'll land" preview contour (`moveDestPreviewRect`).
+      // Fed by `mouseenter` (desktop-only — touch never fires it here).
+      // Reset to null on entering the destination stage and on any
+      // move cancel/complete so a stale frame never lingers.
+      moveHoverDest: null,
+      // Single-step undo. Holds a deep clone of `map.field` captured
+      // right before the most recent map-mutating action (paint stroke,
+      // cell-menu edit, area move). `null` means nothing to undo, which
+      // also disables the toolbar's undo button. Cleared after an undo
+      // and re-armed by the next action's `captureUndo`. Reset on load.
+      undoSnapshot: null,
     }
   },
   computed: {
@@ -984,6 +1205,63 @@ export default {
       const cfg = this.toolConfig.building
       if (cfg._type !== 'base' || cfg.player === null) return '#ccc'
       return getPlayerColor(cfg.player)
+    },
+    moveHintText() {
+      if (!this.moveState) return ''
+      if (this.moveState.stage === 'destination') {
+        return 'Choose the place to move (top-left corner)'
+      }
+      return 'Drag to select an area, or click two opposite corners'
+    },
+    // Inline style for the gold selection contour drawn over the
+    // board. Renders:
+    //   • while drag-selecting on PC — the rectangle under the cursor;
+    //   • after the first corner click — a 1-cell highlight on the
+    //     picked corner;
+    //   • during the destination stage — the full normalised
+    //     rectangle covering both picked corners.
+    // Null at all other times.
+    moveSelectionRect() {
+      // Live drag-select preview takes priority over the click-flow
+      // states (it only exists during the corner1 stage anyway).
+      if (this.moveDrag) {
+        const { x1, y1, x2, y2 } = this.moveDrag
+        return this._cellRectStyle(
+          Math.min(x1, x2),
+          Math.min(y1, y2),
+          Math.max(x1, x2),
+          Math.max(y1, y2)
+        )
+      }
+      const ms = this.moveState
+      if (!ms || ms.stage === 'corner1') return null
+      if (ms.stage === 'corner2') {
+        return this._cellRectStyle(ms.x1, ms.y1, ms.x1, ms.y1)
+      }
+      // stage === 'destination'
+      const minX = Math.min(ms.x1, ms.x2)
+      const maxX = Math.max(ms.x1, ms.x2)
+      const minY = Math.min(ms.y1, ms.y2)
+      const maxY = Math.max(ms.y1, ms.y2)
+      return this._cellRectStyle(minX, minY, maxX, maxY)
+    },
+    // Contour showing where the selected area will land, following the
+    // cursor during the destination stage. Uses the SAME size + clamp
+    // math as `performMove`, so the frame previews the true drop spot
+    // (including the silent edge-clamp). Desktop-only: `moveHoverDest`
+    // is fed by `mouseenter`, which touch never fires here, so on touch
+    // this stays null and no preview shows. Null unless we're in the
+    // destination stage with a hovered cell.
+    moveDestPreviewRect() {
+      const ms = this.moveState
+      if (!ms || ms.stage !== 'destination' || !this.moveHoverDest || !this.map) return null
+      const w = Math.abs(ms.x1 - ms.x2) + 1
+      const h = Math.abs(ms.y1 - ms.y2) + 1
+      const mapW = this.map.metadata.width
+      const mapH = this.map.metadata.height
+      const dx = Math.max(0, Math.min(this.moveHoverDest.x, mapW - w))
+      const dy = Math.max(0, Math.min(this.moveHoverDest.y, mapH - h))
+      return this._cellRectStyle(dx, dy, dx + w - 1, dy + h - 1)
     },
     // Reactive accessors for the cell that's currently under the
     // right-click context menu / cell picker. Using a computed (rather
@@ -1037,11 +1315,15 @@ export default {
     // mousedown) so it runs AFTER any inner option-button click, which
     // already sets popup=null on selection.
     document.addEventListener('click', this.handleOutsidePopupClick)
+    // Esc cancels an in-progress Move flow (desktop-only by nature — no
+    // physical key on touch). Same effect as tapping the Move button again.
+    window.addEventListener('keydown', this.handleKeydown)
   },
   beforeUnmount() {
     window.removeEventListener('beforeunload', this.beforeUnload)
     window.removeEventListener('mouseup', this.onPaintEnd)
     document.removeEventListener('click', this.handleOutsidePopupClick)
+    window.removeEventListener('keydown', this.handleKeydown)
   },
   watch: {
     scenarioId() {
@@ -1069,6 +1351,8 @@ export default {
       }
       this.entry = JSON.parse(JSON.stringify(fresh))
       this.dirty = false
+      // A freshly loaded scenario has no action to undo.
+      this.undoSnapshot = null
       this.newWidth = this.entry.map.metadata.width
       this.newHeight = this.entry.map.metadata.height
       this.newTotalPlayers = this.entry.map.metadata.playersNum
@@ -1107,8 +1391,19 @@ export default {
     },
     // ---- Floating popups (tool options) -----------------------------------
     getPlayerColor,
+    // Single entry point for setting the active placement tool —
+    // cancels any in-progress Move flow so the bottom-panel halo
+    // doesn't end up on two buttons at once (Move + the just-selected
+    // tool). Used by every bottom-panel tool button and color square,
+    // plus `openPopup` so right-clicking a tool also exits Move.
+    selectTool(id) {
+      if (this.moveState) this.moveState = null
+      this.moveDrag = null
+      this.moveHoverDest = null
+      this.activeTool = id
+    },
     openPopup(tool, kind) {
-      this.activeTool = tool
+      this.selectTool(tool)
       this.popup = { tool, kind }
     },
     buildingOptionImg(type) {
@@ -1149,6 +1444,14 @@ export default {
       // Always swallow the browser context menu on cells; only OPEN
       // our menu when there's something on the cell to modify.
       event.preventDefault()
+      // Right-click during a Move flow cancels the operation instead
+      // of opening the cell context menu.
+      if (this.moveState) {
+        this.moveState = null
+        this.moveDrag = null
+        this.moveHoverDest = null
+        return
+      }
       // Close any other open menu/picker first.
       this.popup = null
       this.cellPicker = null
@@ -1211,6 +1514,7 @@ export default {
     applyCellBuildingType(type) {
       const cell = this.cellPickerCell
       if (cell?.building) {
+        this.captureUndo()
         cell.building._type = type
         // Engine rule: non-base buildings are always neutral.
         if (type !== 'base') cell.building.player = null
@@ -1219,12 +1523,16 @@ export default {
     },
     applyCellTowerColor(player) {
       const cell = this.cellPickerCell
-      if (cell?.building && cell.building._type === 'base') cell.building.player = player
+      if (cell?.building && cell.building._type === 'base') {
+        this.captureUndo()
+        cell.building.player = player
+      }
       this.cellPicker = null
     },
     applyCellUnitColor(player) {
       const cell = this.cellPickerCell
       if (cell?.unit) {
+        this.captureUndo()
         cell.unit.player = player
         cell.unit._type = `dino${player + 1}`
       }
@@ -1232,10 +1540,166 @@ export default {
     },
     applyCellUnitSpeed(speed) {
       const cell = this.cellPickerCell
-      if (cell?.unit) cell.unit.movePoints = speed
+      if (cell?.unit) {
+        this.captureUndo()
+        cell.unit.movePoints = speed
+      }
       this.cellPicker = null
     },
+    // Direct removals from the cell context menu (no follow-up picker
+    // — the action is its own confirmation). Read the cell BEFORE
+    // clearing `cellMenu`, otherwise the `cellMenuCell` computed
+    // returns null.
+    removeBuildingFromCell() {
+      const cell = this.cellMenuCell
+      if (cell?.building) {
+        this.captureUndo()
+        cell.building = null
+      }
+      this.cellMenu = null
+    },
+    removeUnitFromCell() {
+      const cell = this.cellMenuCell
+      if (cell?.unit) {
+        this.captureUndo()
+        cell.unit = null
+      }
+      this.cellMenu = null
+    },
+    // ---- Move tool --------------------------------------------------------
+    _cellRectStyle(x1, y1, x2, y2) {
+      return {
+        left: `${x1 * this.cellSize}px`,
+        top: `${y1 * this.cellSize}px`,
+        width: `${(x2 - x1 + 1) * this.cellSize}px`,
+        height: `${(y2 - y1 + 1) * this.cellSize}px`,
+      }
+    },
+    toggleMove() {
+      // Toggle: tapping the Move button cancels if a flow is in
+      // progress, otherwise starts a fresh one. Closes any other
+      // open menu/picker so the canvas is unambiguous about what the
+      // next click does.
+      if (this.moveState) {
+        this.cancelMove()
+        return
+      }
+      this.popup = null
+      this.cellMenu = null
+      this.cellPicker = null
+      this.hideHint()
+      this.moveState = { stage: 'corner1' }
+    },
+    // Abandon any in-progress Move flow (button re-tap, Esc, right-click
+    // cancel all funnel here). Clears the state machine plus its
+    // drag-select and hover-preview scratch state.
+    cancelMove() {
+      this.moveState = null
+      this.moveDrag = null
+      this.moveHoverDest = null
+    },
+    // Esc while a Move flow is armed cancels it (same as re-tapping the
+    // Move button). No-op otherwise, so Esc doesn't swallow anything
+    // else. Keyboard-only, so it never fires on touch.
+    handleKeydown(e) {
+      if (e.key === 'Escape' && this.moveState) {
+        this.cancelMove()
+      }
+    },
+    advanceMoveStage(x, y) {
+      const ms = this.moveState
+      if (!ms) return
+      if (ms.stage === 'corner1') {
+        this.moveState = { stage: 'corner2', x1: x, y1: y }
+      } else if (ms.stage === 'corner2') {
+        this.moveState = { ...ms, stage: 'destination', x2: x, y2: y }
+        // Fresh destination stage — clear any stale hover preview so it
+        // doesn't flash at a prior move's location before the first hover.
+        this.moveHoverDest = null
+      } else if (ms.stage === 'destination') {
+        this.performMove(x, y)
+        this.moveState = null
+        this.moveHoverDest = null
+        // Don't fall back to the previously-armed placement tool (the
+        // default is Terrain/mountain) after a move finishes — a stray
+        // click right after dropping the area would otherwise paint a
+        // mountain. Leave no tool active until the user picks one.
+        this.activeTool = null
+      }
+    },
+    performMove(destX, destY) {
+      this.captureUndo()
+      const { x1, y1, x2, y2 } = this.moveState
+      // Normalise the user's two corner clicks into an inclusive
+      // bounding box. They can click them in any order.
+      const minX = Math.min(x1, x2)
+      const maxX = Math.max(x1, x2)
+      const minY = Math.min(y1, y2)
+      const maxY = Math.max(y1, y2)
+      const w = maxX - minX + 1
+      const h = maxY - minY + 1
+
+      // Silently clamp the destination so the area stays on the map.
+      const mapW = this.map.metadata.width
+      const mapH = this.map.metadata.height
+      let dx = Math.max(0, Math.min(destX, mapW - w))
+      let dy = Math.max(0, Math.min(destY, mapH - h))
+      const destMinX = dx
+      const destMinY = dy
+      const destMaxX = dx + w - 1
+      const destMaxY = dy + h - 1
+
+      // Snapshot the source cells. We `JSON.parse(JSON.stringify(...))`
+      // each piece so destinations get independent copies — important
+      // when source and destination overlap.
+      const field = this.map.field
+      const snapshot = []
+      for (let i = 0; i < w; i++) {
+        const col = []
+        for (let j = 0; j < h; j++) {
+          const c = field[minX + i][minY + j]
+          col.push({
+            terrain: { ...c.terrain },
+            building: c.building ? { ...c.building } : null,
+            unit: c.unit ? { ...c.unit } : null,
+          })
+        }
+        snapshot.push(col)
+      }
+
+      // Wipe source cells that don't sit inside the destination rect.
+      // Overlap cells are intentionally left alone — they'll be
+      // overwritten by the paste pass below, which would otherwise be
+      // wiped right after.
+      for (let i = 0; i < w; i++) {
+        for (let j = 0; j < h; j++) {
+          const sx = minX + i
+          const sy = minY + j
+          if (sx >= destMinX && sx <= destMaxX && sy >= destMinY && sy <= destMaxY) continue
+          const c = field[sx][sy]
+          c.terrain = { kind: 'empty', idx: emptyIdx() }
+          c.building = null
+          c.unit = null
+        }
+      }
+
+      // Paste the snapshot into the destination rect. Mutate the cell
+      // objects in place rather than replacing references so Vue's
+      // reactive tracking doesn't lose them.
+      for (let i = 0; i < w; i++) {
+        for (let j = 0; j < h; j++) {
+          const c = field[destMinX + i][destMinY + j]
+          const src = snapshot[i][j]
+          c.terrain = src.terrain
+          c.building = src.building
+          c.unit = src.unit
+        }
+      }
+    },
     handleOutsidePopupClick(e) {
+      // Any left-click anywhere also dismisses a lingering hint
+      // tooltip — matches the in-game GameMenuOverlay behaviour.
+      if (this.hint) this.hideHint()
       // Close on any left-click outside the popup. Right-clicks don't
       // dismiss — that's what swaps between an object popup and a
       // color popup on the same tool. The `click` event fires after
@@ -1252,6 +1716,21 @@ export default {
     },
     // ---- Cell painting ----------------------------------------------------
     onPaintStart(x, y) {
+      // Move tool steals cell clicks while its state machine is
+      // active — pick corners and destination instead of painting.
+      if (this.moveState) {
+        // In the area-selection stage, a press starts a potential PC
+        // drag-select. We defer committing until release (onPaintEnd)
+        // so we can tell a drag from a plain click/tap: a drag sets
+        // both corners at once, a same-cell press falls back to the
+        // two-click corner flow (the only option on touch).
+        if (this.moveState.stage === 'corner1') {
+          this.moveDrag = { x1: x, y1: y, x2: x, y2: y }
+          return
+        }
+        this.advanceMoveStage(x, y)
+        return
+      }
       // If a cell menu / cell picker is open, treat this left-click as
       // "dismiss menu" rather than "paint" — same UX the document
       // click handler would produce, but BEFORE the cell gets painted.
@@ -1260,11 +1739,33 @@ export default {
         this.cellPicker = null
         return
       }
+      // No tool armed (e.g. right after a Move finished) — a click does
+      // nothing until the user picks a tool. Bail before capturing an
+      // undo snapshot so the undo button isn't armed by a no-op.
+      if (!this.activeTool) return
+      // Snapshot once at stroke start so a single undo reverts the
+      // entire drag-paint stroke, not just the last cell crossed.
+      this.captureUndo()
       this.isPainting = true
       this.lastPaintedKey = `${x},${y}`
       this.applyTool(x, y)
     },
     onPaintMove(x, y) {
+      // Destination-stage hover: track the cursor cell so the
+      // "where it'll land" preview contour follows it. Desktop-only —
+      // `mouseenter` doesn't fire during a touch tap.
+      if (this.moveState && this.moveState.stage === 'destination') {
+        this.moveHoverDest = { x, y }
+        return
+      }
+      // Live-update the move drag-select rectangle as the cursor crosses
+      // cells (PC only — touch drag scrolls the canvas, never enters
+      // here, so the rectangle stays a single cell and is treated as a
+      // tap on release).
+      if (this.moveDrag) {
+        this.moveDrag = { ...this.moveDrag, x2: x, y2: y }
+        return
+      }
       if (!this.isPainting) return
       const key = `${x},${y}`
       // Dedup — mouseenter can fire multiple times on the same cell if
@@ -1275,6 +1776,23 @@ export default {
       this.applyTool(x, y)
     },
     onPaintEnd() {
+      // Finish a move drag-select. Window-level so releasing off the
+      // grid still ends it (the last cell entered stays as x2/y2).
+      if (this.moveDrag) {
+        const { x1, y1, x2, y2 } = this.moveDrag
+        this.moveDrag = null
+        if (x1 !== x2 || y1 !== y2) {
+          // A real drag picked both corners — skip straight to choosing
+          // the destination.
+          this.moveState = { stage: 'destination', x1, y1, x2, y2 }
+          this.moveHoverDest = null
+        } else {
+          // No movement: treat the press as the first corner click and
+          // continue with the two-click flow (also the touch-tap path).
+          this.moveState = { stage: 'corner2', x1, y1 }
+        }
+        return
+      }
       this.isPainting = false
       this.lastPaintedKey = null
     },
@@ -1359,16 +1877,61 @@ export default {
       // override bucket if `entry.isBuiltin`, else to user storage.
       saveAnyEditorEntry(this.entry)
       this.dirty = false
+      // Brief "Game saved" toast above the gear menu's button row.
+      // Cancel any previous timer so rapid saves restart the window
+      // instead of clearing the message early.
+      this.saveNotice = true
+      if (this._saveNoticeTimer) clearTimeout(this._saveNoticeTimer)
+      this._saveNoticeTimer = setTimeout(() => {
+        this.saveNotice = false
+        this._saveNoticeTimer = null
+      }, 2000)
     },
     closeGearMenu() {
       this.gearOpen = false
       this.resizeOpen = false
       this.playersOpen = false
+      this.helpOpen = false
       // Clear stale validation messages so they don't surprise the user
       // next time the menu opens.
       this.errorMessage = ''
       this.resizeError = ''
       this.playersError = ''
+      this.saveNotice = false
+      this.hideHint()
+      if (this._saveNoticeTimer) {
+        clearTimeout(this._saveNoticeTimer)
+        this._saveNoticeTimer = null
+      }
+      // Abandon any in-progress Move flow so it can't resume against a
+      // map the user may have just reshaped via the gear menu.
+      this.moveState = null
+      this.moveDrag = null
+      this.moveHoverDest = null
+    },
+    // Right-click hint tooltip. Centred above the clicked element
+    // (same pattern as `GameMenuOverlay.showHint`). Self-dismisses
+    // after 3 s; `handleOutsidePopupClick` also clears it on any
+    // left-click.
+    showHint(event, text) {
+      if (!text) return
+      event.stopPropagation()
+      event.preventDefault()
+      const rect = event.currentTarget.getBoundingClientRect()
+      this.hint = {
+        text,
+        x: rect.left + rect.width / 2,
+        y: rect.top - 6,
+      }
+      if (this._hintTimer) clearTimeout(this._hintTimer)
+      this._hintTimer = setTimeout(this.hideHint, 3000)
+    },
+    hideHint() {
+      this.hint = null
+      if (this._hintTimer) {
+        clearTimeout(this._hintTimer)
+        this._hintTimer = null
+      }
     },
     exitEditor() {
       if (this.dirty) {
@@ -1401,6 +1964,9 @@ export default {
       }
       this.resizeError = ''
       resizeMap(this.entry.map, w, h)
+      // A pre-resize snapshot has the old dimensions — undoing onto the
+      // resized metadata would desync field/metadata, so drop it.
+      this.undoSnapshot = null
       this.resizeOpen = false
       this.cellSize = this.computeDefaultCellSize()
     },
@@ -1436,6 +2002,9 @@ export default {
     },
     installPlayersUpdate(humans, bots) {
       updatePlayerCounts(this.entry.map, humans, bots)
+      // Player-count changes rewrite owned units/bases across the field;
+      // a pre-change snapshot would resurrect dropped players, so drop it.
+      this.undoSnapshot = null
       // Keep the dino tool's owner in range so the next dino click
       // doesn't reference a dropped player.
       if (this.toolConfig.dino.player >= humans + bots) {
@@ -1458,6 +2027,25 @@ export default {
     },
     zoom(delta) {
       this.cellSize = Math.min(MAX_CELL_SIZE, Math.max(MIN_CELL_SIZE, this.cellSize + delta))
+    },
+    // ---- Single-step undo -------------------------------------------------
+    // Snapshot the whole field before a mutating action so a single undo
+    // can restore it. Whole-field clone (rather than a per-cell diff)
+    // keeps multi-cell actions — drag-paint strokes and area moves —
+    // covered by one capture. Called once per user action; a fresh call
+    // overwrites the previous snapshot, so only the latest action is
+    // undoable.
+    captureUndo() {
+      if (!this.map) return
+      this.undoSnapshot = JSON.parse(JSON.stringify(this.map.field))
+    },
+    undo() {
+      if (!this.undoSnapshot || !this.entry) return
+      // Reassign the whole field (Vue 3 tracks the replacement); the
+      // snapshot becomes the live field, so drop our reference to it
+      // and disable the button until the next action re-arms it.
+      this.entry.map.field = this.undoSnapshot
+      this.undoSnapshot = null
     },
     beforeUnload(e) {
       if (this.dirty) {
@@ -1799,6 +2387,50 @@ button.infoBtn:active {
 
 /* ---- Cell right-click context menu ----------------------------------- */
 
+/* ---- Move-tool selection + hint -------------------------------------- */
+
+/* Gold contour painted on top of the board to show the picked area.
+   `box-sizing: border-box` lines the border up flush with cell edges
+   instead of expanding outward by 2 px. `z-index: 2` lifts it above
+   cell terrain/overlays but below dialog modals (10080+). */
+.move-selection {
+  position: absolute;
+  border: 2px solid #ffd34d;
+  pointer-events: none;
+  box-sizing: border-box;
+  z-index: 2;
+}
+
+/* Destination preview — same yellow frame, but dashed so it reads as
+   "where it'll land" rather than "what's selected" (which stays solid).
+   Sits just above the source contour. */
+.move-dest-preview {
+  border-style: dashed;
+  z-index: 3;
+}
+
+/* Move-tool hint — full-screen overlay with the text centred, no
+   plate. Mirrors the in-game `ActionHint` ("Select point to scout"):
+   fixed viewport-sized flex container, transparent background, white
+   text. `text-shadow` keeps the label readable over light terrain
+   tiles. */
+.move-hint {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  z-index: 50;
+  color: white;
+  font-size: 16px;
+  text-align: center;
+  padding: 0 16px;
+  text-shadow:
+    2px 2px 4px rgba(0, 0, 0, 0.85),
+    -1px -1px 3px rgba(0, 0, 0, 0.6);
+}
+
 /* Small vertical list of action labels rendered at the cursor when
    the user right-clicks a cell with at least one object. Uses the
    editor's brown plate so it blends with the rest of the UI; sits at
@@ -1831,6 +2463,17 @@ button.infoBtn:active {
 
 .cell-menu-item:hover {
   background-color: rgba(146, 104, 70, 0.85);
+}
+
+/* Destructive actions (Remove building / Remove unit) — picked up
+   from the same red the list-page Delete/Reset button uses, so the
+   visual language for "this wipes a thing" stays consistent. */
+.cell-menu-item-danger {
+  color: #ffb0b0;
+}
+.cell-menu-item-danger:hover {
+  background-color: rgba(107, 46, 46, 0.85);
+  color: #fff;
 }
 
 /* Cell pickers share `.floating-popup` style, but they're positioned
@@ -2055,17 +2698,21 @@ button.infoBtn:active {
 /* Pencil edit button next to dimensions/players values. */
 .edit-btn {
   background: #926846;
-  color: #fff;
   border: 1px solid #5e3e26;
   border-radius: 4px;
   width: 24px;
   height: 24px;
   padding: 0;
   cursor: pointer;
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 1;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-btn img {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .edit-btn:hover {
@@ -2174,6 +2821,63 @@ button.infoBtn:active {
   text-align: center;
   margin: 0 12px 4px;
   flex-shrink: 0;
+}
+
+/* Successful-save toast. Green counterpart to `.menu-error`, same
+   slot above the button row so the layout doesn't jump. */
+.menu-success {
+  color: #2e7d32;
+  font-size: 13px;
+  font-weight: bold;
+  text-align: center;
+  margin: 0 12px 4px;
+  flex-shrink: 0;
+}
+
+/* Inline help block — bulleted list on the parchment, sized to sit
+   in the same slot as the error/success notices. */
+.menu-help {
+  margin: 0 12px 4px;
+  flex-shrink: 0;
+  max-height: 30vh;
+  overflow-y: auto;
+}
+
+.help-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #2c1a0e;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.help-list li {
+  margin-bottom: 3px;
+}
+
+/* Active state for the Help toggle button — same gold halo the
+   bottom-panel tools use for their active tool. */
+.menu-btn-active {
+  filter: drop-shadow(0 0 4px #ffd34d) drop-shadow(0 0 2px #ffd34d);
+}
+
+/* Floating right-click hint pill — mirrors `GameMenuOverlay.menu-hint`:
+   fixed at the target's coords, dark translucent pill, white text,
+   centred above the element via the -100%/-100% translate. */
+.editor-hint {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  background-color: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: normal;
+  max-width: min(260px, 80vw);
+  text-align: center;
+  pointer-events: none;
+  z-index: 10095;
 }
 
 /* Same look for the resize/players dialogs' inline error line. */
