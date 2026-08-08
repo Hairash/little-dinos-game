@@ -27,7 +27,11 @@
 
         <div ref="previewRef" class="scenarios-preview-pane">
           <div v-if="selected" class="scenarios-preview">
-            <MapPreview :map="selected.map" :max-size="320" />
+            <MapPreview
+              :map="selected.map"
+              :max-size="320"
+              :viewing-player="previewViewingPlayer"
+            />
             <p class="scenarios-description">{{ selected.description }}</p>
             <a class="scenarios-back-to-list" href="#" @click.prevent="scrollToList">
               ↑ Back to the list
@@ -92,6 +96,18 @@ export default {
   computed: {
     selected() {
       return this.scenarios.find(s => s.id === this.selectedId) || null
+    },
+    // The seat whose starting visibility the preview masks to. Humans
+    // are always the first `humanPlayersNum` seats (see `toScenarioMap`),
+    // so the human viewer is player 0. `MapPreview` only masks when this
+    // is non-null AND the map has fog enabled — otherwise it shows the
+    // whole field (the editor and saved-maps browser pass nothing, so
+    // they always render unmasked).
+    previewViewingPlayer() {
+      const players = this.selected?.map?.players
+      if (!Array.isArray(players)) return null
+      const idx = players.findIndex(p => p._type === 'human')
+      return idx >= 0 ? idx : null
     },
   },
   methods: {

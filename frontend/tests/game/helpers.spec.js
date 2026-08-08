@@ -178,6 +178,25 @@ describe('helpers', () => {
         expect(vis).toBeLessThanOrEqual(6) // maxVis = 2*avg - 1 = 5, allow some margin
       }
     })
+
+    // A speed-0 starter (immobile dino) must see as far as a speed-1
+    // one. DinoGame/MapPreview reseed with min=max collapsed to the
+    // unit's own speed, so both resolve to normalizedSpeed 0 → the same
+    // visibility. Guards the speed-0 map-editor feature (see scenarios.md
+    // → "Honoring explicit unit speed").
+    it('gives speed 0 the same visibility as speed 1 (min=max collapsed)', () => {
+      const threshold = 7
+      const avg = 3
+      const visSpeed0 = calculateUnitVisibility(0, 0, threshold, avg)
+      const visSpeed1 = calculateUnitVisibility(1, 1, threshold, avg)
+      expect(visSpeed0).toBe(visSpeed1)
+    })
+
+    it('does not produce NaN/Infinity for a speed-0 collapsed unit', () => {
+      const vis = calculateUnitVisibility(0, 0, 7, 3)
+      expect(Number.isFinite(vis)).toBe(true)
+      expect(vis).toBeGreaterThanOrEqual(1)
+    })
   })
 
   describe('normalizeField', () => {
