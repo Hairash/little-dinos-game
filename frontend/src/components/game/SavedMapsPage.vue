@@ -1,7 +1,7 @@
 <template>
   <div class="saved-maps-page">
     <!-- Sub-menu page header. Same pattern as TutorialPage and
-         GameSetup (see .claude/docs/sub-menu-pages.md): the back
+         GameSetup (see docs/sub-menu-pages.md): the back
          button is absolutely positioned in the top-left, and the
          title is a plain centered h1. Centering is relative to the
          viewport, so the title stays centered regardless of the
@@ -351,7 +351,7 @@ export default {
    plain centered h1. Because the back button is taken out of layout
    flow, the title's centering is calculated against the viewport and
    stays put no matter how wide the button is. Documented in
-   .claude/docs/sub-menu-pages.md. */
+   docs/sub-menu-pages.md. */
 .goBackBtn {
   position: absolute;
   top: 34px;

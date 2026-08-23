@@ -51,7 +51,7 @@ little-dinos-game/
 │   │   ├── consumers.py         # WebSocket handlers (GameConsumer, LobbyConsumer)
 │   │   └── views.py             # REST API endpoints
 │   └── server/                  # Django settings
-└── .claude/docs/                # Documentation
+└── docs/                # Documentation
 ```
 
 ## Architecture Patterns

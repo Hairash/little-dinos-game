@@ -148,7 +148,7 @@ Display the selected unit's visibility radius as a transparent colored frame on 
 
 ### Step 8: Update Documentation
 
-**Files**: `.claude/docs/game-components.md`
+**Files**: `docs/game-components.md`
 
 **Description**: Document the new VisibilityFrame component.
 

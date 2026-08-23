@@ -7,7 +7,7 @@ Generate or update documentation for the Little Dinos Game codebase.
 
 ## Documentation Files
 
-Located in `.claude/docs/` directory:
+Located in `docs/` directory:
 
 - `architecture.md` - Overall system architecture and patterns
 - `game-components.md` - DinoGame and MultiplayerDinoGame documentation
@@ -29,7 +29,7 @@ When called without arguments, show documentation status and ask what to update.
 ## Instructions
 
 1. Read the relevant source files to understand current implementation
-2. Update the corresponding markdown file in `.claude/docs/`
+2. Update the corresponding markdown file in `docs/`
 3. Keep documentation concise but complete
 4. Include code examples where helpful
 5. Document public APIs, not internal implementation details

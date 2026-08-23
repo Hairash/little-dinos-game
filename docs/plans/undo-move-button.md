@@ -697,7 +697,7 @@ describe('applyFieldDiff', () => {
 
 ### Step 14: Update Documentation
 
-**Files**: `.claude/docs/game-components.md`, `CLAUDE.md`
+**Files**: `docs/game-components.md`, `AGENTS.md`
 
 **Description**: Document the undo feature and its constraints.
 
@@ -705,7 +705,7 @@ describe('applyFieldDiff', () => {
 - game-components.md: Add undo button documentation to InfoPanel section
 - game-components.md: Document `canUndo` computed property in DinoGame/MultiplayerDinoGame
 - game-components.md: Document fieldDiff utility functions
-- CLAUDE.md: Add brief mention of undo feature
+- AGENTS.md: Add brief mention of undo feature
 
 ### Step 15: Final Verification
 

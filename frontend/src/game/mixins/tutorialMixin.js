@@ -34,7 +34,7 @@
  * - The `<TutorialController v-if="tutorialScenario" …>` mount in
  *   the DinoGame template
  *
- * Full subsystem reference: .claude/docs/tutorial.md
+ * Full subsystem reference: docs/tutorial.md
  */
 
 import emitter from '@/game/eventBus'

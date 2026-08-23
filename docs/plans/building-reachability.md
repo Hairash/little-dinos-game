@@ -105,7 +105,7 @@ New order:
 
 ### Step 6: Update Documentation
 
-**Files**: `.claude/docs/game-engines.md`
+**Files**: `docs/game-engines.md`
 
 **Description**: Document the updated generation algorithm.
 
@@ -150,8 +150,8 @@ The same algorithm was implemented in the backend for multiplayer field generati
   - `TestGenerateFieldBuildingReachability` - Integration tests for generated fields
 
 ### Documentation Updated
-- `.claude/docs/architecture.md` - Added `field.py` to backend services list
-- `.claude/docs/game-engines.md` - Added note about backend using same algorithm
+- `docs/architecture.md` - Added `field.py` to backend services list
+- `docs/game-engines.md` - Added note about backend using same algorithm
 
 ## Questions/Notes
 

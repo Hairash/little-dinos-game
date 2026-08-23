@@ -1,10 +1,15 @@
+---
+name: iterate-plan
+description: Review and update an existing plan based on user feedback comments
+---
+
 # Iterate Plan
 
 Review and update an existing plan based on user comments and questions.
 
 ## Arguments
 
-$ARGUMENTS - Name of the plan file (without .md extension). If empty, list available plans and ask which to iterate.
+The skill argument is the name of the plan file (without the .md extension). If empty, list available plans and ask which to iterate.
 
 ## Comment Format
 
@@ -20,8 +25,8 @@ Examples:
 ## Instructions
 
 1. **Locate the plan**
-   - If $ARGUMENTS is provided, read from `.claude/plans/$ARGUMENTS.md`
-   - If $ARGUMENTS is empty, list all `.md` files in `.claude/plans/` and ask user which to iterate
+   - If a plan name is provided, read from `docs/plans/<plan-name>.md`
+   - If no plan name is provided, list all `.md` files in `docs/plans/` and ask user which to iterate
 
 2. **Find all comments** - Search for all `[?? ... ??]` markers in the plan
 

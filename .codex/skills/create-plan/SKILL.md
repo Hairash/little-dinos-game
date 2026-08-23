@@ -1,34 +1,39 @@
+---
+name: create-plan
+description: Create a comprehensive implementation plan for a feature or task
+---
+
 # Create Plan
 
 Create a comprehensive implementation plan for a feature or task.
 
 ## Arguments
 
-$ARGUMENTS - Description of the feature or task to plan
+The skill argument is a description of the feature or task to plan.
 
 ## Plan Location
 
-Plans are stored in `.claude/plans/<feature-name>.md`
+Plans are stored in `docs/plans/<feature-name>.md`
 
 ## Instructions
 
-1. **Analyze the task description** - Parse the feature requirements from $ARGUMENTS
+1. **Analyze the task description** - Parse the feature requirements from the provided description
 
 2. **Review existing documentation** - Read and analyze:
-   - `CLAUDE.md` - Project overview
-   - `.claude/docs/architecture.md` - System architecture
-   - `.claude/docs/game-components.md` - Component documentation
-   - `.claude/docs/game-engines.md` - Engine documentation
-   - `.claude/docs/api/rest-endpoints.md` - REST API docs
-   - `.claude/docs/api/websocket-protocol.md` - WebSocket docs
-   - Any other relevant docs in `.claude/docs/`
+   - `AGENTS.md` - Project overview
+   - `docs/architecture.md` - System architecture
+   - `docs/game-components.md` - Component documentation
+   - `docs/game-engines.md` - Engine documentation
+   - `docs/api/rest-endpoints.md` - REST API docs
+   - `docs/api/websocket-protocol.md` - WebSocket docs
+   - Any other relevant docs in `docs/`
 
 3. **Analyze relevant code** - Explore the codebase to understand:
    - Existing patterns and conventions
    - Files that will need modification
    - Dependencies and integrations
 
-4. **Create the plan file** in `.claude/plans/<feature-name>.md` with this structure:
+4. **Create the plan file** in `docs/plans/<feature-name>.md` with this structure:
 
 ```markdown
 # Plan: <Feature Name>
@@ -74,7 +79,7 @@ Potential issues or edge cases to consider.
 - Test case 2: description
 
 ### Step N+1: Update Documentation
-**Files**: `.claude/docs/*.md`, `CLAUDE.md`
+**Files**: `docs/*.md`, `AGENTS.md`
 **Description**: Documentation updates needed
 **Updates**:
 - Doc 1: changes
@@ -107,4 +112,4 @@ These markers are picked up by `/iterate-plan` for review.
 
 `/create-plan Add unit healing ability when standing on Well building`
 
-Creates `.claude/plans/unit-healing-well.md` with full implementation details.
+Creates `docs/plans/unit-healing-well.md` with full implementation details.
