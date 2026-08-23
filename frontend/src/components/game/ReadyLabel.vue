@@ -1,20 +1,41 @@
 <template>
   <div class="fixed-label">
     <div>
-      <div v-if="isActivePlayer">
+      <div v-if="isActivePlayer && winner === null">
         Player {{ currentPlayer + 1 }}, get ready!<br />
         Your color:
         <img class="curPlayerImage" :src="`/images/dino${currentPlayer + 1}.png`" />
       </div>
-      <div v-if="!isActivePlayer && !isPlayerInformedLose">
+
+      <!-- Win. The label only ever renders on someone's own turn, so
+           winner === currentPlayer means "this is the winner reading it"
+           (second person); otherwise an eliminated human is watching the
+           bot fight and a bot just won (third person). -->
+      <div v-if="winner !== null && winner === currentPlayer">
+        <template v-if="isSingleHuman">You win</template>
+        <template v-else>Player {{ winner + 1 }}, you win</template>
+      </div>
+      <div v-if="winner !== null && winner !== currentPlayer">Player {{ winner + 1 }} wins!</div>
+
+      <!-- Lose. A lone human needs no seat number or color; a hotseat
+           player is addressed by seat so the device-passers know whose
+           message it is. -->
+      <div v-if="showLose && isSingleHuman">You lose</div>
+      <div v-if="showLose && !isSingleHuman">
         Player {{ currentPlayer + 1 }}, sorry, you lose<br />
         Your color:
         <img class="curPlayerImage" :src="`/images/dino${currentPlayer + 1}.png`" />
       </div>
+      <div v-if="areAllHumanPlayersEliminated && !isSingleHuman">
+        All human players were defeated
+      </div>
 
-      <div v-if="areAllHumanPlayersEliminated">All human players were defeated</div>
-      <div v-if="winner !== null">Player {{ winner + 1 }} wins!</div>
-      <div v-if="lastPlayer !== null">Player {{ lastPlayer + 1 }} is the only left</div>
+      <!-- Bot-fight endpoint notice. Suppressed while the lose headline is
+           up: "You lose" already tells the whole story when only one bot
+           remains, per the endgame spec. -->
+      <div v-if="lastPlayer !== null && !showLose">
+        Player {{ lastPlayer + 1 }} is the only left
+      </div>
 
       <div
         v-if="areAllHumanPlayersEliminated || winner !== null || lastPlayer !== null"
@@ -24,12 +45,6 @@
       </div>
       <div v-if="lastPlayer === null && areAllHumanPlayersEliminated" class="note">
         Or you may watch bot fighting
-      </div>
-      <div
-        v-if="lastPlayer === null && !areAllHumanPlayersEliminated && winner !== null"
-        class="note"
-      >
-        Or you may continue playing
       </div>
 
       <div>
@@ -52,6 +67,15 @@ export default {
     areAllHumanPlayersEliminated: Boolean,
     winner: Number,
     lastPlayer: Number,
+    // True when the game has exactly one human seat. Switches win/lose
+    // headlines to second person ("You win" / "You lose") and drops the
+    // hotseat-only "All human players were defeated" line.
+    isSingleHuman: Boolean,
+  },
+  computed: {
+    showLose() {
+      return !this.isActivePlayer && !this.isPlayerInformedLose
+    },
   },
 }
 </script>

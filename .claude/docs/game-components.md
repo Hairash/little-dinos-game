@@ -91,8 +91,9 @@ Controls single-player games with bot opponents. Manages local game state, AI tu
 
 | Method | Purpose |
 |--------|---------|
-| `startTurn()` | Restore units, produce new units, set visibility, show turn notification |
+| `startTurn()` | Restore units, produce new units, set visibility, show turn notification. Detects elimination (production yields 0 buildings + 0 units → `active = false`) and calls `updateEndgamePhases()` in the same move, so the lose label already carries the all-defeated / watch-bots guidance |
 | `processEndTurn()` | End turn, check win conditions, advance to next player |
+| `updateEndgamePhases()` | Recompute `humanPhase` / `lastPlayerPhase` / `winPhase` from the players' `active` flags. Called from the rotation wrap and right after an elimination. A lone surviving human becomes the winner (`winPhase`) instead of triggering the "only player left" notice, which is reserved for a lone surviving bot |
 | `moveUnit(from, to)` | Execute unit movement with combat and capture |
 | `makeBotMove()` | Execute AI turn |
 | `checkEndOfGame()` | Check victory conditions |
@@ -135,7 +136,7 @@ When the `tutorialScenario` prop is non-null:
   `state = STATES.ready`. Still emits `tutorial:gameWon`.
 - `checkSkipReadyLabel` always returns true (no "get ready" / "Player
   N wins" overlay during a scenario).
-- `selectNextPlayerAndCheckPhases` skips the `lastPlayerPhase`
+- `updateEndgamePhases` skips the `lastPlayerPhase` / lone-human-win
   trigger so the "only player left" notice can't fire mid-scenario.
 - `startTurn` skips the scroll-restore to `scrollCoords` when births
   ran, so the camera stays parked on the last birth.

@@ -12,6 +12,7 @@
     :are-all-human-players-eliminated="humanPhase === HUMAN_PHASES.all_eliminated"
     :winner="prepareWinner()"
     :last-player="prepareLastPlayer()"
+    :is-single-human="isSingleHumanGame"
   />
   <GameGrid
     ref="gameGridRef"
@@ -312,6 +313,13 @@ export default {
       const firstHuman = this.findHumanPlayerOrder()
       return firstHuman !== null ? firstHuman : this.currentPlayer
     },
+    // True when the game has exactly one human seat. Derived from the
+    // players array (not the humanPlayersNum prop) so it stays correct
+    // for resumed games and saved-map launches, where seats come from
+    // storage. Drives the "You win/lose" vs "Player N…" label phrasing.
+    isSingleHumanGame() {
+      return this.players.filter(p => p._type === Models.PlayerTypes.HUMAN).length === 1
+    },
     // Drives the "Next unit" button. Enabled only on human turns —
     // there's no UI to click during bot moves anyway, but explicitly
     // gating keeps the cursor and disabled state consistent.
@@ -586,6 +594,11 @@ export default {
 
       if (counters.buildingsNum === 0 && counters.unitsNum === 0) {
         this.players[this.currentPlayer].active = false
+        // Recompute endgame phases in the same move as the elimination —
+        // the ready-label about to render must already combine "you lose"
+        // with "all humans defeated" / the watch-bots note, instead of
+        // splitting them across two labels a full rotation apart.
+        this.updateEndgamePhases()
       }
 
       this.setVisibilityStartTurn()
@@ -1051,30 +1064,45 @@ export default {
         this.currentPlayer %= this.playersNum
         if (this.currentPlayer === 0) {
           this.saveState()
-          if (
-            this.humanPhase === this.HUMAN_PHASES.progress &&
-            this.areAllHumanPlayersEliminated()
-          ) {
-            this.humanPhase = this.HUMAN_PHASES.all_eliminated
-          }
-          // [tutorial] Skip the "only player left" phase entirely
-          // for tutorials — scenarios often have a single human
-          // player or end via a custom goal/win step, so this label
-          // would either flash on every turn or pre-empt the
-          // scenario's own end message.
-          if (!this.tutorialScenario && this.lastPlayerPhase === this.LAST_PLAYER_PHASES.progress) {
-            const lastPlayerIdx = this.getLastPlayerIdx()
-            if (lastPlayerIdx !== null) {
-              this.lastPlayerPhase = this.LAST_PLAYER_PHASES.last_player
-              this.lastPlayer = lastPlayerIdx
-            }
-          }
+          this.updateEndgamePhases()
           // If all human players eliminated, they may observe bot fight
           if (this.humanPhase !== this.HUMAN_PHASES.progress) {
             break
           }
         }
       } while (!this.players[this.currentPlayer].active)
+    },
+    // Recompute the endgame phase machines from the current `active`
+    // flags. Called from the rotation wrap AND right after a player is
+    // eliminated in `startTurn`, so the endgame labels fire in the same
+    // move as the elimination rather than one rotation later.
+    updateEndgamePhases() {
+      if (this.humanPhase === this.HUMAN_PHASES.progress && this.areAllHumanPlayersEliminated()) {
+        this.humanPhase = this.HUMAN_PHASES.all_eliminated
+      }
+      // [tutorial] Skip the "only player left" phase entirely
+      // for tutorials — scenarios often have a single human
+      // player or end via a custom goal/win step, so this label
+      // would either flash on every turn or pre-empt the
+      // scenario's own end message.
+      if (!this.tutorialScenario && this.lastPlayerPhase === this.LAST_PLAYER_PHASES.progress) {
+        const lastPlayerIdx = this.getLastPlayerIdx()
+        if (lastPlayerIdx !== null) {
+          if (
+            this.players[lastPlayerIdx]._type === Models.PlayerTypes.HUMAN &&
+            this.winPhase === this.WIN_PHASES.progress
+          ) {
+            // A lone human left standing is a win — announce "you win" on
+            // their ready screen instead of the "only player left" notice
+            // (which is reserved for the watched bot fight's endpoint).
+            this.winPhase = this.WIN_PHASES.has_winner
+            this.winner = lastPlayerIdx
+          } else if (this.players[lastPlayerIdx]._type === Models.PlayerTypes.BOT) {
+            this.lastPlayerPhase = this.LAST_PLAYER_PHASES.last_player
+            this.lastPlayer = lastPlayerIdx
+          }
+        }
+      }
     },
     // changeCellSize comes from gameCoreMixin
     initPlayersScrollCoords() {

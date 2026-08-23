@@ -37,6 +37,7 @@
                 :selected="selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y"
                 :highlighted="fieldOutput[x][y].isHighlighted"
                 :current-player="currentPlayer"
+                :viewing-player="viewingPlayer"
                 :my-player-order="myPlayerOrder"
                 :hide-enemy-speed="hideEnemySpeed"
                 :cell-x="x"
