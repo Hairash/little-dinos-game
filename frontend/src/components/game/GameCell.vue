@@ -84,6 +84,14 @@ export default {
     highlighted: Boolean,
     hidden: Boolean,
     currentPlayer: Number,
+    // The player whose perspective the screen renders from. In single-player
+    // this stays on the human while bot turns play out; in multiplayer it is
+    // the local user (or the turn-taker for spectators). Used so "own vs
+    // enemy" checks don't follow `currentPlayer` onto the enemy's side.
+    viewingPlayer: {
+      type: Number,
+      default: null,
+    },
     myPlayerOrder: {
       type: Number,
       default: null, // null for single-player mode
@@ -190,9 +198,14 @@ export default {
     },
     showMovePoints() {
       if (!this.hideEnemySpeed) return true
-      // In multiplayer mode, use myPlayerOrder to show speed only for own units
-      // In single-player mode (myPlayerOrder is null), use currentPlayer
-      const playerToCheck = this.myPlayerOrder !== null ? this.myPlayerOrder : this.currentPlayer
+      // In multiplayer mode, use myPlayerOrder to show speed only for own units.
+      // In single-player mode (myPlayerOrder is null), use viewingPlayer — NOT
+      // currentPlayer, which follows the turn onto the enemy's side and would
+      // reveal bot speeds while their moves animate.
+      const playerToCheck =
+        this.myPlayerOrder !== null
+          ? this.myPlayerOrder
+          : (this.viewingPlayer ?? this.currentPlayer)
       if (this.unit && this.unit.player === playerToCheck) return true
       return false
     },
