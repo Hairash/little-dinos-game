@@ -1,17 +1,22 @@
+---
+name: implement-plan
+description: Execute an implementation plan step by step with verbose output
+---
+
 # Implement Plan
 
 Execute an implementation plan step by step with verbose output.
 
 ## Arguments
 
-$ARGUMENTS - Name of the plan file (without .md extension). If empty, list available plans and ask which to implement.
+The skill argument is the name of the plan file (without the .md extension). If empty, list available plans and ask which to implement.
 
 ## Instructions
 
 ### Pre-Implementation Checks
 
-1. If $ARGUMENTS is empty, list all `.md` files in `.claude/plans/` and ask user which to implement
-2. Read the plan from `.claude/plans/$ARGUMENTS.md`
+1. If no plan name is provided, list all `.md` files in `docs/plans/` and ask user which to implement
+2. Read the plan from `docs/plans/<plan-name>.md`
 3. Verify plan status is `Reviewed` or `Approved`
 4. Check for any remaining `[?? ... ??]` comments - if found, warn user and suggest running `/iterate-plan` first
 5. Display plan summary and ask for confirmation to proceed

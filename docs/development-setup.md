@@ -174,8 +174,8 @@ little-dinos-game/
 │   ├── server/
 │   │   └── settings.py      # Django settings
 │   └── requirements.txt
-├── .claude/docs/             # Documentation
-└── CLAUDE.md                 # AI assistant instructions
+├── docs/             # Documentation
+└── AGENTS.md                 # AI assistant instructions
 ```
 
 ## IDE Setup

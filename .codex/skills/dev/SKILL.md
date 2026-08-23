@@ -1,3 +1,8 @@
+---
+name: dev
+description: Start both backend and frontend development servers
+---
+
 # Start Development Servers
 
 Start both backend and frontend development servers in separate background processes.

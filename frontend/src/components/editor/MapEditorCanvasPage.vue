@@ -6,7 +6,7 @@
       `min-width: max(100vw, --board-width)` so wide maps scroll cleanly
       to either edge (the naive `display: flex; justify-content: center`
       directly on the scroll container clips the left edge of wide
-      boards). See `.claude/docs/scenarios.md` → Map Editor.
+      boards). See `docs/scenarios.md` → Map Editor.
     -->
     <div
       v-if="map"

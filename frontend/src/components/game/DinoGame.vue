@@ -2,7 +2,7 @@
   <!-- [tutorial] The `!tutorialScenario` guard + the tutorial-prefixed
        props below (input-blocked, end-turn-blocked) + the
        <TutorialController> mount are the only template-level
-       tutorial touchpoints. Full reference: .claude/docs/tutorial.md -->
+       tutorial touchpoints. Full reference: docs/tutorial.md -->
   <ReadyLabel
     v-if="state === STATES.ready && !tutorialScenario"
     :on-click-action="readyBtnClick"
@@ -186,7 +186,7 @@ export default {
     // players (bypassing CreateFieldEngine and createPlayers) and mounts
     // the TutorialController overlay that drives the scripted hints.
     // tutorialMixin owns the lock state and first-production override.
-    // Full reference: .claude/docs/tutorial.md
+    // Full reference: docs/tutorial.md
     tutorialScenario: { type: Object, default: null },
   },
   data() {

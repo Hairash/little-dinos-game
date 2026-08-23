@@ -391,12 +391,12 @@ Keep `movingUnit` on the patch (it's a small dict; needed by the client to rende
 
 ### Step 11: Documentation
 
-**Files**: `.claude/docs/game-engines.md`, `.claude/docs/game-components.md`, `CLAUDE.md`
+**Files**: `docs/game-engines.md`, `docs/game-components.md`, `AGENTS.md`
 
 **Updates**:
 - `game-engines.md`: document `WaveEngine.getPath`, the animator module, and the path-slicing rule on the wire.
 - `game-components.md`: mention `isAnimating` input gate on `DinoGame` / `MultiplayerDinoGame`.
-- `CLAUDE.md`: one line under "engine pattern" noting that move animations are presentation-only and live in `moveAnimator.js`.
+- `AGENTS.md`: one line under "engine pattern" noting that move animations are presentation-only and live in `moveAnimator.js`.
 
 ### Step 12: Final verification
 

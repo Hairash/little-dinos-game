@@ -270,7 +270,7 @@ Add scoped CSS (same as multiplayer):
 
 ### Step 11: Update Documentation
 
-**Files**: `.claude/docs/game-components.md`
+**Files**: `docs/game-components.md`
 
 **Description**: Document the turn notification feature.
 

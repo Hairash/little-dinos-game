@@ -197,7 +197,7 @@ Use the existing 10 scenarios as templates — `buildAmbush` is the simplest, `b
 
 ## What scenarios are NOT
 
-- **Not the tutorial.** Tutorials script step-by-step hints with the scenario as a backdrop; see `.claude/docs/tutorial.md`. Scenarios are sandbox starts — no hints, no win condition beyond the regular elimination rule, no per-step locking of UI.
+- **Not the tutorial.** Tutorials script step-by-step hints with the scenario as a backdrop; see `docs/tutorial.md`. Scenarios are sandbox starts — no hints, no win condition beyond the regular elimination rule, no per-step locking of UI.
 - **Not multiplayer.** Scenarios run in `DinoGame.vue`, not `MultiplayerDinoGame.vue`. They are single-player only by design (one human seat plus bots). If multiplayer scenarios are wanted later, the same canonical maps could be served via the lobby's "Load Map" flow, but `ScenariosPage` does not currently offer this.
 - **Built-ins are user-editable via the override layer** — the 10 shipped scenarios in `scenariosData.js` stay pristine, but the Map Editor can edit them; edits persist as overrides in `mapEditor.builtinOverrides.v1` and can be Reset back to the shipped version (see _Editing built-in scenarios_). User-authored scenarios and edited built-ins are merged into the Scenarios picker automatically.
 - **Not validated.** `validateMap` runs only on the canonical-map _shape_. It does not check that mountains don't trap units, that the bot has a reachable base, or that a "No Tower" scenario is actually winnable. That's on you. Walk every scenario before merging.
