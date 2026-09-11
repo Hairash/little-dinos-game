@@ -15,28 +15,34 @@ scenario is just a starting field plus a settings block.
 
 ## File layout
 
-### Built-in scenarios (editable via the override layer)
+### Built-in scenarios (read-only JSON files)
 
-Built-ins ship read-only in `scenariosData.js`, but the editor makes
-them **user-editable** through an override bucket — see _Editing
-built-in scenarios_ below. An edited built-in shows a **default badge**
-on the list until it's Reset, which drops the override and restores the
-shipped version.
+Built-ins are one JSON file per scenario in
+`frontend/src/game/scenarios/`, using the **same wrapper format the Map
+Editor's Export produces** (`{ kind, version, description, map }`). To
+add or change a default scenario, author it in the editor, Export it,
+and drop the file into the folder (both `.json` and `.ldm` names are
+picked up; a numeric `NN-` filename prefix controls the picker order and
+is stripped from the entry id). Built-ins never appear in the Map Editor
+and cannot be edited — the old override layer is gone (existing
+overrides are migrated into user scenarios once, see _Legacy override
+migration_).
 
-| File                                              | Role                                                                                                                                                                                                                                                                           |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `frontend/src/game/scenariosData.js`              | The 10 scenarios + the procedural map-builder helpers (`emptyField`, `mountain`, `hLine`, `vLine`, `fillRect`, `clearRect`, `placeBuilding`, `placeUnit`) and the `toScenarioMap` wrapper that produces the canonical JSON. Exports `SCENARIOS` (array) and `getScenarioById`. |
-| `frontend/src/components/game/ScenariosPage.vue`  | List + preview + Start Game UI. Mirrors `SavedMapsPage.vue`; lists built-ins from `SCENARIOS` **merged with user-authored scenarios from `mapEditorStorage`** so both kinds are playable from the same picker.                                                                 |
-| `frontend/src/components/game/NewGameSubmenu.vue` | The "Scenarios" button that routes to the page.                                                                                                                                                                                                                                |
-| `frontend/src/App.vue`                            | The `v-if="state === GAME_STATES.scenarios"` branch that mounts `ScenariosPage`; plus the editor branches (see below).                                                                                                                                                         |
-| `frontend/src/game/const.js`                      | `GAME_STATES.scenarios`, `GAME_STATES.mapEditor`, `GAME_STATES.mapEditorCanvas`.                                                                                                                                                                                               |
+| File                                              | Role                                                                                                                                                                                                              |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `frontend/src/game/scenarios/*.json`              | The 10 shipped scenarios, one wrapper-format file each (deterministic terrain indices baked in so they look identical every load).                                                                                |
+| `frontend/src/game/scenarios/index.js`            | Folder loader: `import.meta.glob` over `./*.json` / `./*.ldm`, sorted by filename. Exports `SCENARIOS` (array of `{ id, description, map }`) and `getScenarioById`.                                               |
+| `frontend/src/components/game/ScenariosPage.vue`  | List + preview + Start Game UI. Mirrors `SavedMapsPage.vue`; lists built-ins from `SCENARIOS` **merged with user-authored scenarios from `mapEditorStorage`**, with an "↑ Import scenario from file" item on top of the list (same `.ldm`/`.json` import the editor offers — lands in the user bucket). |
+| `frontend/src/components/game/NewGameSubmenu.vue` | The "Scenarios" button that routes to the page.                                                                                                                                                                   |
+| `frontend/src/App.vue`                            | The `v-if="state === GAME_STATES.scenarios"` branch that mounts `ScenariosPage`; plus the editor branches (see below).                                                                                            |
+| `frontend/src/game/const.js`                      | `GAME_STATES.scenarios`, `GAME_STATES.mapEditor`, `GAME_STATES.mapEditorCanvas`.                                                                                                                                  |
 
 ### Map Editor (user-authored scenarios)
 
 | File                                                     | Role                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `frontend/src/game/mapEditorStorage.js`                  | localStorage CRUD across **two buckets** + unified accessors. User scenarios live in `mapEditor.scenarios.v1`; edits to built-ins live as overrides in `mapEditor.builtinOverrides.v1` (keyed by built-in id) so the shipped `scenariosData.js` entries stay pristine. Per-bucket helpers: `listEditorScenarios`/`getEditorScenarioById`/`saveEditorScenario`/`deleteEditorScenario` (user) and `listBuiltinOverrides`/`getBuiltinOverride`/`saveBuiltinOverride`/`deleteBuiltinOverride` + `builtinHasOverride` (built-in). **Unified accessors** the pages actually call: `listAllEditorEntries`, `getAnyEditorEntry`, `saveAnyEditorEntry`, `deleteAnyEditorEntry` — these route to the right bucket by `entry.isBuiltin`. Also: `buildScenarioFile`/`importEditorScenario` (export/import), `createNewScenario` (factory, default name `{seq}-{W}x{H}-{YYYY-MM-DD}-{rev}`, seeds `EDITOR_DEFAULT_SETTINGS` with `enableUndo: true`), `resizeMap`, `updatePlayerCounts`, `playerCountChangeWouldDrop`. |
-| `frontend/src/components/editor/MapEditorListPage.vue`   | The Map Editor list: scenarios on the left (built-ins first, each with a **default badge** when it carries an override), preview + settings icon-row + description on the right (mirrors `SavedMapsPage`, plus a description block). Per-entry actions: **Edit** (opens the canvas), **Delete** (user) / **Reset** (built-in with an override → drops the override), **Export** (downloads the entry as a `.json` file), and **Import** (reads a scenario file into a new user entry). A "+ Create new scenario" entry opens a small dialog for dimensions / seat counts. Parameter editing happens inside the canvas's ⚙ menu — **not** here.                                                                                                                                                                                                                                                                                                                                                            |
+| `frontend/src/game/mapEditorStorage.js`                  | localStorage CRUD for user scenarios (`mapEditor.scenarios.v1`) + unified accessors that ALSO route to the saved-maps bucket. Per-bucket helpers: `listEditorScenarios`/`getEditorScenarioById`/`saveEditorScenario`/`deleteEditorScenario`. **Unified accessors** the canvas calls: `getAnyEditorEntry(id, source)`, `saveAnyEditorEntry`, `deleteAnyEditorEntry` — routing on the entry's `source` (`'scenario'` \| `'savedMap'`, see `ENTRY_SOURCES`); saved maps live in `mapStorage.js`'s `savedMaps` bucket with the map **name** as the id (a rename moves the key and refuses to clobber an existing name). Also: `buildScenarioFile`/`importEditorScenario` (export/import, `.ldm`), `migrateLegacyBuiltinOverrides` (one-time copy of the retired override bucket into user scenarios), `createNewScenario` (factory, default name `{seq}-{W}x{H}-{YYYY-MM-DD}-{rev}`, seeds `EDITOR_DEFAULT_SETTINGS` with `enableUndo: true`), `resizeMap`, `updatePlayerCounts`, `playerCountChangeWouldDrop`. |
+| `frontend/src/components/editor/MapEditorListPage.vue`   | The Map Editor list with **two tabs** — _Scenarios_ (user-authored; "+ Create new" and "↑ Import" live here) and _Saved maps_ (the `savedMaps` bucket; shows the saved date instead of a description). Built-ins are not listed. Shared per-entry actions on both tabs: **Edit** (opens the canvas with `{ id, source }`), **Test** (immediate SP launch of the selected entry, scout mode forced on), **Export** (downloads the entry as a `.ldm` file), **Delete**. Parameter editing happens inside the canvas's ⚙ menu — **not** here. |
 | `frontend/src/components/editor/MapEditorCanvasPage.vue` | Game-style canvas, intentionally indistinguishable from a live game at a glance. Cells use the exact same DOM shape as `GameGrid` (`.board > .cell_line > div.cell` with `inline-block` cells and `<img class="terrainImg">` for terrain — no per-cell borders, no gaps). Persistent UI is only the **bottom panel** (`panel.png`, max-width 400px, centred — same as `InfoPanel`): gear + zoom + undo on the LEFT, tool buttons + Move on the RIGHT (see _Bottom panel layout_). The gear opens an overlay that visually clones `GameMenuOverlay`: `ingame_menu_border.png` outer plate + `ingame_menu_texture.png` inner parchment, black text, button row at the bottom (Back / Help / Save / Exit) using `small_button.png` 26×26 + 22×22 icons. Tracks a `dirty` flag and prompts on exit if there are unsaved changes. Tool subtypes are picked via **floating popups** anchored to the bottom panel (there is no longer a separate dialog component).                                              |
 | `frontend/src/game/longPressTouch.js`                    | Global iOS long-press → synthetic `contextmenu` dispatcher, installed once from `main.js`. Lets every `@contextmenu` consumer in the app (editor tool buttons, gear-menu hints, cell menus) fire on a touch long-press even though iOS Safari won't emit `contextmenu` on plain elements. See _iOS long-press → contextmenu synthesis_.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `frontend/src/components/game/GameMenu.vue`              | The top-level "Map editor" button.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -73,11 +79,12 @@ The naming is historical and inverted from what you'd guess:
 
 `enableScoutMode` is **not** in `SETTINGS_FIELDS` (mapSchema.js), so it
 is stripped from any canonical map's `.settings`. To keep the modern
-rule, `ScenariosPage.vue` adds `enableScoutMode: true` to the
-`startGame` payload at the boundary. Don't try to put it in
-`SCENARIO_DEFAULTS` or in a per-scenario override — `pickSettings`
-will drop it. Don't pass `false` from `ScenariosPage` either; the
-legacy mode is not a playable option here.
+rule, every map-launch boundary forces `enableScoutMode: true` into the
+start payload: `ScenariosPage.vue`, `SavedMapsPage.mapToStartSettings`,
+and the editor list page's **Test** button. Don't try to put it in a
+map's settings — the schema drops it. The option is legacy and always
+`true` for map launches; the legacy permissive mode (units pathing
+through fog) is not a playable option here.
 
 ### 2. Only `base` has per-player owners
 
@@ -143,23 +150,7 @@ The `emptyIdx`/`mountainIdx` helpers are deterministic (`(x + y * …) % N`) so 
 
 ---
 
-## Builder helpers
-
-Scenarios are composed from a tiny vocabulary in `scenariosData.js`.
-The intent is that anyone reading a `buildX()` function can see the
-map's layout at a glance — _no_ ASCII art, _no_ nested template
-strings.
-
-| Helper                                                    | Effect                                                                                                                                                                                                     |
-| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `emptyField(w, h)`                                        | Empty field, deterministic per-cell texture indices. Returns plain JS objects (not `Models.Cell` instances) — that's the canonical format, rehydrated by `DinoGame`.                                       |
-| `mountain(field, x, y)`                                   | Convert a single cell to mountain. **No-op if the cell already has a building or unit** — order matters: lay terrain first, then place things.                                                             |
-| `hLine(field, x1, x2, y)` / `vLine(field, x, y1, y2)`     | Mountain rows/columns. Inclusive on both ends.                                                                                                                                                             |
-| `fillRect(field, x1, y1, x2, y2)`                         | Filled mountain rectangle.                                                                                                                                                                                 |
-| `clearRect(field, x1, y1, x2, y2)` / `clear(field, x, y)` | Turn mountain (or anything) back to empty terrain. Useful to punch a gate through a `fillRect` wall, or to ensure a specific cell is walkable.                                                             |
-| `placeBuilding(field, x, y, type, player = null)`         | Auto-clears terrain under the cell, then sets the building. `player = null` for neutrals; an integer for player-owned **bases only** (see Rule 2).                                                         |
-| `placeUnit(field, x, y, player)`                          | Same shape as `placeBuilding`. The unit's `_type` is derived as `dino${player + 1}` — eight player sprites available (`dino1.webp` … `dino8.webp`).                                                        |
-| `toScenarioMap(name, build, humans, bots, overrides?)`    | Wraps a `build()` result into the canonical Map JSON: merges `SCENARIO_DEFAULTS` with `overrides`, runs `pickSettings`, fills `metadata`, and seats the `humans + bots` players (humans first, then bots). |
+## Map composition
 
 ### Coordinate convention
 
@@ -167,56 +158,148 @@ strings.
 `(0, 0)` is the top-left. This matches the canonical schema and every
 engine in the codebase; don't transpose it.
 
-### Order of operations
-
-1. `emptyField(W, H)` — blank slate.
-2. Terrain shaping: `fillRect`, `hLine`, `vLine`, `mountain`. Punch holes with `clear` / `clearRect`.
-3. Buildings and units. These auto-clear the cell, so they will overwrite mountains placed in step 2 — by design.
-
-Reversing 2 and 3 means `mountain()` skips the cells you've already populated, which is usually what you want; but punching a gate through a wall _after_ placing a neighbouring base is clearer than placing the base first and praying the wall doesn't engulf it.
+(The old procedural builder DSL in `scenariosData.js` is gone — built-in
+maps are static JSON now, and new maps are authored in the Map Editor.)
 
 ---
 
-## Adding a new scenario
+## Adding a new built-in scenario
 
-1. **Write the `buildX()` function** in `scenariosData.js`. Use the helpers above. Aim for 15–25 lines.
-2. **Decide the seat counts.** `humanPlayersNum` is 1 unless you're testing — single-player only. `botPlayersNum` is anywhere from 1 to ~5. The sum must equal the highest `player` index in your `placeUnit` / `placeBuilding` calls **plus one**.
+1. **Build the map in the Map Editor** (or hand-write the JSON if you
+   must — the wrapper shape is `{ kind: 'little-dinos-scenario',
+   version: 1, description, map }`).
+2. **Decide the seat counts.** `humanPlayersNum` is 1 — built-ins are
+   single-player only. Bots: 1 to ~5.
 3. **Pick the map size.** 16×16 to 20×20 is the sweet spot. Anything smaller feels cramped with `fogOfWarRadius = 3`; anything bigger and the bot turn drags. For corridor-shaped scenarios, asymmetric sizes (e.g. 22×11 for "Mountain Pass") work well.
-4. **Decide per-scenario settings overrides.** Common ones:
-   - `enableFogOfWar: false` — only when the scenario premise is "everyone can see the prize from turn 1" (Race to the Tower, King of the Hill).
-   - `minSpeed: 2` (or higher) — when you want starting units to move faster than 1 cell/turn.
-   - `maxUnitsNum: 6` / `7` — when the player needs more headroom.
-   - `fogOfWarRadius: 2` — for mazes / scout-heavy scenarios where visibility is the puzzle.
-5. **Add the entry** to `SCENARIOS` with an `id` (kebab-case), `description` (2–3 sentences explaining the situation and the strategic hook — shown next to the preview), and `map: toScenarioMap('Display Name', buildX, humans, bots, overrides)`.
+4. **Fill the description** in the editor's ⚙ menu (2–3 sentences
+   explaining the situation and the strategic hook — shown next to the
+   preview) and common settings tweaks: `enableFogOfWar: false` for
+   "everyone sees the prize" premises, `minSpeed: 2+` for faster starters,
+   `maxUnitsNum: 6`/`7` for headroom, `fogOfWarRadius: 2` for mazes.
+5. **Export** the entry (`.ldm`) and drop the file into
+   `frontend/src/game/scenarios/` with an `NN-` order prefix, e.g.
+   `11-my-scenario.json` (rename freely — the id derives from the
+   filename with the prefix stripped).
 6. **Walk the map.** Launch the scenario, open the fog, check that every player can reach every other player. Verify no buildings are stranded behind a wall the bot can't navigate.
-7. **Lint and test.** `npm run format && npm run lint:fix && npm run lint && npm run test`.
-
-Use the existing 10 scenarios as templates — `buildAmbush` is the simplest, `buildKingOfTheHill` is the busiest.
+7. **Lint and test.** `npm run format && npm run lint:fix && npm run lint && npm run test` (`tests/game/builtinScenarios.spec.js` pins the folder contract — update the expected count).
 
 ---
 
 ## What scenarios are NOT
 
 - **Not the tutorial.** Tutorials script step-by-step hints with the scenario as a backdrop; see `docs/tutorial.md`. Scenarios are sandbox starts — no hints, no win condition beyond the regular elimination rule, no per-step locking of UI.
-- **Not multiplayer.** Scenarios run in `DinoGame.vue`, not `MultiplayerDinoGame.vue`. They are single-player only by design (one human seat plus bots). If multiplayer scenarios are wanted later, the same canonical maps could be served via the lobby's "Load Map" flow, but `ScenariosPage` does not currently offer this.
-- **Built-ins are user-editable via the override layer** — the 10 shipped scenarios in `scenariosData.js` stay pristine, but the Map Editor can edit them; edits persist as overrides in `mapEditor.builtinOverrides.v1` and can be Reset back to the shipped version (see _Editing built-in scenarios_). User-authored scenarios and edited built-ins are merged into the Scenarios picker automatically.
-- **Not validated.** `validateMap` runs only on the canonical-map _shape_. It does not check that mountains don't trap units, that the bot has a reachable base, or that a "No Tower" scenario is actually winnable. That's on you. Walk every scenario before merging.
+- **Built-ins are single-player only.** They run in `DinoGame.vue` with 1 human seat plus bots, and the lobby picker doesn't list them. **Custom scenarios and saved maps ARE multiplayer-capable** — see _Playing maps in multiplayer_ below.
+- **Built-ins are read-only.** The Map Editor never lists them and there is no override layer any more. To riff on a built-in, Import its exported file as a user scenario (or just build your own).
+- **Not validated for playability.** `validateMap` runs only on the canonical-map _shape_ (client-side on save/import, server-side on multiplayer start). It does not check that mountains don't trap units, that the bot has a reachable base, or that a "No Tower" scenario is actually winnable. That's on you. Walk every scenario before merging.
+
+---
+
+## Playable seats vs. declared capacity
+
+`metadata.playersNum` is the map's **colour capacity** — how many owner
+colours the editor offers. A designer can leave slots empty, and an empty
+slot is **not a playable seat**: whoever is assigned to it starts with
+nothing and is eliminated on their first turn.
+
+The playable seats are **derived from the field**, never stored: any slot
+owning at least one unit or one base (neutral buildings belong to nobody
+and never count). Deriving avoids the drift a cached count would suffer
+the moment a map is edited, imported, or hand-written, and the scan is
+O(width × height) over at most 50×50 cells.
+
+| Helper | Where |
+| ------ | ----- |
+| `getOccupiedSeats(map)` → `[0, 3, 6]` | `frontend/src/game/mapSchema.js` |
+| `getActualPlayerCounts(map)` → `{ seats, total, humans, bots }` | `frontend/src/game/mapSchema.js` |
+| `occupied_seats(field)` → `[0, 3, 6]` | `backend/game/services/map_snapshot.py` |
+
+Keep the two languages in sync, as with `updatePlayerCounts` /
+`reconcile_seats`.
+
+**Seats stay sparse — colours are never renumbered.** A map using blue,
+yellow and purple is seats `[0, 3, 6]`, and the second player plays
+*yellow*, not a compacted seat 1. That works because `order` already *is*
+the seat index everywhere (ownership, visibility filtering,
+`getPlayerColor`), and `compute_next_player` walks the player rows rather
+than a dense `0..N` range, so gaps rotate correctly.
+
+Consequences across the app:
+
+- **Single-player**: only placed slots are seated. Empty slots stay in the
+  `players` array as inactive, non-participating placeholders (the array
+  is indexed by seat — collapsing it would repaint everyone), and turn
+  rotation skips them for being inactive. The turn opens on the first
+  placed seat.
+- **Multiplayer**: the lobby's capacity is the placed-seat count, and at
+  start each joiner is given a real map seat in join order (creator →
+  seat 0). Placed seats nobody claimed are trimmed by `reconcile_seats`.
+- **In-game menu**: the player table lists only participating seats, so a
+  7-slot map with three colours shows three rows, not seven.
+- **Pickers** show the playable count (`3p`); the **editor** shows
+  `3 of 7` so a designer sees the gap while building.
+- `Models.Player.participating` carries the flag (persisted through
+  save/load; absent in older saves, which are treated as all-participating).
+
+### Why blue must be placed (multiplayer)
+
+`order == 0` is how the creator is identified, and each joiner is handed a
+real map seat at start — so seat 0 has to be one of the playable seats or
+the creator would end up without order 0. `start_game` rejects a
+multiplayer map whose blue slot is empty. Designers start from blue
+anyway, so this is a guard rail rather than a real constraint.
+
+---
+
+## Playing maps in multiplayer
+
+Custom scenarios and saved maps can seed multiplayer games. The lobby's
+**"Load Map"** opens `SavedMapsPage` in pick mode with two tabs — _Saved
+maps_ and _Custom scenarios_ — both reading the client's localStorage
+(built-ins are excluded). Flow:
+
+1. The creator picks a map. The pick's summary (name + seat count) is
+   synced to the server (`POST /games/{code}/map/`) and broadcast to the
+   lobby, so joiners see which map they're getting. Picking "Setup Random
+   Game" clears it.
+2. **Join capacity**: while a map is picked, `join_game` refuses joins
+   beyond the map's PLAYABLE seat count with an explanatory message.
+3. On Start, the full canonical map travels in the request
+   (`settings.initialMap`). The server **validates it** (schema v1,
+   dimensions 5–50, ≤ 8 seats, ≤ 3 MB payload, blue placed — client JSON
+   is never trusted), hydrates the field, and **reconciles seats**: joined
+   players take the map's PLAYABLE seats in join order (creator = seat 0,
+   blue; seats can be sparse, see _Playable seats vs. declared capacity_);
+   unclaimed playable seats are trimmed via `reconcile_seats` (units
+   dropped, bases demoted to neutral — the Python mirror of the editor's
+   `updatePlayerCounts` rule). More joiners than playable seats → HTTP
+   400, the game stays `ready`.
+4. The map's human/bot split metadata is ignored in multiplayer — every
+   joined player is human (`botPlayersNum = 0`; when MP bots arrive,
+   their seats extend the kept set passed to `reconcile_seats`).
+5. The server stamps `settings.fromInitialMap = true` so the in-game
+   Save-map button hides (only random maps are saveable). The flag is not
+   part of `SETTINGS_FIELDS`, so it never round-trips into a saved map.
+6. `hydrate_field_for_game` honours the editor's explicit unit
+   `movePoints` (including speed 0) exactly like `DinoGame.vue` does —
+   see _Honoring explicit unit speed_.
 
 ---
 
 ## Map Editor
 
 The Map Editor is a UI for authoring scenarios at runtime — terrain,
-buildings, and units placed cell-by-cell via point-and-click instead of
-the procedural builder in `scenariosData.js`. User-authored scenarios
-live in `localStorage` under `mapEditor.scenarios.v1` and appear in the
-"Scenarios" picker alongside the built-ins (no separate launch path —
-play them the same way you play "Ambush").
+buildings, and units placed cell-by-cell via point-and-click.
+User-authored scenarios live in `localStorage` under
+`mapEditor.scenarios.v1` and appear in the "Scenarios" picker alongside
+the built-ins (no separate launch path — play them the same way you play
+"Ambush"). The editor also lists and edits **saved maps** (its second
+tab), and both kinds are usable in multiplayer via the lobby picker —
+see _Playing maps in multiplayer_.
 
 ### Entry points
 
 - **Main menu → "Map editor"**: the top-level button. Routes to the list page (no New Game submenu in between — this is by design; the editor is a separate concern from launching games).
-- **List page**: scenarios on the left, preview + settings icon-row + description on the right. This page is read-only for parameter values — same icon vocabulary as `SavedMapsPage` so the two pages feel like siblings. Per-entry actions: **Edit** (opens the canvas) and **Delete**.
+- **List page**: two tabs — **Scenarios** (user-authored) and **Saved maps** — with the entry list on the left, preview + settings icon-row + description (or saved date) on the right. This page is read-only for parameter values — same icon vocabulary as `SavedMapsPage` so the two pages feel like siblings. Per-entry actions on both tabs: **Edit** (opens the canvas), **Test** (immediate SP launch), **Export** (`.ldm`), **Delete**.
 - **List page → "+ Create new scenario"**: opens a small dialog for `width / height / total players`. Defaults to `20 × 20 / 2`. The total is split as 1 human + (total − 1) bots — the same split the gear-menu Players row enforces. On Create, a blank entry is persisted with the auto-generated name `{seq}-{W}x{H}-{YYYY-MM-DD}-{rev}` (e.g. `6-20x20-2026-07-01-1`) and the app immediately routes to the canvas editor — the user doesn't bounce back to the list.
 - **Canvas page**: the only persistent UI is the bottom panel — **no top header, no back arrow, no title**. The map fills the viewport (less the panel) and is scrollable on both axes. The panel carries gear + zoom + undo on the left and the tool buttons + Move on the right (see _Bottom panel layout_).
 - **Canvas page → ⚙ gear icon** (bottom-left, `settings_icon.webp` — same asset as the in-game `toggleMenu`): opens the overlay holding the **map parameters form** and a game-style **icon button row** at the bottom matching `GameMenuOverlay`'s: `← Back` (close menu), `? Help`, `💾 Save`, `✕ Exit`. Zoom lives on the bottom panel, not in this row (step `±10` between `[MIN_CELL_SIZE, MAX_CELL_SIZE]`, same constants as the in-game `changeCellSize`).
@@ -340,12 +423,22 @@ random-map flow. In particular:
 
 ### Where the data lives
 
-Two `localStorage` buckets, both holding `[{ id, description, map }]` entries:
+Two `localStorage` buckets, surfaced as the list page's two tabs:
 
-- **`mapEditor.scenarios.v1`** — user-authored scenarios.
-- **`mapEditor.builtinOverrides.v1`** — edits to built-ins, keyed by the built-in's `id`. The shipped `scenariosData.js` entries are never mutated; an override wins when present and _Reset_ just deletes it.
+- **`mapEditor.scenarios.v1`** — user-authored scenarios,
+  `[{ id, description, map }]` entries.
+- **`savedMaps`** (owned by `mapStorage.js`) — maps saved from games
+  (SP and MP alike), `{ [name]: map }`. In the editor these wrap into the
+  same entry shape with `id = name` and no description.
 
-Pages don't touch the buckets directly — they go through the **unified accessors** (`listAllEditorEntries`, `getAnyEditorEntry`, `saveAnyEditorEntry`, `deleteAnyEditorEntry`), which dispatch on `entry.isBuiltin`. `saveAnyEditorEntry` also force-sets `settings.enableUndo = true` on every save (undo is always allowed in editor scenarios — there's no toggle for it).
+The canvas doesn't touch the buckets directly — it goes through the
+**unified accessors** (`getAnyEditorEntry(id, source)`,
+`saveAnyEditorEntry`, `deleteAnyEditorEntry`), which dispatch on the
+entry's `source` (`'scenario' | 'savedMap'`, exported as
+`ENTRY_SOURCES`). Scenario saves force-set `settings.enableUndo = true`
+(undo is always allowed in editor scenarios — there's no toggle for it);
+saved-map saves keep the map's own settings as played, and a rename moves
+the storage key (refusing to overwrite a different existing map).
 
 The `map` is a canonical Map JSON (mapSchema v1) — identical shape to the built-ins — with **one extra**: units may carry `movePoints` (and optionally `visibility`). The canonical `stripUnit` would drop those, so the editor writes JSON directly without going through `toCanonicalMap`. `validateMap` doesn't inspect cell-level fields, so extras pass through.
 
@@ -362,20 +455,29 @@ only editor maps with an explicit speed see varied starting speeds.
 **Speed 0 is a valid explicit choice** (an immobile dino, as tutorial
 scenarios place). The detection test is `saved.movePoints >= 0` (not
 `> 0`), so a placed `0` is honoured rather than falling through to the
-`minSpeed` reseed. `createNewUnit` is called with `min = max = 0`,
-which — because `calculateUnitVisibility` normalises `(speed − min) /
-(max − min)` — gives a speed-0 dino the **same (max) visibility a
-speed-1 dino gets**, so a stationary unit still sees as far as the
-slowest moving one. Three call sites use the `>= 0` test and must stay
+`minSpeed` reseed. Four call sites use the `>= 0` test and must stay
 in sync: `DinoGame.vue` (the in-game reseed), `MapPreview.vue` (the
-scenarios-picker fog preview, which also collapses `min = max = speed`
-so the preview radius matches in-game), and the editor's cell speed
-badge in `MapEditorCanvasPage.vue` (`movePoints != null`, not a truthy
-check, so `0` renders instead of showing as blank).
+picker's fog preview), the editor's cell speed badge in
+`MapEditorCanvasPage.vue` (`movePoints != null`, not a truthy check, so
+`0` renders instead of showing as blank), and the backend's
+`hydrate_field_for_game` in `backend/game/services/map_snapshot.py`
+(multiplayer launches from editor maps).
+
+**Visibility is scaled against the game's `minSpeed`, never the unit's
+own speed.** `createNewUnit` uses its `min` bound for both the speed
+roll and the visibility scale, so handing it the explicit speed as the
+min would normalise every placed unit to `0` on the curve — i.e. the
+maximum visibility, whatever its speed. `DinoGame` therefore recomputes
+`calculateUnitVisibility(max(speed, minSpeed), minSpeed,
+speedMinVisibility, fogOfWarRadius)` after the reseed, and `MapPreview`
+mirrors it. Speeds below `minSpeed` (only `0`) clamp up, which keeps the
+rule that an immobile dino still sees as far as the slowest moving one.
+(Before this, a placed speed-3 dino on a fog-2 / threshold-5 map saw 3
+instead of 2 — every placed unit had slowest-unit sight.)
 
 ### Random terrain idx
 
-Painting (terrain tool, eraser) and resize-grow assign a **fresh random** `terrain.idx` per cell (`emptyIdx` = 1–9, `mountainIdx` = 1–5) using `Math.random()` — repeated taps on the same cell visibly cycle the variant, including mountain-over-mountain. Built-in scenarios keep the deterministic formula in `scenariosData.js` so they look identical on every load; only the editor takes the random roll (the one place a designer actively wants variety).
+Painting (terrain tool, eraser) and resize-grow assign a **fresh random** `terrain.idx` per cell (`emptyIdx` = 1–9, `mountainIdx` = 1–5) using `Math.random()` — repeated taps on the same cell visibly cycle the variant, including mountain-over-mountain. Built-in scenarios ship deterministic indices baked into their JSON files so they look identical on every load; only the editor takes the random roll (the one place a designer actively wants variety).
 
 ### Speed badge style
 
@@ -385,17 +487,41 @@ The editor's cell speed badge and the dino tool button's badge both mirror `Game
 
 Numeric inputs (speeds, radii, counts) are the shared `.num-input` plate; the resize/players modals reuse it. Toggle settings (fog, vis/speed relation, kill-at-birth, hide-enemy-speed) are **clickable icon buttons** (`.setting-icon-btn`) that swap to the paired off-asset — the icon itself is the only state cue, no checkbox. The Dimensions/Players rows' edit affordance is a **pencil-icon button** (`pencil_icon.webp` inside an `.edit-btn` plate). Speed/colour options in popups are `.floating-opt` plates (`small_button.png`).
 
-### Editing built-in scenarios
+### Legacy override migration
 
-Built-ins are editable through the **override layer**. Opening a built-in in the canvas loads it via `getAnyEditorEntry` (which returns the override if one exists, else the shipped entry) and stamps `isBuiltin: true` on the working copy. Saving routes through `saveAnyEditorEntry` → `saveBuiltinOverride`, writing to `mapEditor.builtinOverrides.v1` under the built-in's id — the shipped `scenariosData.js` is never touched. The list page shows a **default badge** on any built-in that has an override and offers **Reset**, which calls `deleteBuiltinOverride` to drop the override and restore the shipped version. `ScenariosPage` and `MapEditorListPage` both apply overrides when listing, so an edited built-in previews and plays in its edited form everywhere.
+Built-ins used to be editable through an override bucket
+(`mapEditor.builtinOverrides.v1`). They are read-only now, so
+`migrateLegacyBuiltinOverrides()` (called on `ScenariosPage` and
+`MapEditorListPage` mount) copies each existing override into the user
+bucket once, named `"<Name> (edited)"`, behind a
+`mapEditor.overridesMigrated.v1` flag. **Nothing is deleted** — the
+legacy bucket stays in localStorage, it just stops being read.
 
 ### Export / import
 
-**Export** (`buildScenarioFile`) wraps an entry as `{ kind: SCENARIO_FILE_KIND, version: SCENARIO_FILE_VERSION, description, map }`, serialises it, and triggers a download via a temporary Blob URL + a synthetic `<a download>` click (revoked afterward). **Import** reads a chosen file, `JSON.parse`s it, and passes it to `importEditorScenario`, which validates the wrapper `kind`/`version` and the inner `map` (via `validateMap`), then saves it as a **new user entry** with a fresh id (never as a built-in override, even if the source was an edited built-in). A malformed or wrong-`kind` file is rejected with an error rather than partially imported.
+**Export** (`buildScenarioFile`) wraps an entry as `{ kind: SCENARIO_FILE_KIND, version: SCENARIO_FILE_VERSION, description, map }`, serialises it, and triggers a download via a temporary Blob URL + a synthetic `<a download>` click (revoked afterward). The filename uses the **`.ldm`** extension ("Little Dinos Map" — plain JSON inside, like `.geojson`/`.ipynb`). **Import** accepts `.ldm` plus legacy `.json` exports (`accept=".ldm,.json,application/json"`), `JSON.parse`s the file, and passes it to `importEditorScenario`, which validates the wrapper `kind`/`version` and the inner `map` (via `validateMap`) — validity is decided by the wrapper, never the extension — then saves it as a **new user entry** with a fresh id. A malformed or wrong-`kind` file is rejected with an error rather than partially imported. Import always lands in the Scenarios bucket, whatever the file's origin.
+
+### Sight radius on a shared cell
+
+`FieldEngine.getCurrentVisibilitySet` walks the cells returned by
+`getPlayerObjectCoords(player)` — which include a cell when **either**
+the unit **or** the base belongs to that player. Each contribution
+therefore carries its own ownership check: only the player's own unit
+lends its `visibility`, and only the player's own base lends
+`fogOfWarRadius`. Without them an enemy unit parked on your tower would
+extend your sight, and your unit standing on an enemy tower would borrow
+that tower's radius. When both objects on a cell are yours, the **larger**
+of the two wins. The backend's `calculate_visibility`
+(`backend/game/services/visibility.py`) has always checked per source;
+this is the frontend matching it.
+
+(Moving onto a base is a different path: `buildingCaptured` means the
+base is yours by the time the post-move visibility is added, so taking
+`max(unit.visibility, fogOfWarRadius)` there is correct.)
 
 ### Fog-of-war preview masking
 
-`MapPreview` takes an optional `viewingPlayer` prop. When it's non-null **and** the map has `enableFogOfWar`, the preview computes the set of cells visible to that player at scenario start (`visibleSet`) and renders everything else as fog (`.map-preview-cell-fog`), hiding buildings/units there — so the picker doesn't spoil the layout. The visibility math mirrors the engine: each owned unit contributes its `visibility` (or, if only `movePoints` is set, `calculateUnitVisibility(speed, speed, threshold, fogR)` — min collapsed to the unit's own speed, matching `DinoGame`'s reseed); each owned base contributes `fogOfWarRadius`; ranges use Chebyshev distance. **Only `ScenariosPage` opts in** (it passes the first human seat's index); the editor and saved-maps browser pass nothing, so they always render the whole field unmasked.
+`MapPreview` takes an optional `viewingPlayer` prop. When it's non-null **and** the map has `enableFogOfWar`, the preview computes the set of cells visible to that player at scenario start (`visibleSet`) and renders everything else as fog (`.map-preview-cell-fog`), hiding buildings/units there — so the picker doesn't spoil the layout. The visibility math mirrors the engine: each owned unit contributes its `visibility` (or, if only `movePoints` is set, `calculateUnitVisibility(speed, speed, threshold, fogR)` — min collapsed to the unit's own speed, matching `DinoGame`'s reseed); each owned base contributes `fogOfWarRadius`; ranges use Chebyshev distance. **Every browser opts in** — `ScenariosPage`, `MapEditorListPage` (both tabs) and `SavedMapsPage` (both launch and lobby-pick mode) each pass the first human seat's index, so no picker spoils a layout you're about to play blind. Maps saved from multiplayer mark every seat human, so that's seat 0 for them too.
 
 ### Validation and feedback
 
@@ -416,13 +542,16 @@ iOS Safari/Chrome don't fire `contextmenu` from a long-press on plain elements, 
 3. **Picker options on an existing tool** (new building types, alternate sprites, more dino colours) → add options to the relevant floating-popup `v-for`. Keep the config shape stable per tool (terrain → `{ kind }`; building → `{ _type, player }`; dino → `{ player, speed }`).
 4. **New cell-targeted actions** (like remove / recolour) → add an item to the **cell context menu** and, if it needs a chooser, a matching `cellPicker` block that mutates the cell directly; remember to call `captureUndo()` before mutating.
 5. **New settings in the gear-menu params form** → inputs bind directly to `entry.map.settings.*`; the deep watcher on `entry` sets `dirty`. (To also show it in the list-page preview icon row, add a row to `MapEditorListPage.vue`.)
-6. **Storage changes** (new entry fields, migrations) → remember there are **two buckets** (`mapEditor.scenarios.v1`, `mapEditor.builtinOverrides.v1`); bump both keys (`…v2`) and migrate in `mapEditorStorage.js`. Don't quietly extend v1 with required new fields — old saved data will trip.
+6. **Storage changes** (new entry fields, migrations) → remember the editor touches **two buckets** (`mapEditor.scenarios.v1` and `mapStorage.js`'s `savedMaps`); version and migrate scenario-bucket changes in `mapEditorStorage.js` (bump `…v2`), and keep the saved-maps shape in sync with the SP/MP save flows. Don't quietly extend v1 with required new fields — old saved data will trip. (The retired `mapEditor.builtinOverrides.v1` bucket must stay readable by `migrateLegacyBuiltinOverrides`.)
 
 ### Tests
 
 Editor/scenario coverage lives under `frontend/tests/`:
 
-- `tests/editor/mapEditorStorage.spec.js` — the two buckets, unified accessors (`getAnyEditorEntry`/`saveAnyEditorEntry` routing by `isBuiltin`), built-in overrides + Reset, export/import (`buildScenarioFile`/`importEditorScenario`, including rejection paths), `resizeMap`, `updatePlayerCounts`, `playerCountChangeWouldDrop`, and `enableUndo` seeding.
+- `tests/editor/mapEditorStorage.spec.js` — user-bucket CRUD, unified accessors (`getAnyEditorEntry`/`saveAnyEditorEntry` routing by `source`, saved-map rename semantics), the legacy override migration, export/import (`buildScenarioFile`/`importEditorScenario`, including rejection paths), `resizeMap`, `updatePlayerCounts`, `playerCountChangeWouldDrop`, and `enableUndo` seeding.
+- `tests/editor/editorTabs.spec.js` — the list page's two tabs, Edit `{ id, source }` payload, the Test launch payload, override migration on mount, and the lobby picker's pick-mode tabs.
+- `tests/game/builtinScenarios.spec.js` — the scenarios-folder contract (count, ids, order, schema validity).
+- `tests/game/saveGating.spec.js` — Save-map gating for SP/MP map-seeded games and the MP `map_saved` → localStorage write.
 - `tests/editor/mapEditorCanvas.spec.js` — mounts `MapEditorCanvasPage` and exercises placement (incl. a speed-0 dino), single-step undo capture/restore, `performMove`, the "deselect tool after a move" rule, PC drag-select finalisation, Esc-to-cancel, and the destination hover preview (`moveDestPreviewRect`, incl. edge clamping).
 - `tests/editor/mapPreview.fog.spec.js` — fog-of-war preview masking via `viewingPlayer`, the no-mask cases, and speed-0/speed-1 radius parity.
 - `tests/game/helpers.spec.js` — `calculateUnitVisibility` speed-0 vs speed-1 parity (the core of the immobile-dino rule).

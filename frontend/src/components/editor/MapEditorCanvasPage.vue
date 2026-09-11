@@ -601,7 +601,9 @@
             <label class="field">
               <input v-model="map.name" type="text" placeholder="Scenario name" />
             </label>
-            <label class="field">
+            <!-- Saved maps have no description — the canonical map schema
+                 doesn't carry one (it's editor-entry metadata only). -->
+            <label v-if="entrySource !== 'savedMap'" class="field">
               <textarea v-model="entry.description" rows="3" placeholder="Description"></textarea>
             </label>
 
@@ -632,11 +634,18 @@
               <div class="setting-row setting-row-edit">
                 <span
                   class="setting-icon"
-                  @contextmenu.prevent="showHint($event, 'Total number of players')"
+                  @contextmenu.prevent="
+                    showHint($event, 'Players placed on the map / colour slots available')
+                  "
                 >
                   <img :src="getImagePath('human_icon')" alt="Players" />
                 </span>
-                <span class="setting-value">{{ map.metadata.playersNum }}</span>
+                <!-- "placed of capacity": only slots with a unit or base
+                     are playable seats, so this is the number the game
+                     actually runs with. -->
+                <span class="setting-value">
+                  {{ placedPlayersNum }} of {{ map.metadata.playersNum }}
+                </span>
                 <button
                   class="edit-btn"
                   :class="{ 'edit-btn-active': playersOpen }"
@@ -1012,6 +1021,7 @@
 import emitter from '@/game/eventBus'
 import { DEFAULT_CELL_SIZE, GAME_STATES, MAX_CELL_SIZE, MIN_CELL_SIZE } from '@/game/const'
 import { getImagePath, getPlayerColor } from '@/game/helpers'
+import { getOccupiedSeats } from '@/game/mapSchema'
 import {
   getAnyEditorEntry,
   saveAnyEditorEntry,
@@ -1029,7 +1039,7 @@ const TOOLS = [
 ]
 
 // Available building types for the floating popup. Mirrors the list
-// in `scenariosData.js` so the editor's vocabulary stays consistent.
+// in the game models so the editor's vocabulary stays consistent.
 const BUILDING_TYPES = ['base', 'habitation', 'temple', 'well', 'storage', 'obelisk']
 
 // Two terrain kinds, with a representative preview asset for each
@@ -1057,7 +1067,7 @@ const LIMITS = {
 }
 
 // Fair random texture rolls. Built-in scenarios use a deterministic
-// formula (scenariosData.js) so the same scenario looks identical on
+// formula baked into their JSON files, so the same scenario looks identical on
 // every page load — but the *editor* is the one place a designer
 // actively wants visual variety, so we roll fresh per cell on map
 // creation and re-roll on every terrain-change click (including
@@ -1069,7 +1079,7 @@ function emptyIdx() {
 function mountainIdx() {
   // Only `mountain1.webp` … `mountain5.webp` ship; `cellStyle` mirrors
   // 6..9 → 4..1 defensively, but staying in 1..5 keeps the preview
-  // honest (same convention scenariosData.js uses).
+  // honest (same convention the built-in scenario files use).
   return 1 + Math.floor(Math.random() * 5)
 }
 
@@ -1078,6 +1088,10 @@ export default {
   components: { ConfirmDialog },
   props: {
     scenarioId: { type: String, required: true },
+    // Which bucket the entry lives in: 'scenario' (user-authored) or
+    // 'savedMap' (maps saved from games; entry id = map name). Drives
+    // load/save routing through the unified accessors.
+    entrySource: { type: String, default: 'scenario' },
   },
   data() {
     return {
@@ -1188,6 +1202,12 @@ export default {
   computed: {
     map() {
       return this.entry?.map || null
+    },
+    // How many colour slots actually have something on the field. Only
+    // those are playable seats — an empty slot seats nobody, so a 7-slot
+    // map with three colours placed is a 3-player map.
+    placedPlayersNum() {
+      return this.map ? getOccupiedSeats(this.map).length : 0
     },
     boardWidthPx() {
       return this.map ? `${this.cellSize * this.map.metadata.width}px` : '0px'
@@ -1345,11 +1365,11 @@ export default {
     getImagePath,
     loadEntry() {
       this.isLoading = true
-      // `getAnyEditorEntry` returns built-ins (with overrides applied)
-      // or user scenarios — both surface as the same `{ id, description,
-      // map, isBuiltin }` shape. The deep-clone below means edits stay
-      // local until Save writes them back to the right storage bucket.
-      const fresh = getAnyEditorEntry(this.scenarioId)
+      // `getAnyEditorEntry` returns user scenarios or saved maps — both
+      // surface as the same `{ id, description, map, source }` shape.
+      // The deep-clone below means edits stay local until Save writes
+      // them back to the right storage bucket.
+      const fresh = getAnyEditorEntry(this.scenarioId, this.entrySource)
       if (!fresh) {
         emitter.emit('goToPage', GAME_STATES.mapEditor)
         return
@@ -1950,9 +1970,16 @@ export default {
         return
       }
       this.errorMessage = ''
-      // Routes through the unified accessor — writes to the built-in
-      // override bucket if `entry.isBuiltin`, else to user storage.
-      saveAnyEditorEntry(this.entry)
+      // Routes through the unified accessor — writes to the saved-maps
+      // bucket if `entry.source === 'savedMap'`, else to user storage.
+      // A saved-map rename can conflict with an existing map name (the
+      // name IS the storage key) — surface that like a validation error.
+      try {
+        saveAnyEditorEntry(this.entry)
+      } catch (e) {
+        this.errorMessage = e.message || 'Save failed'
+        return
+      }
       this.dirty = false
       // Brief "Game saved" toast above the gear menu's button row.
       // Cancel any previous timer so rapid saves restart the window

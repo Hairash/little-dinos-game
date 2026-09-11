@@ -33,8 +33,9 @@
   <MapEditorListPage v-if="state === GAME_STATES.mapEditor" />
   <MapEditorCanvasPage
     v-if="state === GAME_STATES.mapEditorCanvas && currentEditorScenarioId"
-    :key="`editor-${currentEditorScenarioId}`"
+    :key="`editor-${currentEditorEntrySource}-${currentEditorScenarioId}`"
     :scenario-id="currentEditorScenarioId"
+    :entry-source="currentEditorEntrySource"
   />
   <GameSetup
     v-if="state === GAME_STATES.setup"
@@ -135,10 +136,6 @@ import {
 } from '@/game/const'
 import { whoami } from '@/services/auth'
 import { joinGame, createGame, startMultiplayerGame, leaveGame } from '@/game/service'
-import {
-  listSavedMaps as listSavedMapsRemote,
-  deleteSavedMap as deleteSavedMapRemote,
-} from '@/game/savedMapsApi'
 
 export default {
   name: 'App',
@@ -185,6 +182,8 @@ export default {
       // the canvas component can be remounted with a stable key when
       // switching between scenarios. Cleared on leaving the editor.
       currentEditorScenarioId: null,
+      // Which bucket the canvas entry comes from: 'scenario' | 'savedMap'.
+      currentEditorEntrySource: 'scenario',
     }
   },
   mounted() {
@@ -205,13 +204,16 @@ export default {
     this.state = GAME_STATES.menu
   },
   computed: {
+    // Both picker modes now read from the client's localStorage (saved
+    // maps + custom scenarios live on the device in both SP and MP).
+    // The server-side SavedMap store still exists (`savedMapsApi.js`)
+    // but the lobby picker no longer reads from it — kept for future
+    // reuse.
     savedMapsListSource() {
-      // In MP-picker mode the SavedMapsPage reads from the server;
-      // otherwise it falls back to localStorage (its built-in default).
-      return this.savedMapsMode === 'pick' ? listSavedMapsRemote : null
+      return null
     },
     savedMapsDeleteSource() {
-      return this.savedMapsMode === 'pick' ? deleteSavedMapRemote : null
+      return null
     },
   },
   methods: {
@@ -260,6 +262,9 @@ export default {
               this.$refs.lobbyPageRef.preventReconnect = false
             }
             this.currentGameCode = oldGameCode
+            // Join refusals carry a reason (e.g. a picked map's lobby is
+            // full) — surface it instead of failing silently.
+            this.setError(error.message || 'Join game failed')
           })
       })
     },
@@ -331,7 +336,7 @@ export default {
 
       if (opts.initialMap) {
         // Saved-map flow: the map's settings + field win over anything
-        // staged via Setup Random Game. We send the canonical map as
+        // staged via Setup Random Map. We send the canonical map as
         // `initialMap` in the start request; the server uses it instead
         // of generating a random field.
         settings = {
@@ -363,6 +368,10 @@ export default {
         })
         .catch(error => {
           console.error(error)
+          // Map-launch refusals (invalid map, more joiners than the map's
+          // seats) come back with a specific reason — show it in the
+          // lobby's MenuError instead of failing silently.
+          this.setError(error.message || 'Start game failed')
         })
     },
     loadStoredMultiplayerSettings() {
@@ -412,8 +421,24 @@ export default {
       this.state = this.GAME_STATES.lobby
     },
 
+    // Single-player entry point: random maps, saved maps, scenarios and
+    // the editor's Test button all land here (multiplayer goes through
+    // `callStartMultiplayerGame` instead).
     startGame(settings) {
       console.log(settings)
+      // Leave any multiplayer context behind first. `currentGameCode` is
+      // what picks MultiplayerDinoGame over DinoGame in the template, and
+      // it survives walking out of the lobby without pressing Start — so
+      // without this a single-player launch would mount the multiplayer
+      // component with single-player settings, which has no `field` prop
+      // and renders an empty board.
+      if (this.currentGameCode) {
+        console.log('Dropping multiplayer context to start a single-player game')
+        this.closeAllWebSockets()
+        this.currentGameCode = null
+        this.currentGameState = null
+        this.multiplayerSettings = null
+      }
       this.settings = settings
       this.gameInstanceId += 1
       this.state = this.GAME_STATES.game
@@ -442,8 +467,13 @@ export default {
         }
       })
     },
-    openMapEditorCanvas(scenarioId) {
-      this.currentEditorScenarioId = scenarioId
+    openMapEditorCanvas(payload) {
+      // Payload: { id, source } — `source` says which bucket the entry
+      // lives in ('scenario' | 'savedMap'). A bare string id is accepted
+      // for backward compatibility (scenario bucket).
+      const { id, source } = typeof payload === 'string' ? { id: payload, source: null } : payload
+      this.currentEditorScenarioId = id
+      this.currentEditorEntrySource = source || 'scenario'
       this.state = this.GAME_STATES.mapEditorCanvas
     },
     startTutorialScenario(scenarioId) {
@@ -586,9 +616,13 @@ body {
 }
 
 /* Re-enable selection + the callout default for form fields, otherwise
-   the gear menu's name/description inputs can't be edited normally. */
+   the gear menu's name/description inputs can't be edited normally.
+   `.selectable-text` is the opt-in for read-only strings the user
+   legitimately needs to select and copy by hand (the lobby's game code).
+   Both need the `#app` prefix to outweigh the `#app *` rule above. */
 #app input,
-#app textarea {
+#app textarea,
+#app .selectable-text {
   -webkit-touch-callout: default;
   -webkit-user-select: text;
   user-select: text;

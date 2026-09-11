@@ -244,7 +244,19 @@ def hydrate_field_for_game(canonical_field: list, settings: dict) -> list:
                     "_type": src["building"]["_type"],
                 }
             if src.get("unit"):
-                move_points = min_speed
+                # Map-editor scenarios can stamp an explicit `movePoints`
+                # on a starter (including 0 — an immobile dino); honour it
+                # instead of the default minSpeed reseed, mirroring the
+                # `movePoints >= 0` rule in `DinoGame.vue`'s saved-map
+                # branch. The min bound collapses to the unit's own speed
+                # so a speed-0 dino gets the same (max) visibility a
+                # speed-1 dino gets. Keep the three JS call sites and this
+                # one in sync (see docs/scenarios.md, "Honoring explicit
+                # unit speed").
+                saved_speed = src["unit"].get("movePoints")
+                explicit = isinstance(saved_speed, (int, float)) and saved_speed >= 0
+                move_points = saved_speed if explicit else min_speed
+                min_for_roll = move_points
                 visibility = fog_of_war_radius
                 if visibility_speed_relation:
                     # Same odd call shape `generate_field` uses for the
@@ -252,8 +264,12 @@ def hydrate_field_for_game(canonical_field: list, settings: dict) -> list:
                     # max_speed slot. Don't simplify without also
                     # changing the random-roll path.
                     visibility = calculate_unit_visibility(
-                        move_points, min_speed, speed_min_visibility, fog_of_war_radius
+                        move_points, min_for_roll, speed_min_visibility, fog_of_war_radius
                     )
+                # An explicit saved visibility wins (truthy check mirrors
+                # the JS `if (saved?.visibility)`).
+                if src["unit"].get("visibility"):
+                    visibility = src["unit"]["visibility"]
                 cell["unit"] = {
                     "player": src["unit"]["player"],
                     "_type": src["unit"]["_type"],
@@ -264,6 +280,73 @@ def hydrate_field_for_game(canonical_field: list, settings: dict) -> list:
             new_col.append(cell)
         out.append(new_col)
     return out
+
+
+def occupied_seats(field: list) -> list[int]:
+    """Seat indices owning at least one unit or base on ``field``, ascending.
+
+    ``metadata.playersNum`` is the map's DESIGN CAPACITY — a designer may
+    leave slots empty, and an empty slot is not a playable seat (whoever
+    is assigned to it starts with nothing). This derives the seats that
+    are actually playable. Neutral buildings (``player`` is None) belong
+    to nobody and never count.
+
+    Works on both canonical-map fields and hydrated game fields — the
+    cell shape is the same for the parts we read.
+
+    JS mirror: ``getOccupiedSeats`` in ``frontend/src/game/mapSchema.js``
+    — keep the two in sync.
+    """
+    seats: set[int] = set()
+    for col in field:
+        for cell in col:
+            if not cell:
+                continue
+            unit = cell.get("unit")
+            if unit and isinstance(unit.get("player"), int):
+                seats.add(unit["player"])
+            building = cell.get("building")
+            if building and isinstance(building.get("player"), int):
+                seats.add(building["player"])
+    return sorted(seats)
+
+
+def reconcile_seats(field: list, seats_to_keep) -> list:
+    """Trim map seats down to the players who actually joined.
+
+    A picked map may support more seats than the lobby filled. ``seats_to_keep``
+    is the explicit set of seat indices the joined players took (see
+    ``occupied_seats`` — playable seats can be sparse, e.g. ``[0, 3, 6]``
+    when a designer used blue, yellow and purple). Every other seat is
+    removed from the field:
+
+    - units owned by a removed seat are dropped;
+    - bases owned by a removed seat are demoted to neutral
+      (``player: None``) so they stay on the field as capturable towers.
+
+    A set is required rather than a count because playable seats have
+    gaps: a "drop everything ≥ N" threshold would wrongly delete seat 3
+    when two players joined a ``[0, 3, 6]`` map.
+
+    Python mirror of ``updatePlayerCounts``'s field reconciliation in
+    ``frontend/src/game/mapEditorStorage.js`` — keep the two in sync.
+    Mutates and returns ``field``.
+    """
+    keep = set(seats_to_keep)
+    for col in field:
+        for cell in col:
+            unit = cell.get("unit")
+            if unit and unit.get("player") is not None and unit["player"] not in keep:
+                cell["unit"] = None
+            building = cell.get("building")
+            if (
+                building
+                and building.get("_type") == "base"
+                and building.get("player") is not None
+                and building["player"] not in keep
+            ):
+                building["player"] = None
+    return field
 
 
 def capture_initial_snapshot(game) -> None:

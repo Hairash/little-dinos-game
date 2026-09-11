@@ -3,7 +3,7 @@
 // Storage shape: `mapEditor.scenarios.v1` is a JSON array of
 //   { id, description, map }
 // entries, where `map` is a canonical Map JSON (mapSchema v1) — the same
-// shape used by built-in scenarios in scenariosData.js. That symmetry
+// shape used by built-in scenarios in `src/game/scenarios/`. That symmetry
 // matters: the play path (ScenariosPage → startGame → DinoGame.initialMap)
 // is identical for built-in and user scenarios.
 //
@@ -11,25 +11,28 @@
 // stripper would drop (notably `movePoints` so the speed picker in the
 // editor survives a round trip). `validateMap` only checks the shape,
 // not cell-level fields, so this is safe.
+//
+// The editor also edits SAVED MAPS (the `savedMaps` bucket owned by
+// `mapStorage.js`). The unified accessors below route on an entry-level
+// `source` marker ('scenario' | 'savedMap') so the canvas page doesn't
+// care which bucket it is writing into.
 
 import { MAP_SCHEMA_VERSION, validateMap } from '@/game/mapSchema'
-import { SCENARIOS } from '@/game/scenariosData'
+import {
+  getSavedMap,
+  saveMap as saveMapToStorage,
+  deleteSavedMap,
+  mapNameExists,
+} from '@/game/mapStorage'
 
 const STORAGE_KEY = 'mapEditor.scenarios.v1'
-
-// Edits to built-in scenarios persist as overrides keyed by the
-// built-in's `id`. The original entries in `scenariosData.js` stay
-// untouched — overrides win when present and a "reset" simply removes
-// the override. Lets us ship updates to built-ins without clobbering
-// user tweaks, and lets the user back out of a destructive edit.
-const BUILTIN_OVERRIDES_KEY = 'mapEditor.builtinOverrides.v1'
 
 // Editor cells get a fresh random texture per cell on map create /
 // resize-grow, so every map breaks the looped-pattern look the
 // deterministic formula used to produce. Matches the random roll
 // `createFieldEngine.js` does when generating a random map. Built-in
-// scenarios still use a deterministic formula by design (see
-// scenariosData.js) so each scenario looks identical every load.
+// scenarios keep deterministic indices baked into their JSON files so
+// each scenario looks identical every load.
 function emptyIdx() {
   return 1 + Math.floor(Math.random() * 9)
 }
@@ -74,6 +77,43 @@ export function deleteEditorScenario(id) {
   writeAll(listEditorScenarios().filter(s => s.id !== id))
 }
 
+// ---- Legacy built-in overrides migration -----------------------------------
+//
+// Built-ins used to be editable through an override bucket
+// (`mapEditor.builtinOverrides.v1`). Built-ins are read-only now, so any
+// existing override is COPIED into the user-scenarios bucket once (named
+// "<Name> (edited)") and the legacy bucket is left untouched — nothing is
+// deleted, it just stops being read. The one-time flag keeps repeat page
+// loads from re-copying.
+
+const LEGACY_OVERRIDES_KEY = 'mapEditor.builtinOverrides.v1'
+const OVERRIDES_MIGRATED_KEY = 'mapEditor.overridesMigrated.v1'
+
+export function migrateLegacyBuiltinOverrides() {
+  try {
+    if (localStorage.getItem(OVERRIDES_MIGRATED_KEY)) return
+    const raw = localStorage.getItem(LEGACY_OVERRIDES_KEY)
+    const overrides = raw ? JSON.parse(raw) : {}
+    if (overrides && typeof overrides === 'object') {
+      for (const override of Object.values(overrides)) {
+        if (!override || !override.map) continue
+        try {
+          saveEditorScenario({
+            id: genId(),
+            description: override.description || '',
+            map: { ...override.map, name: `${override.map.name || override.id} (edited)` },
+          })
+        } catch (_e) {
+          // A malformed override is skipped rather than blocking the rest.
+        }
+      }
+    }
+    localStorage.setItem(OVERRIDES_MIGRATED_KEY, '1')
+  } catch (_e) {
+    // Never block a page load on migration problems.
+  }
+}
+
 // ---- Import / export ------------------------------------------------------
 
 // File format for export/import. Wraps the canonical map JSON in a
@@ -81,8 +121,11 @@ export function deleteEditorScenario(id) {
 // check) and so future format additions have a place to live without
 // breaking the `validateMap` shape. `description` lives at this level
 // because it's editor metadata — the engine doesn't read it.
+// Exported files use the `.ldm` extension (Little Dinos Map); the
+// content is plain JSON and legacy `.json` exports import fine.
 export const SCENARIO_FILE_KIND = 'little-dinos-scenario'
 export const SCENARIO_FILE_VERSION = 1
+export const SCENARIO_FILE_EXTENSION = 'ldm'
 
 export function buildScenarioFile(entry) {
   return {
@@ -94,9 +137,8 @@ export function buildScenarioFile(entry) {
 }
 
 // Parse + validate a file's parsed JSON, then persist it as a fresh
-// user scenario (always — never as an override of a built-in). A new
-// id is minted so re-imports never collide with whatever id the
-// original entry had.
+// user scenario. A new id is minted so re-imports never collide with
+// whatever id the original entry had.
 export function importEditorScenario(parsed) {
   if (!parsed || typeof parsed !== 'object') {
     throw new Error('File is not a JSON object')
@@ -118,90 +160,51 @@ export function importEditorScenario(parsed) {
   return entry
 }
 
-// ---- Built-in overrides ---------------------------------------------------
-
-export function listBuiltinOverrides() {
-  try {
-    const raw = localStorage.getItem(BUILTIN_OVERRIDES_KEY)
-    if (!raw) return {}
-    const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? parsed : {}
-  } catch (_e) {
-    return {}
-  }
-}
-
-function writeBuiltinOverrides(obj) {
-  localStorage.setItem(BUILTIN_OVERRIDES_KEY, JSON.stringify(obj))
-}
-
-export function getBuiltinOverride(id) {
-  return listBuiltinOverrides()[id] || null
-}
-
-export function saveBuiltinOverride(entry) {
-  if (entry.map?.settings) entry.map.settings.enableUndo = true
-  validateMap(entry.map)
-  const all = listBuiltinOverrides()
-  all[entry.id] = { id: entry.id, description: entry.description, map: entry.map }
-  writeBuiltinOverrides(all)
-  return entry
-}
-
-export function deleteBuiltinOverride(id) {
-  const all = listBuiltinOverrides()
-  delete all[id]
-  writeBuiltinOverrides(all)
-}
-
 // ---- Unified accessors used by the editor ---------------------------------
 //
-// Both built-ins (`SCENARIOS`, with overrides applied) and user scenarios
-// surface to the editor as the same `{ id, description, map, isBuiltin }`
-// shape. The canvas page uses `isBuiltin` to decide which storage to
-// write into on save.
+// Both user scenarios and saved maps surface to the editor as the same
+// `{ id, description, map, source }` shape. The canvas page uses `source`
+// to decide which storage to write into on save:
+//   - 'scenario' → `mapEditor.scenarios.v1` (this module)
+//   - 'savedMap' → `savedMaps` (mapStorage.js; entry id = map name)
 
-function withBuiltinFlag(entry, isBuiltin) {
-  return {
-    id: entry.id,
-    description: entry.description,
-    map: entry.map,
-    isBuiltin,
-  }
+export const ENTRY_SOURCES = {
+  scenario: 'scenario',
+  savedMap: 'savedMap',
 }
 
-export function listAllEditorEntries() {
-  const overrides = listBuiltinOverrides()
-  const builtins = SCENARIOS.map(s => withBuiltinFlag(overrides[s.id] || s, true))
-  const users = listEditorScenarios().map(s => withBuiltinFlag(s, false))
-  return [...builtins, ...users]
-}
-
-export function getAnyEditorEntry(id) {
-  const builtin = SCENARIOS.find(s => s.id === id)
-  if (builtin) {
-    return withBuiltinFlag(getBuiltinOverride(id) || builtin, true)
+export function getAnyEditorEntry(id, source = ENTRY_SOURCES.scenario) {
+  if (source === ENTRY_SOURCES.savedMap) {
+    const map = getSavedMap(id)
+    return map ? { id, description: '', map, source } : null
   }
   const user = getEditorScenarioById(id)
-  return user ? withBuiltinFlag(user, false) : null
+  return user ? { ...user, source: ENTRY_SOURCES.scenario } : null
 }
 
 export function saveAnyEditorEntry(entry) {
-  // Strip the in-memory `isBuiltin` flag before persisting — storage
-  // already knows which bucket the entry lives in via the function it's
-  // written through.
-  const clean = { id: entry.id, description: entry.description, map: entry.map }
-  if (entry.isBuiltin) return saveBuiltinOverride(clean)
-  return saveEditorScenario(clean)
+  if (entry.source === ENTRY_SOURCES.savedMap) {
+    validateMap(entry.map)
+    const newName = entry.map.name
+    // The map name IS the storage key for saved maps. A rename must not
+    // silently clobber a different existing map — surface the conflict
+    // to the gear menu instead.
+    if (newName !== entry.id && mapNameExists(newName)) {
+      throw new Error(`Map "${newName}" already exists`)
+    }
+    saveMapToStorage(entry.map, { overwrite: true })
+    if (newName !== entry.id) {
+      deleteSavedMap(entry.id)
+      entry.id = newName
+    }
+    return entry
+  }
+  return saveEditorScenario({ id: entry.id, description: entry.description, map: entry.map })
 }
 
 export function deleteAnyEditorEntry(entry) {
-  if (entry.isBuiltin) return deleteBuiltinOverride(entry.id)
+  if (entry.source === ENTRY_SOURCES.savedMap) return deleteSavedMap(entry.id)
   return deleteEditorScenario(entry.id)
-}
-
-export function builtinHasOverride(id) {
-  return Object.prototype.hasOwnProperty.call(listBuiltinOverrides(), id)
 }
 
 function genId() {
@@ -302,6 +305,10 @@ export function createNewScenario({
 //     always neutral and untouched).
 // Caller should confirm with the user before SHRINKING seat counts
 // since orphan units are silently dropped here.
+// The backend mirrors this drop/demote rule in
+// `backend/game/services/map_snapshot.py#reconcile_seats` for the
+// multiplayer "map supports more players than joined" trim — keep the
+// two in sync.
 export function updatePlayerCounts(map, humanPlayersNum, botPlayersNum) {
   const newTotal = humanPlayersNum + botPlayersNum
   map.metadata.humanPlayersNum = humanPlayersNum

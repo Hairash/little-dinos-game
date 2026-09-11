@@ -8,22 +8,18 @@ import {
   createNewScenario,
   buildScenarioFile,
   importEditorScenario,
+  migrateLegacyBuiltinOverrides,
   SCENARIO_FILE_KIND,
   SCENARIO_FILE_VERSION,
-  listBuiltinOverrides,
-  getBuiltinOverride,
-  saveBuiltinOverride,
-  deleteBuiltinOverride,
-  builtinHasOverride,
+  ENTRY_SOURCES,
   getAnyEditorEntry,
   saveAnyEditorEntry,
   deleteAnyEditorEntry,
-  listAllEditorEntries,
   updatePlayerCounts,
   playerCountChangeWouldDrop,
   resizeMap,
 } from '@/game/mapEditorStorage'
-import { SCENARIOS } from '@/game/scenariosData'
+import { saveMap, getSavedMap, listSavedMaps } from '@/game/mapStorage'
 
 const clone = o => JSON.parse(JSON.stringify(o))
 
@@ -32,8 +28,10 @@ const clone = o => JSON.parse(JSON.stringify(o))
 // localStorage.clear() below runs before every test, so this one-time
 // write never leaks into a test's bucket state.
 const TEMPLATE_MAP = clone(createNewScenario({ width: 6, height: 6 }).map)
-function freshMap() {
-  return clone(TEMPLATE_MAP)
+function freshMap(name) {
+  const map = clone(TEMPLATE_MAP)
+  if (name) map.name = name
+  return map
 }
 
 beforeEach(() => {
@@ -89,81 +87,125 @@ describe('mapEditorStorage', () => {
     })
   })
 
-  describe('two-bucket isolation', () => {
-    it('user scenarios and built-in overrides live in separate buckets', () => {
-      saveEditorScenario({ id: 'u1', description: '', map: freshMap() })
-      saveBuiltinOverride({ id: SCENARIOS[0].id, description: '', map: freshMap() })
+  describe('legacy override migration', () => {
+    function seedLegacyOverride(id, name) {
+      const overrides = { [id]: { id, description: 'edited desc', map: freshMap(name) } }
+      localStorage.setItem('mapEditor.builtinOverrides.v1', JSON.stringify(overrides))
+    }
+
+    it('copies each override into the user bucket as "<name> (edited)"', () => {
+      seedLegacyOverride('ambush', 'Ambush')
+      migrateLegacyBuiltinOverrides()
+      const users = listEditorScenarios()
+      expect(users).toHaveLength(1)
+      expect(users[0].map.name).toBe('Ambush (edited)')
+      expect(users[0].description).toBe('edited desc')
+    })
+
+    it('leaves the legacy bucket untouched (no data deleted)', () => {
+      seedLegacyOverride('ambush', 'Ambush')
+      migrateLegacyBuiltinOverrides()
+      const legacy = JSON.parse(localStorage.getItem('mapEditor.builtinOverrides.v1'))
+      expect(Object.keys(legacy)).toEqual(['ambush'])
+    })
+
+    it('runs only once (flag-guarded)', () => {
+      seedLegacyOverride('ambush', 'Ambush')
+      migrateLegacyBuiltinOverrides()
+      migrateLegacyBuiltinOverrides()
       expect(listEditorScenarios()).toHaveLength(1)
-      expect(Object.keys(listBuiltinOverrides())).toEqual([SCENARIOS[0].id])
+    })
+
+    it('is a no-op with no legacy data', () => {
+      migrateLegacyBuiltinOverrides()
+      expect(listEditorScenarios()).toHaveLength(0)
     })
   })
 
-  describe('built-in overrides', () => {
-    const builtinId = SCENARIOS[0].id
-
-    it('save → getBuiltinOverride / builtinHasOverride reflect it', () => {
-      expect(builtinHasOverride(builtinId)).toBe(false)
-      saveBuiltinOverride({ id: builtinId, description: 'edited', map: freshMap() })
-      expect(builtinHasOverride(builtinId)).toBe(true)
-      expect(getBuiltinOverride(builtinId).description).toBe('edited')
-    })
-
-    it('forces enableUndo on when saving an override', () => {
-      const map = freshMap()
-      map.settings.enableUndo = false
-      saveBuiltinOverride({ id: builtinId, description: '', map })
-      expect(getBuiltinOverride(builtinId).map.settings.enableUndo).toBe(true)
-    })
-
-    it('delete (Reset) drops the override', () => {
-      saveBuiltinOverride({ id: builtinId, description: '', map: freshMap() })
-      deleteBuiltinOverride(builtinId)
-      expect(builtinHasOverride(builtinId)).toBe(false)
-    })
-  })
-
-  describe('unified accessors', () => {
-    const builtinId = SCENARIOS[0].id
-
-    it('getAnyEditorEntry returns the shipped built-in when no override', () => {
-      const entry = getAnyEditorEntry(builtinId)
-      expect(entry).not.toBeNull()
-      expect(entry.isBuiltin).toBe(true)
-    })
-
-    it('getAnyEditorEntry returns the override once one exists', () => {
-      const map = freshMap()
-      map.name = 'OVERRIDDEN'
-      saveBuiltinOverride({ id: builtinId, description: '', map })
-      const entry = getAnyEditorEntry(builtinId)
-      expect(entry.isBuiltin).toBe(true)
-      expect(entry.map.name).toBe('OVERRIDDEN')
+  describe('unified accessors (scenario source)', () => {
+    it('getAnyEditorEntry returns a user scenario with source stamped', () => {
+      saveEditorScenario({ id: 'u1', description: 'd', map: freshMap() })
+      const entry = getAnyEditorEntry('u1')
+      expect(entry.source).toBe(ENTRY_SOURCES.scenario)
+      expect(entry.description).toBe('d')
     })
 
     it('getAnyEditorEntry returns null for an unknown id', () => {
       expect(getAnyEditorEntry('does-not-exist')).toBeNull()
     })
 
-    it('saveAnyEditorEntry routes by isBuiltin', () => {
-      saveAnyEditorEntry({ id: builtinId, isBuiltin: true, description: '', map: freshMap() })
-      saveAnyEditorEntry({ id: 'u1', isBuiltin: false, description: '', map: freshMap() })
-      expect(builtinHasOverride(builtinId)).toBe(true)
+    it('save/delete route to the user bucket', () => {
+      saveAnyEditorEntry({
+        id: 'u1',
+        source: ENTRY_SOURCES.scenario,
+        description: '',
+        map: freshMap(),
+      })
       expect(getEditorScenarioById('u1')).not.toBeNull()
-      // The built-in write must NOT leak into the user bucket.
-      expect(getEditorScenarioById(builtinId)).toBeNull()
-    })
-
-    it('deleteAnyEditorEntry routes by isBuiltin', () => {
-      saveAnyEditorEntry({ id: 'u1', isBuiltin: false, description: '', map: freshMap() })
-      deleteAnyEditorEntry({ id: 'u1', isBuiltin: false })
+      deleteAnyEditorEntry({ id: 'u1', source: ENTRY_SOURCES.scenario })
       expect(getEditorScenarioById('u1')).toBeNull()
     })
+  })
 
-    it('listAllEditorEntries surfaces every built-in plus user scenarios', () => {
-      saveEditorScenario({ id: 'u1', description: '', map: freshMap() })
-      const all = listAllEditorEntries()
-      expect(all.filter(e => e.isBuiltin)).toHaveLength(SCENARIOS.length)
-      expect(all.filter(e => !e.isBuiltin)).toHaveLength(1)
+  describe('unified accessors (savedMap source)', () => {
+    function seedSavedMap(name) {
+      const map = freshMap(name)
+      map.metadata.savedAt = '2026-09-11T00:00:00.000Z'
+      saveMap(map)
+      return map
+    }
+
+    it('getAnyEditorEntry wraps a saved map (id = name)', () => {
+      seedSavedMap('my-map')
+      const entry = getAnyEditorEntry('my-map', ENTRY_SOURCES.savedMap)
+      expect(entry).not.toBeNull()
+      expect(entry.id).toBe('my-map')
+      expect(entry.source).toBe(ENTRY_SOURCES.savedMap)
+      expect(entry.map.name).toBe('my-map')
+    })
+
+    it('saveAnyEditorEntry overwrites the saved map in place', () => {
+      seedSavedMap('my-map')
+      const entry = getAnyEditorEntry('my-map', ENTRY_SOURCES.savedMap)
+      entry.map.field[0][0].terrain.kind = 'mountain'
+      saveAnyEditorEntry(entry)
+      expect(getSavedMap('my-map').field[0][0].terrain.kind).toBe('mountain')
+      expect(listSavedMaps()).toHaveLength(1)
+    })
+
+    it('renaming moves the entry to the new key', () => {
+      seedSavedMap('old-name')
+      const entry = getAnyEditorEntry('old-name', ENTRY_SOURCES.savedMap)
+      entry.map.name = 'new-name'
+      saveAnyEditorEntry(entry)
+      expect(getSavedMap('old-name')).toBeNull()
+      expect(getSavedMap('new-name')).not.toBeNull()
+      expect(entry.id).toBe('new-name')
+    })
+
+    it('renaming onto an existing map name throws instead of clobbering', () => {
+      seedSavedMap('map-a')
+      seedSavedMap('map-b')
+      const entry = getAnyEditorEntry('map-a', ENTRY_SOURCES.savedMap)
+      entry.map.name = 'map-b'
+      expect(() => saveAnyEditorEntry(entry)).toThrow(/already exists/)
+      // Nothing moved or was lost.
+      expect(getSavedMap('map-a')).not.toBeNull()
+      expect(getSavedMap('map-b')).not.toBeNull()
+    })
+
+    it('deleteAnyEditorEntry removes the saved map', () => {
+      seedSavedMap('my-map')
+      deleteAnyEditorEntry({ id: 'my-map', source: ENTRY_SOURCES.savedMap })
+      expect(getSavedMap('my-map')).toBeNull()
+    })
+
+    it('does not force enableUndo on saved maps (keeps the game rules as played)', () => {
+      const map = seedSavedMap('my-map')
+      map.settings.enableUndo = false
+      const entry = { id: 'my-map', source: ENTRY_SOURCES.savedMap, description: '', map }
+      saveAnyEditorEntry(entry)
+      expect(getSavedMap('my-map').settings.enableUndo).toBe(false)
     })
   })
 

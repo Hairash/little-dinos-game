@@ -20,6 +20,7 @@ daphne -b 0.0.0.0 -p 8009 server.asgi:application
 #### "ModuleNotFoundError: No module named '...'"
 
 Virtual environment not activated:
+
 ```bash
 cd backend
 source venv/bin/activate  # Linux/Mac
@@ -27,6 +28,7 @@ venv\Scripts\activate     # Windows
 ```
 
 Or dependencies not installed:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -34,6 +36,7 @@ pip install -r requirements.txt
 #### "OperationalError: no such table"
 
 Migrations not run:
+
 ```bash
 python manage.py migrate
 ```
@@ -41,6 +44,7 @@ python manage.py migrate
 #### WebSocket Connection Refused
 
 1. Ensure backend is running with Daphne (not Django's runserver):
+
    ```bash
    daphne -b 0.0.0.0 -p 8008 server.asgi:application
    ```
@@ -69,8 +73,9 @@ python manage.py migrate
 #### "401 Unauthorized" on API calls
 
 1. Check if auth token exists:
+
    ```javascript
-   console.log(localStorage.getItem('auth_token'));
+   console.log(localStorage.getItem("auth_token"));
    ```
 
 2. Token might be expired - sign out and sign in again
@@ -82,9 +87,10 @@ python manage.py migrate
 #### "Cannot read property of undefined" on game load
 
 1. Check if localStorage has corrupted data:
+
    ```javascript
-   localStorage.removeItem('field');
-   localStorage.removeItem('players');
+   localStorage.removeItem("field");
+   localStorage.removeItem("players");
    ```
 
 2. Refresh the page
@@ -94,6 +100,7 @@ python manage.py migrate
 1. Check browser console for errors (F12)
 
 2. Clear browser cache and localStorage:
+
    ```javascript
    localStorage.clear();
    ```
@@ -103,6 +110,41 @@ python manage.py migrate
    cd frontend
    npm run build
    ```
+
+### Git / Workflow Issues
+
+#### Recovering an accidental `git reset`
+
+`git reset HEAD~1` (the default `--mixed`) moves the branch back one commit and
+unstages — but it **does not touch your working tree and does not delete the old
+commit**. The commit is still reachable via the reflog and `ORIG_HEAD`, so this
+is almost always recoverable.
+
+- **Immediate, lossless undo** (restores the commit _and_ keeps any separate
+  uncommitted changes, because a mixed reset never touched the working tree):
+
+  ```bash
+  git reset ORIG_HEAD        # or: git reset HEAD@{1}
+  ```
+
+  Do **not** reach for `git reset --hard` unless you actually want to discard
+  uncommitted work — `--hard` overwrites the working tree.
+
+- **If you've already done other things** (stash/pull/merge) so `ORIG_HEAD`
+  moved on, the commit is still in the reflog:
+
+  ```bash
+  git reflog                 # find the lost commit's hash
+  git branch recovered <hash>   # bookmark it safely, then merge/cherry-pick/reset
+  ```
+
+- **Prevention:** before any history surgery (`reset`, `rebase`, `commit
+--amend`), drop a cheap bookmark — `git branch backup` (or `git tag backup`).
+  If it goes sideways: `git reset --hard backup`.
+
+> Note: uncommitted work that was **never committed or stashed** lives only in
+> the working tree — the reflog can't bring it back. Commit or `git stash` early
+> so there's always a recovery point.
 
 ### Game Issues
 
@@ -123,7 +165,7 @@ python manage.py migrate
 3. Check WebSocket connection:
    ```javascript
    // In browser console
-   console.log('WS connected:', gameWebSocket.isConnected);
+   console.log("WS connected:", gameWebSocket.isConnected);
    ```
 
 #### Game field looks wrong / Missing cells
@@ -141,6 +183,7 @@ python manage.py migrate
 1. Verify username and password are correct
 
 2. Check if user exists:
+
    ```bash
    cd backend
    python manage.py shell
@@ -180,6 +223,7 @@ For development with multiple processes, consider using PostgreSQL.
 #### Migration conflicts
 
 1. Check for conflicting migrations:
+
    ```bash
    python manage.py showmigrations
    ```
@@ -201,6 +245,7 @@ See [Development Setup](./development-setup.md#debug-logging) for enabling debug
 ### Check WebSocket Messages
 
 In browser DevTools:
+
 1. Go to Network tab
 2. Filter by "WS"
 3. Click on the WebSocket connection
@@ -219,9 +264,11 @@ fly logs -a your-app-name
 ### Inspect Game State
 
 In browser console:
+
 ```javascript
 // Get Vue component instance
-const vm = document.querySelector('#app').__vue_app__._container._vnode.component.proxy;
+const vm =
+  document.querySelector("#app").__vue_app__._container._vnode.component.proxy;
 
 // Check game state
 console.log(vm.field);

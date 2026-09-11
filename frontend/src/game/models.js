@@ -74,6 +74,13 @@ class Player {
     this.active = true
     this.informed_lose = false
     this.scrollCoords = [0, 0]
+    // False for a seat that exists in the map's colour capacity but has
+    // nothing on the field — nobody plays it. The `players` array stays
+    // indexed by seat (units carry `player: <seat>`, colours come from
+    // the index), so empty seats are kept as inactive placeholders
+    // rather than collapsing the array. Turn rotation skips them for
+    // being inactive; the UI hides them for not participating.
+    this.participating = true
   }
 
   static fromJSON(obj) {
@@ -85,6 +92,8 @@ class Player {
     player.active = obj.active ?? true
     player.informed_lose = obj.informed_lose ?? false
     player.scrollCoords = obj.scrollCoords ?? [0, 0]
+    // Older saves predate the flag — everything in them was a real seat.
+    player.participating = obj.participating ?? true
     return player
   }
 }

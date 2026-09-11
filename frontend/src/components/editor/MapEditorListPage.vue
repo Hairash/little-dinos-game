@@ -6,11 +6,45 @@
     <h1>Map editor</h1>
 
     <div class="editor-list-content">
+      <!-- Two sources, two tabs: user-authored scenarios and maps saved
+           from games. Same per-entry controls on both (Edit / Export /
+           Delete / Test); Create + Import live on the Scenarios tab.
+           Built-in scenarios are read-only JSON files and never appear
+           here. -->
+      <div class="editor-tabs">
+        <button
+          class="editor-tab"
+          :class="{ 'editor-tab-active': activeTab === 'scenario' }"
+          @click="switchTab('scenario')"
+        >
+          Scenarios
+        </button>
+        <button
+          class="editor-tab"
+          :class="{ 'editor-tab-active': activeTab === 'savedMap' }"
+          @click="switchTab('savedMap')"
+        >
+          Saved maps
+        </button>
+      </div>
+
       <div class="editor-list-body">
         <div ref="listRef" class="editor-list-pane">
           <div class="editor-list">
+            <!-- Create / Import sit above the entries: with a long list
+                 they'd otherwise be scrolled out of reach, and they're
+                 the actions a user arrives here to take. Scenarios tab
+                 only — saved maps come from games, not from here. -->
+            <template v-if="activeTab === 'scenario'">
+              <button class="editor-list-item editor-list-item-new" @click="openCreateDialog">
+                + Create new scenario
+              </button>
+              <button class="editor-list-item editor-list-item-new" @click="triggerImport">
+                ↑ Import scenario from file
+              </button>
+            </template>
             <button
-              v-for="s in scenarios"
+              v-for="s in entries"
               :key="s.id"
               class="editor-list-item"
               :class="{ 'editor-list-item-selected': selectedId === s.id }"
@@ -18,24 +52,17 @@
             >
               <div class="editor-list-name">
                 {{ s.map.name }}
-                <!-- Tag built-ins so the user knows which entries
-                     come from `scenariosData.js` (and that "delete"
-                     on them only resets their override, never wipes
-                     the source). -->
-                <span v-if="s.isBuiltin" class="editor-list-badge">default</span>
               </div>
               <div class="editor-list-meta">
-                {{ s.map.metadata.playersNum }}p · {{ s.map.metadata.width }}×{{
-                  s.map.metadata.height
-                }}
+                <!-- "placed of capacity": the editor is where the gap
+                     matters, so both numbers are shown. -->
+                {{ actualPlayers(s.map).total }} of {{ s.map.metadata.playersNum }}p ·
+                {{ s.map.metadata.width }}×{{ s.map.metadata.height }}
               </div>
             </button>
-            <button class="editor-list-item editor-list-item-new" @click="openCreateDialog">
-              + Create new scenario
-            </button>
-            <button class="editor-list-item editor-list-item-new" @click="triggerImport">
-              ↑ Import scenario from file
-            </button>
+            <div v-if="activeTab === 'savedMap' && entries.length === 0" class="editor-list-empty">
+              No saved maps yet. Save one from the in-game menu during a random-map game.
+            </div>
           </div>
         </div>
 
@@ -45,7 +72,14 @@
           </div>
 
           <div v-else class="editor-preview">
-            <MapPreview :map="selected.map" :max-size="320" />
+            <!-- Fog-of-war maps preview masked to the first human seat's
+                 starting visibility — same rule as ScenariosPage, applied
+                 to both tabs, so the browser doesn't spoil the layout. -->
+            <MapPreview
+              :map="selected.map"
+              :max-size="320"
+              :viewing-player="previewViewingPlayer"
+            />
 
             <!-- Settings icon-row, same vocabulary SavedMapsPage uses
                  so the two browsers look familiar side-by-side. Each
@@ -57,11 +91,11 @@
               </div>
               <div class="settings-row">
                 <span class="settings-icon"><img :src="getImagePath('human_icon')" alt="" /></span>
-                {{ selected.map.metadata.humanPlayersNum }}
+                {{ selectedActual.humans }} of {{ selected.map.metadata.humanPlayersNum }}
               </div>
               <div class="settings-row">
                 <span class="settings-icon"><img :src="getImagePath('bot_icon')" alt="" /></span>
-                {{ selected.map.metadata.botPlayersNum }}
+                {{ selectedActual.bots }} of {{ selected.map.metadata.botPlayersNum }}
               </div>
               <div class="settings-row">
                 <span class="settings-icon"><img :src="getImagePath('speed_icon')" alt="" /></span>
@@ -145,7 +179,10 @@
               </div>
             </div>
 
-            <p v-if="selected.description" class="editor-description">
+            <p v-if="activeTab === 'savedMap'" class="editor-description">
+              Saved {{ formatDate(selected.map.metadata.savedAt) }}
+            </p>
+            <p v-else-if="selected.description" class="editor-description">
               {{ selected.description }}
             </p>
             <p v-else class="editor-description-empty">
@@ -165,47 +202,34 @@
         <button class="editor-btn editor-btn-primary" :disabled="!selected" @click="editMap">
           Edit
         </button>
+        <!-- Immediate SP launch on the selected entry — the same start
+             payload SavedMapsPage/ScenariosPage build, so a designer can
+             try a map without leaving the editor flow. -->
+        <button class="editor-btn editor-btn-primary" :disabled="!selected" @click="testMap">
+          Test
+        </button>
         <!--
-          Exports the selected scenario as a JSON file. Works for both
-          built-ins (the override-or-original) and user scenarios — the
-          file format is the same `buildScenarioFile` wrapper either
-          way, so the receiver doesn't have to know the source.
+          Exports the selected entry as a `.ldm` file (JSON content, see
+          `buildScenarioFile`). Same wrapper for both tabs, so the
+          receiver doesn't have to know the source.
         -->
         <button class="editor-btn" :disabled="!selected" @click="exportSelected">Export</button>
-        <!--
-          User scenarios show "Delete" (removes the entry); built-in
-          scenarios show "Reset" (removes the override and restores
-          the values from `scenariosData.js`). The Reset button is
-          disabled when no override is currently saved — there's
-          nothing to reset.
-        -->
-        <button
-          v-if="!selected || !selected.isBuiltin"
-          class="editor-btn editor-btn-danger"
-          :disabled="!selected"
-          @click="askDelete"
-        >
+        <button class="editor-btn editor-btn-danger" :disabled="!selected" @click="askDelete">
           Delete
-        </button>
-        <button
-          v-else
-          class="editor-btn editor-btn-danger"
-          :disabled="!selectedHasOverride()"
-          @click="askDelete"
-        >
-          Reset
         </button>
       </div>
 
       <!--
         Hidden file picker — triggered from the "Import scenario from
         file" list item. We clear its value on every open so re-importing
-        the same file fires `change` again.
+        the same file fires `change` again. Accepts the modern `.ldm`
+        extension plus legacy `.json` exports — the content is validated
+        by the wrapper `kind`, never the extension.
       -->
       <input
         ref="importInput"
         type="file"
-        accept=".json,application/json"
+        accept=".ldm,.json,application/json"
         class="editor-import-input"
         @change="onImportFile"
       />
@@ -214,7 +238,7 @@
     <ConfirmDialog
       v-if="deleteTarget"
       :message="deleteConfirmMessage"
-      :confirm-label="deleteTarget.isBuiltin ? 'Reset' : 'Delete'"
+      confirm-label="Delete"
       cancel-label="Cancel"
       :handle-confirm="confirmDelete"
       :handle-cancel="() => (deleteTarget = null)"
@@ -256,13 +280,17 @@ import emitter from '@/game/eventBus'
 import { GAME_STATES } from '@/game/const'
 import { getImagePath } from '@/game/helpers'
 import {
-  listAllEditorEntries,
+  ENTRY_SOURCES,
+  listEditorScenarios,
   deleteAnyEditorEntry,
-  builtinHasOverride,
   createNewScenario,
   buildScenarioFile,
   importEditorScenario,
+  migrateLegacyBuiltinOverrides,
+  SCENARIO_FILE_EXTENSION,
 } from '@/game/mapEditorStorage'
+import { listSavedMaps } from '@/game/mapStorage'
+import { getActualPlayerCounts } from '@/game/mapSchema'
 import MapPreview from '@/components/game/MapPreview.vue'
 import ConfirmDialog from '@/components/dialogs/ConfirmDialog.vue'
 
@@ -271,7 +299,10 @@ export default {
   components: { MapPreview, ConfirmDialog },
   data() {
     return {
-      scenarios: [],
+      // Which bucket the list shows: 'scenario' (user-authored) or
+      // 'savedMap' (maps saved from games). Mirrors ENTRY_SOURCES.
+      activeTab: ENTRY_SOURCES.scenario,
+      entries: [],
       selectedId: null,
       deleteTarget: null,
       showCreate: false,
@@ -284,36 +315,72 @@ export default {
   },
   computed: {
     selected() {
-      return this.scenarios.find(s => s.id === this.selectedId) || null
+      return this.entries.find(s => s.id === this.selectedId) || null
+    },
+    // Playable seats of the selected entry, split human/bot. Shown as
+    // "n of N" so a designer sees at a glance that a 7-slot map only has
+    // three colours placed.
+    selectedActual() {
+      return this.selected
+        ? getActualPlayerCounts(this.selected.map)
+        : { total: 0, humans: 0, bots: 0, seats: [] }
+    },
+    // The seat whose starting visibility masks the fog-of-war preview —
+    // the first human seat (seat 0 for editor maps; MP-saved maps mark
+    // every seat human, so it's seat 0 there too). `MapPreview` only
+    // masks when this is non-null AND the map has fog enabled.
+    previewViewingPlayer() {
+      const players = this.selected?.map?.players
+      if (!Array.isArray(players)) return null
+      const idx = players.findIndex(p => p._type === 'human')
+      return idx >= 0 ? idx : null
     },
     deleteConfirmMessage() {
       if (!this.deleteTarget) return ''
-      if (this.deleteTarget.isBuiltin) {
-        return `Reset "${this.deleteTarget.map.name}" to its default values?`
-      }
       return `Delete "${this.deleteTarget.map.name}"? This cannot be undone.`
     },
   },
   mounted() {
+    // Legacy override-layer data (built-ins used to be editable) is
+    // copied into the user bucket once before the first listing.
+    migrateLegacyBuiltinOverrides()
     this.refresh()
   },
   methods: {
     getImagePath,
+    actualPlayers(map) {
+      return getActualPlayerCounts(map)
+    },
     refresh() {
-      // Merged list: built-ins (with overrides applied) + user-created.
-      // Each entry carries `isBuiltin` so the action buttons know
-      // whether "delete" should remove the entry or just reset an
-      // override to the original.
-      this.scenarios = listAllEditorEntries()
-      if (this.selectedId && !this.scenarios.find(s => s.id === this.selectedId)) {
+      if (this.activeTab === ENTRY_SOURCES.savedMap) {
+        // Saved maps are keyed by name in their bucket — the name doubles
+        // as the entry id. No description; savedAt shown instead.
+        this.entries = listSavedMaps().map(map => ({
+          id: map.name,
+          description: '',
+          map,
+          source: ENTRY_SOURCES.savedMap,
+        }))
+      } else {
+        this.entries = listEditorScenarios().map(s => ({
+          ...s,
+          source: ENTRY_SOURCES.scenario,
+        }))
+      }
+      if (this.selectedId && !this.entries.find(s => s.id === this.selectedId)) {
         this.selectedId = null
       }
     },
-    selectedHasOverride() {
-      // Used to decide whether the "Reset" button is meaningful for a
-      // built-in (only when the user has actually saved an edit to it).
-      if (!this.selected?.isBuiltin) return false
-      return builtinHasOverride(this.selected.id)
+    switchTab(tab) {
+      if (this.activeTab === tab) return
+      this.activeTab = tab
+      this.selectedId = null
+      this.importError = ''
+      this.refresh()
+    },
+    formatDate(iso) {
+      if (!iso) return ''
+      return iso.slice(0, 10)
     },
     isMobileLayout() {
       return typeof window !== 'undefined' && window.matchMedia('(max-width: 759px)').matches
@@ -335,8 +402,26 @@ export default {
       }
     },
     editMap() {
-      if (!this.selectedId) return
-      emitter.emit('openMapEditorCanvas', this.selectedId)
+      if (!this.selected) return
+      emitter.emit('openMapEditorCanvas', { id: this.selected.id, source: this.selected.source })
+    },
+    testMap() {
+      // Immediate SP launch on the selected entry — same payload shape
+      // SavedMapsPage/ScenariosPage build. `enableScoutMode` is not part
+      // of the canonical map schema, so force the modern "fog blocks
+      // movement" rule at the boundary (legacy false is not playable).
+      if (!this.selected) return
+      const map = this.selected.map
+      emitter.emit('startGame', {
+        ...map.settings,
+        humanPlayersNum: map.metadata.humanPlayersNum,
+        botPlayersNum: map.metadata.botPlayersNum,
+        width: map.metadata.width,
+        height: map.metadata.height,
+        enableScoutMode: true,
+        initialMap: map,
+        loadGame: false,
+      })
     },
     askDelete() {
       this.deleteTarget = this.selected
@@ -345,10 +430,7 @@ export default {
       const target = this.deleteTarget
       deleteAnyEditorEntry(target)
       this.deleteTarget = null
-      // User scenarios disappear after delete; built-ins stay (just
-      // revert to the source-code values), so keep selection on the
-      // built-in to make the reset visible.
-      if (!target.isBuiltin) this.selectedId = null
+      this.selectedId = null
       this.refresh()
     },
     exportSelected() {
@@ -363,7 +445,7 @@ export default {
       const safe = (this.selected.map?.name || 'scenario').replace(/[^a-z0-9_-]+/gi, '_')
       const a = document.createElement('a')
       a.href = url
-      a.download = `${safe}.json`
+      a.download = `${safe}.${SCENARIO_FILE_EXTENSION}`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -553,26 +635,48 @@ export default {
   display: none;
 }
 
-/* Inline "default" tag on built-in scenarios. Small pill so it
-   doesn't dominate the row but is obvious enough to disambiguate
-   user copies from the originals. */
-.editor-list-badge {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 1px 6px;
-  font-size: 10px;
+/* Bucket tabs (Scenarios / Saved maps). Same palette as the list items
+   so the header reads as part of the list, with the active tab using
+   the selected-item tan. */
+.editor-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  max-width: 900px;
+  margin: 0 auto 12px;
+}
+
+.editor-tab {
+  background: rgba(146, 104, 70, 0.65);
+  border: 1px solid #5e3e26;
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  padding: 8px 18px;
+  cursor: pointer;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
   font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: rgba(0, 0, 0, 0.35);
-  color: #ffd34d;
-  border-radius: 3px;
-  vertical-align: middle;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.editor-tab:hover {
+  background: rgba(146, 104, 70, 0.85);
+}
+
+.editor-tab-active {
+  background: #deae88;
+  color: #000;
   text-shadow: none;
 }
-.editor-list-item-selected .editor-list-badge {
-  background: rgba(94, 62, 38, 0.85);
+
+.editor-list-empty {
+  font-style: italic;
+  font-size: 13px;
   color: #fff;
+  opacity: 0.8;
+  padding: 12px 4px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .editor-list-meta {

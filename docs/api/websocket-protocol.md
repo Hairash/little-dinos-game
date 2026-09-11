@@ -40,14 +40,18 @@ Both WebSocket connections require JWT authentication:
 ## Lobby WebSocket Messages
 
 ### Players Update (Server -> Client)
-Sent when player list changes (join/leave).
+Sent on connect and whenever the lobby state changes (join/leave, or the
+creator picking a map via `POST /games/{code}/map/`). `pickedMapName` /
+`pickedMapSeats` are `null` for a random game.
 ```json
 {
   "type": "players",
   "players": [
     { "id": 1, "username": "player1", "order": 0 },
     { "id": 2, "username": "player2", "order": 1 }
-  ]
+  ],
+  "pickedMapName": "My Map",
+  "pickedMapSeats": 4
 }
 ```
 
@@ -194,6 +198,30 @@ Broadcast when a player reconnects.
 ```
 
 ---
+
+### Save Map (Client -> Server)
+Save the current game's STARTING state (the server-held
+`initial_field`) as a map. Any member of the game can save; only games
+that were started from a random map offer the button (map-seeded games
+carry `settings.fromInitialMap`).
+```json
+{ "t": "save_map", "payload": { "name": "My Map" } }
+```
+
+### Map Saved (Server -> Client)
+Success reply. `map` is the full canonical Map JSON (schema v1) — the
+client writes it into its own localStorage `savedMaps` bucket (same
+place single-player saves land) so it shows up in the Map Editor's
+Saved-maps tab and the pickers. The server also keeps a `SavedMap` row
+(kept for future reuse; no client flow reads it today).
+```json
+{ "t": "map_saved", "payload": { "name": "My Map", "map": { ... } } }
+```
+
+### Map Save Error (Server -> Client)
+```json
+{ "t": "map_save_error", "payload": { "reason": "Map \"My Map\" already exists" } }
+```
 
 ## Reconnection
 

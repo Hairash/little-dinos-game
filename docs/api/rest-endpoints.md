@@ -185,6 +185,8 @@ Join an existing game. Requires authentication.
 
 **Errors:**
 - `400`: Game is not ready (already started)
+- `400`: The creator picked a map and its seat capacity is already
+  reached (`error` names the map and its player limit)
 
 ---
 
@@ -205,6 +207,32 @@ Leave a game (before it starts). Requires authentication.
 
 ---
 
+### POST /games/{game_code}/map/
+
+Sync the creator's lobby map pick (name + seat count). Requires
+authentication and being the game creator (order=0). The full map JSON
+still travels with the start request — this stores only the
+lobby-visible summary, broadcast to the lobby WebSocket group, and lets
+`join` enforce the seat capacity. Send `{"name": null}` (or `{}`) to
+revert to a random game.
+
+**Request Body:**
+```json
+{ "name": "My Map", "seats": 4 }
+```
+
+**Response (200):**
+```json
+{ "message": "Map selection updated", "pickedMapName": "My Map", "pickedMapSeats": 4 }
+```
+
+**Errors:**
+- `400`: Game is not ready / missing name / invalid seat count (1–8)
+- `403`: Only the game creator can pick a map
+- `404`: Game not found
+
+---
+
 ### POST /games/{game_code}/start/
 
 Start a game. Requires authentication and being the game creator (order=0).
@@ -219,6 +247,15 @@ Start a game. Requires authentication and being the game creator (order=0).
   ...
 }
 ```
+
+To start from a picked map (saved map or custom scenario), include the
+full canonical Map JSON under `initialMap`. The server validates it
+(schema v1 shape, dimensions 5–50, ≤ 8 seats, ≤ 3 MB body), hydrates the
+field from it instead of generating a random one, stamps
+`settings.fromInitialMap = true` (hides the in-game Save-map button), and
+reconciles seats: joined players take map seats `0…N-1` in join order;
+surplus map seats are trimmed (their units dropped, their bases demoted
+to neutral).
 
 **Response (200):**
 ```json
@@ -236,5 +273,7 @@ Start a game. Requires authentication and being the game creator (order=0).
 
 **Errors:**
 - `400`: Game is not ready
+- `400`: Invalid `initialMap` (schema, dimensions, seats) or payload too large
+- `400`: More players joined than the map supports (game stays `ready`)
 - `403`: Only the game creator can start the game
 - `404`: Game not found

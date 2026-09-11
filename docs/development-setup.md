@@ -57,11 +57,11 @@ Frontend runs at: http://localhost:5173
 
 ## Development URLs
 
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:5173 |
-| Backend API | http://localhost:8008 |
-| WebSocket (Game) | ws://localhost:8008/ws/game/{code}/ |
+| Service           | URL                                  |
+| ----------------- | ------------------------------------ |
+| Frontend          | http://localhost:5173                |
+| Backend API       | http://localhost:8008                |
+| WebSocket (Game)  | ws://localhost:8008/ws/game/{code}/  |
 | WebSocket (Lobby) | ws://localhost:8008/ws/lobby/{code}/ |
 
 ## Database
@@ -69,6 +69,7 @@ Frontend runs at: http://localhost:5173
 Local development uses SQLite by default (`backend/db.sqlite3`).
 
 To reset the database:
+
 ```bash
 cd backend
 rm db.sqlite3
@@ -80,10 +81,14 @@ python manage.py migrate
 ### Frontend Tests
 
 ```bash
-cd frontend
-npm run test      # Run Vitest tests
-npm run lint      # ESLint check
+cd frontend        # required — vitest's @ alias only resolves from here
+npm run test       # Run Vitest tests (watch mode)
+npx vitest run     # One-shot run (CI / quick check)
+npm run lint       # ESLint check
 ```
+
+See [testing.md](./testing.md) for the test stack, conventions, and gotchas
+(notably: always run vitest from `frontend/`).
 
 ### Backend Tests
 
@@ -100,11 +105,13 @@ To enable debug logging for development:
 ### Backend
 
 Edit `backend/game/consumers.py`:
+
 ```python
 DEBUG_WEBSOCKET = True  # Line 11
 ```
 
 Edit `backend/game/views.py`:
+
 ```python
 DEBUG_VIEWS = True  # Line 19
 ```
@@ -112,6 +119,7 @@ DEBUG_VIEWS = True  # Line 19
 ### Frontend
 
 Edit `frontend/src/components/MultiplayerDinoGame.vue`:
+
 ```javascript
 const DEBUG_MULTIPLAYER = true;  # Line 72
 ```

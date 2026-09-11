@@ -1,8 +1,12 @@
 // REST wrappers for the server-side SavedMap CRUD endpoints.
-// Used by SavedMapsPage when the picker is opened in multiplayer
-// context (LobbyPage's "Load Map" flow). The single-player path stays
-// on `mapStorage.js` (localStorage) — these two modules deliberately
-// have parallel shapes so the page doesn't need a mode-aware adapter.
+//
+// CURRENTLY UNUSED by any client flow: the lobby's "Load Map" picker
+// reads the client's localStorage (saved maps + custom scenarios), and
+// multiplayer saves land locally via the `map_saved` WS reply. The
+// server-side SavedMap store keeps accumulating rows on every MP save
+// and these wrappers are kept deliberately — planned for future reuse
+// (e.g. cross-device map sync). Shapes stay parallel to `mapStorage.js`
+// so a caller doesn't need a mode-aware adapter.
 
 import { API_URL } from '@/config'
 

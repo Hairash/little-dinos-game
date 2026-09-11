@@ -138,12 +138,14 @@ export default {
                 typeof cell.unit.movePoints === 'number' && cell.unit.movePoints >= 0
                   ? cell.unit.movePoints
                   : minSpeed
-              // DinoGame/createFieldEngine collapse min=max to the unit's
-              // own starting speed (createNewUnit(player, speed, speed,…)),
-              // so pass `speed` as the min too — otherwise a speed-0 dino
-              // would preview a different radius than it gets in-game.
+              // Scale against the game's own minSpeed, exactly as
+              // `DinoGame` does when it reseeds a starting unit — passing
+              // the unit's own speed as the min would put every unit at
+              // the bottom of the scale (maximum visibility) regardless
+              // of how fast it is. Speeds below minSpeed (0) clamp up, so
+              // an immobile dino previews the slowest mover's radius.
               unitVis = s.visibilitySpeedRelation
-                ? calculateUnitVisibility(speed, speed, threshold, fogR)
+                ? calculateUnitVisibility(Math.max(speed, minSpeed), minSpeed, threshold, fogR)
                 : fogR
             }
             radius = Math.max(radius, unitVis)

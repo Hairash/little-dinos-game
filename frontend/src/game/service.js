@@ -17,7 +17,10 @@ export async function createGame() {
     headers: getAuthHeaders(),
   })
   if (!response.ok) {
-    throw new Error((await response.json()).detail || 'Create game failed')
+    // A 500 returns an HTML error page — .catch keeps the thrown error
+    // readable instead of surfacing a JSON SyntaxError.
+    const data = await response.json().catch(() => ({}))
+    throw new Error(data.error || data.detail || 'Create game failed')
   }
   return response.json()
 }
@@ -44,7 +47,28 @@ export async function joinGame(gameCode) {
     headers: getAuthHeaders(),
   })
   if (!response.ok) {
-    throw new Error((await response.json()).detail || 'Join game failed')
+    const data = await response.json().catch(() => ({}))
+    // The backend reports refusals under `error` (e.g. "the lobby is
+    // full" when a picked map's seats are taken) — surface that text.
+    throw new Error(data.error || data.detail || 'Join game failed')
+  }
+  return response.json()
+}
+
+// Sync the creator's lobby map pick (name + seat count) to the server so
+// joiners see the selection and the server can enforce seat capacity.
+// Pass `null` to revert to a random game. The full map JSON still travels
+// with the start request — this is only the lobby-visible summary.
+export async function setGameMap(gameCode, pick) {
+  const body = pick ? { name: pick.name, seats: pick.seats } : { name: null }
+  const response = await fetch(API_URL + `/games/${gameCode}/map/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}))
+    throw new Error(data.error || data.detail || 'Map selection failed')
   }
   return response.json()
 }
@@ -60,7 +84,10 @@ export async function startMultiplayerGame(gameCode, customSettings = null) {
     body: JSON.stringify(settings),
   })
   if (!response.ok) {
-    throw new Error((await response.json()).detail || 'Start game failed')
+    const data = await response.json().catch(() => ({}))
+    // `error` carries map-launch refusals (invalid map, too many players
+    // for the picked map's seats) — show the real reason, not a generic.
+    throw new Error(data.error || data.detail || 'Start game failed')
   }
   return response.json()
 }

@@ -54,29 +54,31 @@
                 </tr>
               </thead>
               <tbody>
+                <!-- One row per PLAYABLE seat. A map may declare more
+                     colour slots than it places anything on; nobody plays
+                     those, so they'd be permanent all-zero rows. `seat` is
+                     the real player index (rows can skip colours). -->
                 <tr
-                  v-for="(playerBuildings, playerIndex) in allPlayersBuildings"
-                  :key="playerIndex"
-                  :class="{ 'current-player-row': playerIndex === currentPlayer }"
+                  v-for="row in playerRows"
+                  :key="row.seat"
+                  :class="{ 'current-player-row': row.seat === currentPlayer }"
                   :style="
-                    playerIndex === currentPlayer
-                      ? { backgroundColor: getPlayerColor(playerIndex) }
-                      : {}
+                    row.seat === currentPlayer ? { backgroundColor: getPlayerColor(row.seat) } : {}
                   "
                 >
                   <td
                     class="player-cell"
-                    @contextmenu.prevent="showHint($event, playerHintLabel(playerIndex))"
+                    @contextmenu.prevent="showHint($event, playerHintLabel(row.seat))"
                   >
                     <img
-                      :src="getImagePath('dino' + (playerIndex + 1))"
-                      :alt="`Player ${playerIndex + 1}`"
+                      :src="getImagePath('dino' + (row.seat + 1))"
+                      :alt="`Player ${row.seat + 1}`"
                       class="player-icon"
                       loading="lazy"
                     />
                   </td>
                   <td class="dino-cell" @contextmenu.prevent="showHint($event, 'Dinos')">
-                    <span>{{ allPlayersDinos[playerIndex] || 0 }}</span>
+                    <span>{{ allPlayersDinos[row.seat] || 0 }}</span>
                   </td>
                   <td
                     v-for="buildingType in visibleBuildingTypes"
@@ -85,7 +87,7 @@
                     @contextmenu.prevent="showHint($event, buildingHint(buildingType.type))"
                   >
                     <span>
-                      {{ playerBuildings[buildingType.type] || 0 }}
+                      {{ row.buildings[buildingType.type] || 0 }}
                     </span>
                   </td>
                 </tr>
@@ -299,6 +301,15 @@ export default {
     speedRangeMax() {
       const templesOccupied = this.countTemplesOccupied(this.currentPlayer)
       return this.maxSpeed + templesOccupied
+    },
+    // Seats that are actually played, paired with their building counts.
+    // A seat is skipped when its `Player` is flagged non-participating —
+    // an empty colour slot in a hand-built map (see Models.Player). Older
+    // saves have no flag, so `!== false` keeps them all.
+    playerRows() {
+      return this.allPlayersBuildings
+        .map((buildings, seat) => ({ seat, buildings }))
+        .filter(row => this.players?.[row.seat]?.participating !== false)
     },
     allPlayersDinos() {
       const dinosCounts = []

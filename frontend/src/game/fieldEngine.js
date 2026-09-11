@@ -59,13 +59,18 @@ export class FieldEngine {
     for (const coords of playerObjectCoords) {
       const [x, y] = coords
       let fogRadius = 0
-      if (this.field[x][y].unit) {
-        fogRadius = Math.max(fogRadius, this.field[x][y].unit.visibility)
+      // Each contribution needs its OWN ownership check: a cell is in
+      // `getPlayerObjectCoords` when EITHER the unit or the base belongs
+      // to `player`, so without these an enemy unit parked on your tower
+      // would lend you its sight radius, and your unit standing on an
+      // enemy tower would borrow that tower's. Mirrors the per-source
+      // checks in the backend's `calculate_visibility`.
+      const unit = this.field[x][y].unit
+      if (unit && unit.player === player) {
+        fogRadius = Math.max(fogRadius, unit.visibility)
       }
-      if (
-        this.field[x][y].building &&
-        this.field[x][y].building._type === Models.BuildingTypes.BASE
-      ) {
+      const building = this.field[x][y].building
+      if (building && building._type === Models.BuildingTypes.BASE && building.player === player) {
         fogRadius = Math.max(fogRadius, this.fogOfWarRadius)
       }
       // console.log('%', fogRadius);

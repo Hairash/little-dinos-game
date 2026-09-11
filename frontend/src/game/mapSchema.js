@@ -205,3 +205,51 @@ export function validateMap(mapJson) {
     throw new Error('Invalid map: missing settings')
   }
 }
+
+// ---- Actual (playable) seats ------------------------------------------------
+//
+// `metadata.playersNum` is the map's DESIGN CAPACITY — how many owner
+// colours the editor offers. A designer may leave some of those slots
+// empty, and an empty slot is not a playable seat: a player assigned to
+// it starts with nothing and is eliminated on their first turn.
+//
+// These helpers derive the seats that actually have something on the
+// field. Derived, never stored: a cached count would go stale the moment
+// a map is edited, imported, or hand-written, and the field is the only
+// thing the engine actually plays. The scan is O(width × height) over at
+// most 50×50 cells.
+//
+// Python mirror: `occupied_seats` in
+// `backend/game/services/map_snapshot.py` — keep the two in sync.
+
+// Seat indices owning at least one unit or one base, ascending.
+// Neutral buildings (`player: null`) belong to nobody and never count;
+// non-base buildings are always neutral (see docs/scenarios.md Rule 2).
+export function getOccupiedSeats(mapJson) {
+  const seats = new Set()
+  const field = mapJson?.field
+  if (!Array.isArray(field)) return []
+  for (const col of field) {
+    if (!Array.isArray(col)) continue
+    for (const cell of col) {
+      if (!cell) continue
+      if (cell.unit && Number.isInteger(cell.unit.player)) seats.add(cell.unit.player)
+      if (cell.building && Number.isInteger(cell.building.player)) seats.add(cell.building.player)
+    }
+  }
+  return [...seats].sort((a, b) => a - b)
+}
+
+// `{ seats, total, humans, bots }` for the seats that are actually
+// playable. Human/bot split comes from the map's `players[]` entry for
+// each occupied seat, so a 7-slot map with blue + two bot slots filled
+// reports 1 human and 2 bots rather than 1 and 6.
+export function getActualPlayerCounts(mapJson) {
+  const seats = getOccupiedSeats(mapJson)
+  const players = Array.isArray(mapJson?.players) ? mapJson.players : []
+  let humans = 0
+  for (const seat of seats) {
+    if (players[seat]?._type === 'human') humans += 1
+  }
+  return { seats, total: seats.length, humans, bots: seats.length - humans }
+}

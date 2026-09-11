@@ -16,7 +16,41 @@
           <div v-if="gameCode" id="lobby-page-current-game-info">
             <div id="lobby-page-current-game-code">
               <p>
-                Game Code: <strong>{{ gameCode }}</strong>
+                Game Code:
+                <!-- `selectable-text` opts this back into text selection —
+                     the app disables it globally (see App.vue) so long-press
+                     callouts don't fight the in-game menus. The code is the
+                     one string players need to hand to a friend. -->
+                <strong class="selectable-text">{{ gameCode }}</strong>
+                <button
+                  type="button"
+                  class="lobby-page-copy-btn"
+                  :title="copied ? 'Copied!' : 'Copy game code'"
+                  @click="copyGameCode"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M9 3h9a2 2 0 0 1 2 2v11"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <rect
+                      x="4"
+                      y="7"
+                      width="12"
+                      height="14"
+                      rx="2"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    />
+                  </svg>
+                  <span class="sr-only">Copy game code</span>
+                </button>
+                <span v-if="copied" class="lobby-page-copied-note">Copied!</span>
               </p>
             </div>
             <div id="lobby-page-current-game-players">
@@ -51,12 +85,20 @@
               />
               <button id="lobby-page-button" @click="joinGame">Join Game</button>
             </div>
+            <!-- Non-creators see the creator's map choice too (synced via
+                 the lobby WebSocket). With no pick the game runs on a
+                 freshly generated map, so say that explicitly rather than
+                 leaving joiners with no map line at all. -->
+            <div v-if="gameCode && !isGameCreator" class="lobby-page-selection-label">
+              Map: <strong>{{ selectionLabel }}</strong>
+              <template v-if="pickedMapName"> ({{ pickedMapSeats }} players max)</template>
+            </div>
             <div v-if="gameCode && isGameCreator" id="lobby-page-setup-start-section">
               <div class="lobby-page-selection-label">
-                Selected: <strong>{{ pickedMap ? pickedMap.name : 'Random game' }}</strong>
+                Selected: <strong>{{ selectionLabel }}</strong>
               </div>
               <div class="lobby-page-setup-row">
-                <button id="lobby-page-button" @click="setupGame">Setup Random Game</button>
+                <button id="lobby-page-button" @click="setupGame">Setup Random Map</button>
                 <button id="lobby-page-button" @click="openMapPicker">Load Map</button>
                 <button
                   id="lobby-page-button"
@@ -126,10 +168,11 @@
 <script>
 import emitter from '@/game/eventBus'
 import { LobbyWebSocket } from '@/game/websocket/lobbyWebSocket'
-import { getActiveGames } from '@/game/service'
+import { getActiveGames, setGameMap } from '@/game/service'
 import { whoami, signout } from '@/services/auth'
 import { GAME_STATES } from '@/game/const'
 import { getPlayerColor } from '@/game/helpers'
+import { getActualPlayerCounts } from '@/game/mapSchema'
 import MenuError from '@/components/ui/MenuError.vue'
 
 export default {
@@ -163,10 +206,19 @@ export default {
       currentUserId: null, // Store current user ID to check if creator
       preventReconnect: false, // Flag to prevent automatic reconnection during transitions
       // Canonical Map picked via "Load Map". Null means start with the
-      // random-game flow (the existing default). Setup Random Game
+      // random-map flow (the existing default). Setup Random Map
       // clears this back to null so the two options are mutually
-      // exclusive.
+      // exclusive. Only the CREATOR holds the full map (it travels with
+      // the start request); everyone else sees the server-synced summary
+      // below.
       pickedMap: null,
+      // Server-synced map pick summary, broadcast to the whole lobby so
+      // joiners see which map the game will run on (and the server can
+      // block joins beyond the map's seat count).
+      pickedMapName: null,
+      pickedMapSeats: null,
+      // Brief "Copied!" confirmation after the game-code copy button.
+      copied: false,
     }
   },
   mounted() {
@@ -182,6 +234,10 @@ export default {
   beforeUnmount() {
     if (this.lobbyWs) {
       this.lobbyWs.disconnect()
+    }
+    if (this._copiedTimer) {
+      clearTimeout(this._copiedTimer)
+      this._copiedTimer = null
     }
   },
   watch: {
@@ -203,6 +259,13 @@ export default {
     },
   },
   computed: {
+    selectionLabel() {
+      // The creator's local pick shows immediately; the server-synced
+      // name covers a creator who reloaded the page mid-lobby (and is the
+      // only source joiners have).
+      const name = (this.pickedMap && this.pickedMap.name) || this.pickedMapName
+      return name || 'Random map'
+    },
     isGameCreator() {
       // Creator is the player with order=0
       if (!this.currentUserId || !this.players || this.players.length === 0) {
@@ -222,8 +285,12 @@ export default {
       this.lobbyWs = new LobbyWebSocket(
         gameCode,
         {
-          onPlayersUpdate: players => {
+          onPlayersUpdate: (players, state) => {
             this.players = players
+            if (state && 'pickedMapName' in state) {
+              this.pickedMapName = state.pickedMapName || null
+              this.pickedMapSeats = state.pickedMapSeats || null
+            }
           },
           onGameStarted: gameState => {
             // Disconnect lobby WebSocket before transitioning to game
@@ -242,6 +309,38 @@ export default {
     createGame() {
       console.log('Creating game')
       emitter.emit('createGame')
+    },
+    // Copy the game code so the creator can paste it to a friend.
+    // `navigator.clipboard` needs a secure context (https / localhost);
+    // the textarea + execCommand path keeps this working when the app is
+    // served over plain http on a LAN address.
+    async copyGameCode() {
+      if (!this.gameCode) return
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(this.gameCode)
+        } else {
+          const el = document.createElement('textarea')
+          el.value = this.gameCode
+          el.setAttribute('readonly', '')
+          el.style.position = 'fixed'
+          el.style.opacity = '0'
+          document.body.appendChild(el)
+          el.select()
+          document.execCommand('copy')
+          document.body.removeChild(el)
+        }
+        this.copied = true
+        if (this._copiedTimer) clearTimeout(this._copiedTimer)
+        this._copiedTimer = setTimeout(() => {
+          this.copied = false
+          this._copiedTimer = null
+        }, 2000)
+      } catch (error) {
+        // Clipboard access can be denied outright — the code stays
+        // selectable by hand, so this is a non-event.
+        console.warn('Could not copy the game code:', error)
+      }
     },
     joinGame() {
       // Get game code from input
@@ -312,13 +411,31 @@ export default {
     },
     setupGame() {
       console.log('Setting up random game')
-      // Clearing the picked map keeps "Setup Random Game" and "Load
+      // Clearing the picked map keeps "Setup Random Map" and "Load
       // Map" mutually exclusive — picking one resets the other.
       this.pickedMap = null
+      this.syncPickedMap(null)
       this.$emit('setupGame')
     },
     setPickedMap(map) {
       this.pickedMap = map
+      this.syncPickedMap(map)
+    },
+    // Push the pick summary (name + seat count) to the server so joiners
+    // see it and joins beyond the map's capacity are blocked. Fire-and-
+    // forget: the sync failing must not block the local pick — start_game
+    // re-validates capacity anyway.
+    async syncPickedMap(map) {
+      if (!this.gameCode) return
+      // Capacity is the map's PLAYABLE seats, not its declared colour
+      // capacity: a 7-slot map with three colours placed seats three
+      // players, and the 4th joiner would have started with nothing.
+      const pick = map ? { name: map.name, seats: getActualPlayerCounts(map).total } : null
+      try {
+        await setGameMap(this.gameCode, pick)
+      } catch (error) {
+        console.warn('Could not sync map selection to the server:', error)
+      }
     },
     getPlayerColor(order) {
       return getPlayerColor(order)
@@ -467,6 +584,50 @@ h1 {
   color: #d8a67e;
   font-size: 16px;
   letter-spacing: 1px;
+}
+
+/* Copy-to-clipboard button next to the game code. Inline SVG rather than
+   an image asset — there's no copy icon in /images, and `currentColor`
+   keeps it in step with the code's tan. */
+.lobby-page-copy-btn {
+  background: transparent;
+  border: none;
+  padding: 2px;
+  margin-left: 4px;
+  cursor: pointer;
+  color: #d8a67e;
+  vertical-align: middle;
+  line-height: 0;
+}
+
+.lobby-page-copy-btn:hover {
+  color: #ffffff;
+}
+
+.lobby-page-copy-btn svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+.lobby-page-copied-note {
+  margin-left: 6px;
+  font-size: 12px;
+  font-style: italic;
+  color: #9fd39f;
+}
+
+/* Visually hidden but still announced by screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 #lobby-page-current-game-players h3 {

@@ -15,10 +15,50 @@ from server.utils.decorators import login_required_json
 
 from .models import Game, GamePlayer, SavedMap
 from .services.field import generate_field
-from .services.map_snapshot import capture_initial_snapshot, hydrate_field_for_game
+from .services.map_snapshot import (
+    capture_initial_snapshot,
+    hydrate_field_for_game,
+    occupied_seats,
+    reconcile_seats,
+    validate_map,
+)
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
+
+# Upper bound for the start-game request body. The uploaded map is
+# client-supplied JSON (picked from the creator's local storage), so a
+# hard cap keeps a hostile client from feeding the JSON parser a huge
+# document. A 50×50 canonical map is ~150 KB; 3 MB is generous headroom.
+MAX_START_PAYLOAD_BYTES = 3_000_000
+
+# Dimension/seat bounds for uploaded maps. Mirrors the editor's LIMITS
+# (5–50 per side) and the engine-wide 8-player asset cap.
+MAP_DIMENSION_MIN = 5
+MAP_DIMENSION_MAX = 50
+MAP_PLAYERS_MAX = 8
+
+# Scratch range used while re-assigning seats at start: `(game, order)` is
+# unique, so rows are parked out of the way before taking their real seat.
+# Well clear of any seat index and inside PositiveSmallInteger's range.
+SEAT_PARKING_BASE = 1000
+
+
+def _broadcast_lobby_state(game):
+    """Push the lobby's shared state (players + picked map) to its WS group."""
+    channel_layer = get_channel_layer()
+    if not channel_layer:
+        return
+    game_dict = game.to_dict()
+    async_to_sync(channel_layer.group_send)(
+        f"lobby_{game.game_code}",
+        {
+            "type": "player_update",
+            "players": game_dict["players"],
+            "pickedMapName": game.picked_map_name,
+            "pickedMapSeats": game.picked_map_seats,
+        },
+    )
 
 
 @require_http_methods(["GET"])
@@ -51,16 +91,7 @@ def create_game(request):
         g.save(update_fields=["turn_player"])
 
     # Broadcast initial player list to any connected clients
-    channel_layer = get_channel_layer()
-    if channel_layer:
-        game_dict = g.to_dict()
-        async_to_sync(channel_layer.group_send)(
-            f"lobby_{game_code}",
-            {
-                "type": "player_update",
-                "players": game_dict["players"],
-            },
-        )
+    _broadcast_lobby_state(g)
 
     return JsonResponse({"gameCode": game_code})
 
@@ -79,6 +110,22 @@ def join_game(request, game_code):
     existing = GamePlayer.objects.filter(game=game, player=request.user).first()
     if existing:
         return JsonResponse({"message": "Already in game"})
+
+    # Capacity block: when the creator picked a map, the lobby can't
+    # grow beyond the map's seat count. (Start re-validates as a safety
+    # net for a map picked after the lobby already overfilled.)
+    if game.picked_map_seats:
+        joined = GamePlayer.objects.filter(game=game).count()
+        if joined >= game.picked_map_seats:
+            return JsonResponse(
+                {
+                    "error": (
+                        f'Map "{game.picked_map_name}" supports {game.picked_map_seats} '
+                        "players — the lobby is full. Ask the creator to pick a bigger map."
+                    )
+                },
+                status=400,
+            )
 
     # Get the next order number
     # Use select_for_update to prevent race conditions
@@ -105,16 +152,7 @@ def join_game(request, game_code):
     game.refresh_from_db()
 
     # Broadcast player update to all connected clients
-    channel_layer = get_channel_layer()
-    if channel_layer:
-        game_dict = game.to_dict()
-        async_to_sync(channel_layer.group_send)(
-            f"lobby_{game_code}",
-            {
-                "type": "player_update",
-                "players": game_dict["players"],
-            },
-        )
+    _broadcast_lobby_state(game)
 
     return JsonResponse({"message": "Joined game"})
 
@@ -144,16 +182,7 @@ def leave_game(request, game_code):
         game.refresh_from_db()
 
         # Broadcast player update to all connected clients
-        channel_layer = get_channel_layer()
-        if channel_layer:
-            game_dict = game.to_dict()
-            async_to_sync(channel_layer.group_send)(
-                f"lobby_{game_code}",
-                {
-                    "type": "player_update",
-                    "players": game_dict["players"],
-                },
-            )
+        _broadcast_lobby_state(game)
 
         return JsonResponse({"message": "Left game"})
     except Game.DoesNotExist:
@@ -167,9 +196,67 @@ def leave_game(request, game_code):
 @csrf_exempt
 @login_required_json
 @require_http_methods(["POST"])
+def set_game_map(request, game_code):
+    """Sync the creator's lobby map pick (name + seat count) to the server.
+
+    Body: ``{"name": "...", "seats": N}`` to pick a map, or ``{}`` /
+    ``{"name": null}`` to revert to a random game. The full map JSON still
+    travels with the start request — this endpoint only stores the
+    lobby-visible summary so joiners see the choice and ``join_game`` can
+    enforce the seat capacity.
+    """
+    try:
+        game = Game.objects.get(game_code=game_code)
+    except Game.DoesNotExist:
+        return JsonResponse({"error": "Game not found"}, status=404)
+    if game.status != "ready":
+        return JsonResponse({"error": "Game is not ready"}, status=400)
+    creator = GamePlayer.objects.filter(game=game, order=0).first()
+    if not creator or creator.player != request.user:
+        return JsonResponse({"error": "Only the game creator can pick a map"}, status=403)
+
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    name = payload.get("name")
+    if name is None:
+        game.picked_map_name = None
+        game.picked_map_seats = None
+    else:
+        seats = payload.get("seats")
+        if not isinstance(name, str) or not name.strip():
+            return JsonResponse({"error": "Map name is required"}, status=400)
+        if not isinstance(seats, int) or not (1 <= seats <= MAP_PLAYERS_MAX):
+            return JsonResponse({"error": "Invalid seat count"}, status=400)
+        # A pick below the current player count is allowed — the creator
+        # may be about to ask someone to leave; start_game re-validates.
+        game.picked_map_name = name.strip()[:120]
+        game.picked_map_seats = seats
+    game.save(update_fields=["picked_map_name", "picked_map_seats"])
+
+    _broadcast_lobby_state(game)
+    return JsonResponse(
+        {
+            "message": "Map selection updated",
+            "pickedMapName": game.picked_map_name,
+            "pickedMapSeats": game.picked_map_seats,
+        }
+    )
+
+
+# Note: @csrf_exempt is safe here because JWT authentication is used via Authorization header.
+@csrf_exempt
+@login_required_json
+@require_http_methods(["POST"])
 def start_game(request, game_code):
     """Start a game."""
     logger.info(f"Starting game {game_code}")
+    # The body may carry a full client-supplied map (`initialMap`) — cap
+    # its size before handing it to the JSON parser.
+    if len(request.body) > MAX_START_PAYLOAD_BYTES:
+        return JsonResponse({"error": "Start payload is too large"}, status=400)
     initial_settings = request.body.decode("utf-8")
     logger.debug(f"Initial settings: {initial_settings}")
 
@@ -185,9 +272,9 @@ def start_game(request, game_code):
 
     if game.status != "ready":
         return JsonResponse({"error": "Game is not ready"}, status=400)
-    game.status = "playing"
     settings_dict = json.loads(initial_settings)
-    settings_dict["humanPlayersNum"] = GamePlayer.objects.filter(game=game).count()
+    joined_count = GamePlayer.objects.filter(game=game).count()
+    settings_dict["humanPlayersNum"] = joined_count
     # TODO: Get bot players number
     settings_dict["botPlayersNum"] = 0
 
@@ -196,26 +283,116 @@ def start_game(request, game_code):
     # `initialMap`. We use its field directly and merge its settings
     # over the request's settings so the game runs with the map's tuning.
     initial_map = settings_dict.pop("initialMap", None)
-    if initial_map and isinstance(initial_map, dict) and initial_map.get("field"):
-        meta = initial_map.get("metadata", {}) or {}
-        # Map settings + width/height/playersNum override the lobby's.
+    if initial_map is not None:
+        # Client-supplied JSON from the creator's local storage — never
+        # trusted. Shape-validate plus engine bounds before anything
+        # reads it, and refuse to start rather than hydrate garbage.
+        try:
+            validate_map(initial_map)
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        meta = initial_map["metadata"]
+        if not (
+            MAP_DIMENSION_MIN <= meta["width"] <= MAP_DIMENSION_MAX
+            and MAP_DIMENSION_MIN <= meta["height"] <= MAP_DIMENSION_MAX
+        ):
+            return JsonResponse(
+                {
+                    "error": (
+                        f"Map dimensions must be between {MAP_DIMENSION_MIN} "
+                        f"and {MAP_DIMENSION_MAX}"
+                    )
+                },
+                status=400,
+            )
+        if len(initial_map["players"]) > MAP_PLAYERS_MAX:
+            return JsonResponse(
+                {"error": f"Map supports at most {MAP_PLAYERS_MAX} players"}, status=400
+            )
+        # PLAYABLE seats, not the map's declared capacity: a designer can
+        # leave slots empty, and whoever is assigned an empty slot would
+        # start with nothing and be eliminated on turn 1.
+        playable = occupied_seats(initial_map["field"])
+        if not playable:
+            return JsonResponse({"error": "This map has no players placed on it"}, status=400)
+        # The creator is identified by `order == 0` everywhere, and below
+        # each joiner is given a real map seat as their order — so seat 0
+        # must be one of the playable seats or the creator would end up
+        # without order 0. Designers always start from blue, so this is a
+        # guard rail rather than a real constraint.
+        if playable[0] != 0:
+            return JsonResponse(
+                {
+                    "error": (
+                        "This map's first player slot (blue) is empty — "
+                        "multiplayer maps must place blue"
+                    )
+                },
+                status=400,
+            )
+        # Seat capacity: joined players take the playable seats in join
+        # order (creator first). More joiners than playable seats can't
+        # start — somebody has to leave. (Join already blocks this when
+        # the map was picked before the lobby filled; this is the safety
+        # net for a map picked after.)
+        if joined_count > len(playable):
+            return JsonResponse(
+                {
+                    "error": (
+                        f"This map supports {len(playable)} players but {joined_count} joined — "
+                        "ask somebody to leave or pick a bigger map"
+                    )
+                },
+                status=400,
+            )
+        # Server-side flag consumed by the client's in-game menu: games
+        # seeded from a map never show the Save-map button (only random
+        # maps are saveable). NOT part of the canonical map schema — it
+        # must never round-trip into a saved map's settings.
+        settings_dict["fromInitialMap"] = True
+        # Map settings + dimensions override the lobby's. Seat counts do
+        # NOT come from the map's metadata: the joined players ARE the
+        # seats (extra map seats are trimmed below).
         settings_dict.update(initial_map.get("settings", {}) or {})
-        settings_dict["humanPlayersNum"] = meta.get(
-            "humanPlayersNum", settings_dict["humanPlayersNum"]
-        )
-        settings_dict["botPlayersNum"] = meta.get("botPlayersNum", settings_dict["botPlayersNum"])
-        if "width" in meta:
-            settings_dict["width"] = meta["width"]
-        if "height" in meta:
-            settings_dict["height"] = meta["height"]
+        settings_dict["humanPlayersNum"] = joined_count
+        settings_dict["botPlayersNum"] = 0
+        settings_dict["width"] = meta["width"]
+        settings_dict["height"] = meta["height"]
         # Re-derive per-cell isHidden and per-unit movePoints/visibility/
         # hasMoved from settings — the canonical schema strips those so
         # the saved map stays portable, but the engine needs them seeded
         # before turn 1 or units land with undefined speed.
-        game.field = hydrate_field_for_game(initial_map["field"], settings_dict)
+        field = hydrate_field_for_game(initial_map["field"], settings_dict)
+        # Hand each joined player a real map seat, in join order: the
+        # creator (order 0) keeps seat 0 = blue, the next joiner takes the
+        # next PLAYABLE seat, and so on. Seats can be sparse — a map using
+        # blue/yellow/purple is [0, 3, 6] — so the second player plays
+        # yellow rather than being renumbered onto an empty mint slot.
+        # `order` doubles as the seat index everywhere (ownership checks,
+        # visibility filtering, colours), and `compute_next_player` walks
+        # the rows rather than a dense range, so gaps rotate correctly.
+        taken_seats = playable[:joined_count]
+        rows = list(GamePlayer.objects.filter(game=game).order_by("order"))
+        # Two passes through a parking range: `(game, order)` is unique,
+        # so assigning seats directly could collide with a row that still
+        # holds the target order. `order` is a positive field, so park
+        # high (seats are ≤ 7) rather than negative.
+        for idx, gp in enumerate(rows):
+            gp.order = SEAT_PARKING_BASE + idx
+            gp.save(update_fields=["order"])
+        for gp, seat in zip(rows, taken_seats, strict=True):
+            gp.order = seat
+            gp.save(update_fields=["order"])
+        # Playable seats nobody took are removed from the field (units
+        # dropped, bases demoted to neutral). Without this their units
+        # would sit on the board forever — turn rotation only walks
+        # GamePlayer rows. Empty slots carry nothing to remove.
+        reconcile_seats(field, taken_seats)
+        game.field = field
     else:
         game.field = generate_field(settings_dict)
 
+    game.status = "playing"
     game.settings = settings_dict
     game.save(update_fields=["status", "settings", "field"])
     # Snapshot the starting field once, before any move arrives. Idempotent —

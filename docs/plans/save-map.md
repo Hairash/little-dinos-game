@@ -1,7 +1,13 @@
 # Plan: Save & Load Map
 
 Created: 2026-06-18
-Status: Draft
+Status: Implemented — partially superseded by
+`scenarios-saved-maps-unification.md` (2026-09-11): multiplayer saves now
+ALSO land in the client's localStorage `savedMaps` bucket (the `map_saved`
+WS reply carries the canonical map), and the lobby "Load Map" picker reads
+local storage instead of the server's `SavedMap` REST endpoints. The
+server-side `SavedMap` store and its endpoints remain in place for future
+reuse but no client flow reads them today.
 
 ## Overview
 

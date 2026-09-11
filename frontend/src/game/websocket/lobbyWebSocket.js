@@ -49,7 +49,9 @@ export class LobbyWebSocket {
           // Mark as authenticated after receiving players list
           this.authenticated = true
           if (this.callbacks.onPlayersUpdate) {
-            this.callbacks.onPlayersUpdate(data.players)
+            // Second argument carries the rest of the lobby state
+            // (pickedMapName/pickedMapSeats — the creator's map choice).
+            this.callbacks.onPlayersUpdate(data.players, data)
           }
         } else if (data.type === 'game_started') {
           if (this.callbacks.onGameStarted) {

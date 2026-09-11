@@ -132,7 +132,7 @@ export const GAME_STATES = {
   //     by LobbyPage to seed a multiplayer game).
   savedMaps: 'savedMaps',
   // Browser for built-in pre-designed scenarios. Mirrors the savedMaps
-  // launch flow, but the source list is hard-coded in scenariosData.js
+  // launch flow, but the source list is loaded from src/game/scenarios/ JSON files
   // and each entry carries a description shown next to the preview.
   // User-authored scenarios from the Map Editor are merged in here too.
   scenarios: 'scenarios',

@@ -107,7 +107,12 @@ def _save_map_txn(game_code, user_id, name):
         width=meta["width"],
         height=meta["height"],
     )
-    return True, {"name": name}
+    # The full canonical map goes back to the client, which stores it in
+    # its OWN localStorage `savedMaps` bucket (same place single-player
+    # saves land). The client cannot build this itself — its field is
+    # fog-filtered; only the server holds `initial_field`. The SavedMap
+    # row above is kept as-is for future server-side reuse.
+    return True, {"name": name, "map": canonical}
 
 
 def room(game_code):
@@ -234,7 +239,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             user_id = getattr(self.user, "id", None)
             ok, res = await database_sync_to_async(_save_map_txn)(self.game_code, user_id, name)
             if ok:
-                return await self.send_json({"t": "map_saved", "payload": {"name": res["name"]}})
+                return await self.send_json(
+                    {"t": "map_saved", "payload": {"name": res["name"], "map": res["map"]}}
+                )
             return await self.send_json(
                 {"t": "map_save_error", "payload": {"reason": res["reason"]}}
             )
@@ -773,9 +780,10 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
 
         await self.channel_layer.group_add(lobby_room(self.game_code), self.channel_name)
 
-        # Send initial players list
-        players = await self._get_players()
-        await self.send_json({"type": "players", "players": players})
+        # Send initial lobby state (players + the creator's map pick, so a
+        # late joiner immediately sees which map the game will run on).
+        state = await self._get_lobby_state()
+        await self.send_json({"type": "players", **state})
 
     async def receive_json(self, content, **_):
         # Handle authentication message (more secure than query string)
@@ -791,9 +799,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                     await self.channel_layer.group_add(
                         lobby_room(self.game_code), self.channel_name
                     )
-                    # Send initial players list after authentication
-                    players = await self._get_players()
-                    await self.send_json({"type": "players", "players": players})
+                    # Send initial lobby state after authentication
+                    state = await self._get_lobby_state()
+                    await self.send_json({"type": "players", **state})
                     return
                 else:
                     await self.send_json({"type": "error", "message": "Invalid token"})
@@ -810,8 +818,15 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             return
 
     async def player_update(self, event):
-        """Handle player list updates broadcast from views."""
-        await self.send_json({"type": "players", "players": event["players"]})
+        """Handle lobby state updates (players + map pick) broadcast from views."""
+        await self.send_json(
+            {
+                "type": "players",
+                "players": event["players"],
+                "pickedMapName": event.get("pickedMapName"),
+                "pickedMapSeats": event.get("pickedMapSeats"),
+            }
+        )
 
     async def game_started(self, event):
         """Handle game started event - sends full game state to lobby players."""
@@ -828,17 +843,21 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_discard(lobby_room(self.game_code), self.channel_name)
 
     @database_sync_to_async
-    def _get_players(self):
-        """Get current players list for the game."""
+    def _get_lobby_state(self):
+        """Get current players list + map pick for the game."""
         try:
             game = Game.objects.get(game_code=self.game_code)
-            return [
-                {
-                    "id": gp.player.id,
-                    "username": gp.player.username,
-                    "order": gp.order,
-                }
-                for gp in game.players.select_related("player").order_by("order")
-            ]
+            return {
+                "players": [
+                    {
+                        "id": gp.player.id,
+                        "username": gp.player.username,
+                        "order": gp.order,
+                    }
+                    for gp in game.players.select_related("player").order_by("order")
+                ],
+                "pickedMapName": game.picked_map_name,
+                "pickedMapSeats": game.picked_map_seats,
+            }
         except Game.DoesNotExist:
-            return []
+            return {"players": [], "pickedMapName": None, "pickedMapSeats": None}

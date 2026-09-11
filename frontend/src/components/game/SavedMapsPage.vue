@@ -11,6 +11,27 @@
     </button>
     <h1>Saved maps</h1>
     <div class="saved-maps-content">
+      <!-- Lobby pick mode offers BOTH local buckets: saved maps and
+           custom scenarios from the Map Editor (built-in scenarios stay
+           single-player-only, so they are not listed). Launch mode keeps
+           the classic saved-maps-only list — scenarios have their own
+           page under New Game. -->
+      <div v-if="mode === 'pick'" class="saved-maps-tabs">
+        <button
+          class="saved-maps-tab"
+          :class="{ 'saved-maps-tab-active': pickTab === 'maps' }"
+          @click="switchPickTab('maps')"
+        >
+          Saved maps
+        </button>
+        <button
+          class="saved-maps-tab"
+          :class="{ 'saved-maps-tab-active': pickTab === 'scenarios' }"
+          @click="switchPickTab('scenarios')"
+        >
+          Custom scenarios
+        </button>
+      </div>
       <!-- Two-column layout above 760px (list on the left, preview on
          the right). Below 760px the columns stack: list first, then
          preview, with a "Back to the list" link under the preview.
@@ -27,16 +48,30 @@
             >
               <div class="saved-maps-list-name">{{ m.name }}</div>
               <div class="saved-maps-list-meta">
-                {{ m.metadata.playersNum }}p · {{ m.metadata.width }}×{{ m.metadata.height }} ·
-                {{ formatDate(m.metadata.savedAt) }}
+                <!-- Playable seats, not the map's declared capacity. -->
+                {{ actualPlayers(m).total }}p · {{ m.metadata.width }}×{{ m.metadata.height }}
+                <template v-if="m.metadata.savedAt"
+                  >· {{ formatDate(m.metadata.savedAt) }}</template
+                >
               </div>
             </button>
+            <div v-if="mode === 'pick' && maps.length === 0" class="saved-maps-list-empty">
+              {{
+                pickTab === 'scenarios'
+                  ? 'No custom scenarios yet. Create one in the Map editor.'
+                  : 'No saved maps yet. Save one from the in-game menu during a random-map game.'
+              }}
+            </div>
           </div>
         </div>
 
         <div ref="previewRef" class="saved-maps-preview-pane">
           <div v-if="selectedMap" class="saved-maps-preview">
-            <MapPreview :map="selectedMap" :max-size="320" />
+            <!-- Fog-of-war maps preview masked to the first human seat's
+                 starting visibility, same as the Scenarios picker and the
+                 Map Editor list — browsing a map shouldn't spoil a layout
+                 you're about to play blind. -->
+            <MapPreview :map="selectedMap" :max-size="320" :viewing-player="previewViewingPlayer" />
             <!-- Read-only summary of the map's settings. Each row is a
                small `icon.png`-plate icon + the value text — same
                vocabulary as GameSetup but compact (≈18 px icons, 13 px
@@ -48,11 +83,11 @@
               </div>
               <div class="settings-row">
                 <span class="settings-icon"><img :src="getImagePath('human_icon')" alt="" /></span>
-                {{ selectedMap.metadata.humanPlayersNum }}
+                {{ selectedActual.humans }}
               </div>
               <div class="settings-row">
                 <span class="settings-icon"><img :src="getImagePath('bot_icon')" alt="" /></span>
-                {{ selectedMap.metadata.botPlayersNum }}
+                {{ selectedActual.bots }}
               </div>
               <div class="settings-row">
                 <span class="settings-icon"><img :src="getImagePath('speed_icon')" alt="" /></span>
@@ -154,7 +189,16 @@
         >
           {{ mode === 'pick' ? 'Use This Map' : 'Start Game' }}
         </button>
-        <button class="saved-maps-btn" :disabled="!selectedMap" @click="askDelete">Delete</button>
+        <!-- Scenarios are managed in the Map editor — the picker only
+             deletes saved maps. -->
+        <button
+          v-if="pickTab !== 'scenarios'"
+          class="saved-maps-btn"
+          :disabled="!selectedMap"
+          @click="askDelete"
+        >
+          Delete
+        </button>
       </div>
     </div>
 
@@ -172,6 +216,8 @@
 <script>
 import emitter from '@/game/eventBus'
 import { listSavedMaps, deleteSavedMap, getSavedMap } from '@/game/mapStorage'
+import { listEditorScenarios } from '@/game/mapEditorStorage'
+import { getActualPlayerCounts } from '@/game/mapSchema'
 import { getImagePath } from '@/game/helpers'
 import { GAME_STATES } from '@/game/const'
 import MapPreview from '@/components/game/MapPreview.vue'
@@ -205,6 +251,9 @@ export default {
     return {
       maps: [],
       selectedName: null,
+      // Pick-mode source tab: 'maps' (savedMaps bucket) or 'scenarios'
+      // (custom scenarios from the Map Editor). Launch mode ignores it.
+      pickTab: 'maps',
       // Name of the map the user has asked to delete; null hides the
       // ConfirmDialog. Holding the name (not a boolean) lets the dialog
       // render the target's name in its message.
@@ -215,6 +264,24 @@ export default {
     selectedMap() {
       return this.maps.find(m => m.name === this.selectedName) || null
     },
+    // Playable seats of the selected map, split human/bot — an empty
+    // colour slot is nobody's seat, so a 7-slot map with three colours
+    // placed reports 1 human + 2 bots rather than 1 + 6.
+    selectedActual() {
+      return this.selectedMap
+        ? getActualPlayerCounts(this.selectedMap)
+        : { total: 0, humans: 0, bots: 0, seats: [] }
+    },
+    // The seat whose starting visibility masks the fog-of-war preview:
+    // the first human seat. Maps saved from multiplayer mark every seat
+    // human, so that's seat 0 there too. `MapPreview` only masks when
+    // this is non-null AND the map has fog enabled.
+    previewViewingPlayer() {
+      const players = this.selectedMap?.players
+      if (!Array.isArray(players)) return null
+      const idx = players.findIndex(p => p._type === 'human')
+      return idx >= 0 ? idx : null
+    },
     backPage() {
       // Pick mode (from lobby) returns to the lobby; launch mode (from
       // main menu) returns to the New Game submenu.
@@ -224,6 +291,16 @@ export default {
   async mounted() {
     await this.refresh()
     if (this.maps.length === 0) {
+      if (this.mode === 'pick') {
+        // Pick mode has two tabs — an empty saved-maps bucket just flips
+        // to the scenarios tab when that one has entries; a fully empty
+        // picker stays on screen with the in-list empty message (no
+        // bounce: the lobby user should see both empty tabs exist).
+        if (listEditorScenarios().length > 0) {
+          this.switchPickTab('scenarios')
+        }
+        return
+      }
       // Bounce back to where the user came from and surface the empty
       // state via the same MenuError dialog that "Load Game" uses when
       // no autosave exists. The caller page renders MenuError; we just
@@ -236,12 +313,26 @@ export default {
   },
   methods: {
     getImagePath,
+    actualPlayers(map) {
+      return getActualPlayerCounts(map)
+    },
     async refresh() {
-      if (this.listSource) {
+      if (this.mode === 'pick' && this.pickTab === 'scenarios') {
+        // Custom scenarios surface as their canonical maps — the picker
+        // hands the map to the lobby exactly like a saved map, and the
+        // start path treats both identically.
+        this.maps = listEditorScenarios().map(s => s.map)
+      } else if (this.listSource) {
         this.maps = (await this.listSource()) || []
       } else {
         this.maps = listSavedMaps()
       }
+    },
+    async switchPickTab(tab) {
+      if (this.pickTab === tab) return
+      this.pickTab = tab
+      await this.refresh()
+      this.selectedName = this.maps[0]?.name ?? null
     },
     isMobileLayout() {
       // Single source of truth for the "list stacks above preview"
@@ -290,7 +381,9 @@ export default {
         deleteSavedMap(name)
       }
       await this.refresh()
-      if (this.maps.length === 0) {
+      if (this.maps.length === 0 && this.mode !== 'pick') {
+        // Launch mode bounces on empty; pick mode keeps the (tabbed)
+        // picker on screen with its in-list empty message.
         emitter.emit('setError', 'No saved maps found. Save a map from the in-game menu first.')
         emitter.emit('goToPage', this.backPage)
         return
@@ -313,6 +406,12 @@ export default {
         botPlayersNum: map.metadata.botPlayersNum,
         width: map.metadata.width,
         height: map.metadata.height,
+        // `enableScoutMode` is not part of the canonical map schema, so
+        // it's absent from `map.settings`. Force the modern "fog blocks
+        // movement" rule at the boundary, same as ScenariosPage — the
+        // legacy permissive mode is not a playable option for map
+        // launches.
+        enableScoutMode: true,
         initialMap: map,
         loadGame: false,
       }
@@ -459,6 +558,49 @@ export default {
   font-size: 12px;
   margin-top: 2px;
   opacity: 0.85;
+}
+
+/* Pick-mode source tabs (Saved maps / Custom scenarios). Same palette
+   as the editor list tabs so the two pickers read as siblings. */
+.saved-maps-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  max-width: 900px;
+  margin: 0 auto 12px;
+}
+
+.saved-maps-tab {
+  background: rgba(146, 104, 70, 0.65);
+  border: 1px solid #5e3e26;
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  padding: 8px 18px;
+  cursor: pointer;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.saved-maps-tab:hover {
+  background: rgba(146, 104, 70, 0.85);
+}
+
+.saved-maps-tab-active {
+  background: #deae88;
+  color: #000;
+  text-shadow: none;
+}
+
+.saved-maps-list-empty {
+  font-style: italic;
+  font-size: 13px;
+  color: #fff;
+  opacity: 0.8;
+  padding: 12px 4px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .saved-maps-preview-pane {

@@ -115,8 +115,14 @@ import { CreateFieldEngine } from '@/game/createFieldEngine'
 import { WaveEngine } from '@/game/waveEngine'
 import { FieldEngine } from '@/game/fieldEngine'
 import { BotEngine } from '@/game/botEngine'
-import { createPlayers, createNewUnit, getPlayerColor, normalizeField } from '@/game/helpers'
-import { toCanonicalMap } from '@/game/mapSchema'
+import {
+  createPlayers,
+  createNewUnit,
+  calculateUnitVisibility,
+  getPlayerColor,
+  normalizeField,
+} from '@/game/helpers'
+import { toCanonicalMap, getOccupiedSeats } from '@/game/mapSchema'
 import { mapNameExists, nextDefaultName, saveMap, todayDateStr } from '@/game/mapStorage'
 import {
   ACTIONS,
@@ -433,11 +439,18 @@ export default {
           this.initialMapSnapshot = null
         }
       }
-    } else if (!this.tutorialScenario) {
-      // Fresh game (not a tutorial, not a resume): capture the canonical
-      // Map *now*, before the first turn starts. Per-cell `isHidden` /
-      // per-unit runtime fields are stripped by toCanonicalMap, so this
-      // matches what saving from mid-game would later produce.
+    } else if (!this.tutorialScenario && !this.initialMap) {
+      // Fresh RANDOM game (not a tutorial, not a resume, not a launch
+      // from a scenario/saved map): capture the canonical Map *now*,
+      // before the first turn starts. Per-cell `isHidden` / per-unit
+      // runtime fields are stripped by toCanonicalMap, so this matches
+      // what saving from mid-game would later produce.
+      //
+      // Games started from `initialMap` intentionally skip the capture —
+      // only random maps are saveable (`canSaveMap` keys off the
+      // snapshot, so the Save-map button never shows for them, and
+      // resumed map-games follow automatically since no snapshot was
+      // persisted).
       this.initialMapSnapshot = toCanonicalMap({
         field: this.localField,
         players: this.players,
@@ -500,6 +513,7 @@ export default {
     // console.log(this.players);
     // Store handler references for cleanup in beforeUnmount
     this.keyupHandlerRef = e => {
+      if (this.areHotkeysBlocked(e)) return
       if (e.key === 'Enter') this.state = this.STATES.play
       // [tutorial] Skip the 'e' shortcut while the End-turn lock is
       // engaged (forceUndo / lockAll / OK step).
@@ -564,6 +578,20 @@ export default {
     // Main events
     handleMenuOpen(isOpen) {
       this.menuOpen = isOpen
+    },
+    // True when the in-game hotkeys ('e' = end turn, Enter = dismiss the
+    // ready label) must stay out of the way. Mirrors the map editor's
+    // `handleKeydown` guard:
+    //   - a text field has focus — typing a map name in the Save-map
+    //     dialog must never end the turn on the "e" in "desert";
+    //   - a modifier is held, so browser/OS combos stay intact;
+    //   - an overlay is up (menu, Save-map dialog, exit confirmation) —
+    //     the keys act on the board, which the overlay has covered.
+    areHotkeysBlocked(e) {
+      const tag = (e.target && e.target.tagName) || ''
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable) return true
+      if (e.ctrlKey || e.metaKey || e.altKey) return true
+      return this.menuOpen || this.showSaveMapDialog || this.state === this.STATES.exitDialog
     },
     handleExitClick() {
       this.state = this.STATES.exitDialog
@@ -1341,17 +1369,12 @@ export default {
             // Map-editor scenarios can stamp an explicit `movePoints`
             // (and optional `visibility`) on a starting unit so the
             // designer can place "fast" or "slow" dinos at will. If
-            // present, honour them — collapsing min=max in
-            // createNewUnit so the same helper computes a sensible
-            // visibility from the explicit speed. Built-in/random
+            // present, honour it as the unit's speed. Built-in/random
             // maps don't ship this field, so they keep the original
             // "reseed to minSpeed" behaviour.
             //
             // `>= 0` (not `> 0`): speed 0 is a valid explicit choice —
-            // an immobile dino, same as tutorial scenarios place. The
-            // min=max=0 collapse makes createNewUnit compute the same
-            // (max) visibility a speed-1 dino gets, so a stationary dino
-            // still sees as far as the slowest moving one.
+            // an immobile dino, same as tutorial scenarios place.
             const explicitSpeed =
               typeof saved?.movePoints === 'number' && saved.movePoints >= 0
                 ? saved.movePoints
@@ -1367,6 +1390,24 @@ export default {
               this.visibilitySpeedRelation,
               0
             )
+            // `createNewUnit` uses its min bound for BOTH the speed roll
+            // and the visibility scale, so passing the explicit speed as
+            // the min would place every such unit at the bottom of the
+            // scale — i.e. maximum visibility, whatever its speed. Rescale
+            // against the game's own minSpeed so an explicitly placed
+            // speed-3 dino sees exactly what a rolled speed-3 dino sees.
+            // Speeds below minSpeed (0) clamp to minSpeed: the curve
+            // extrapolates absurdly below its own floor, and clamping
+            // keeps the documented rule that an immobile dino still sees
+            // as far as the slowest moving one.
+            if (explicitSpeed !== null && this.visibilitySpeedRelation) {
+              cell.unit.visibility = calculateUnitVisibility(
+                Math.max(explicitSpeed, this.minSpeed),
+                this.minSpeed,
+                this.speedMinVisibility,
+                this.fogOfWarRadius
+              )
+            }
             if (saved?.visibility) cell.unit.visibility = saved.visibility
             if (saved?._type) cell.unit._type = saved._type
           }
@@ -1399,8 +1440,30 @@ export default {
         return
       }
       if (this.initialMap) {
-        // Saved-map launch: honour seat types stored in the map.
-        this.players = this.initialMap.players.map(p => Models.Player.fromJSON({ ...p }))
+        // Saved-map / scenario launch: honour the seat types stored in
+        // the map, but only seats that actually have something on the
+        // field are played. A 7-slot map with three colours placed is a
+        // 3-player game — the four empty slots used to be seated anyway
+        // and were eliminated on their first turn.
+        //
+        // Empty seats stay in the array as inactive, non-participating
+        // placeholders: `players` is indexed by seat everywhere (a unit
+        // carries `player: <seat>`, colours come from the index), so
+        // collapsing it would repaint everyone. Turn rotation skips them
+        // for being inactive.
+        const playable = new Set(getOccupiedSeats(this.initialMap))
+        this.players = this.initialMap.players.map((p, seat) => {
+          const player = Models.Player.fromJSON({ ...p })
+          if (!playable.has(seat)) {
+            player.participating = false
+            player.active = false
+          }
+          return player
+        })
+        // The turn starts on the first playable seat — seat 0 may be one
+        // of the empty ones in a hand-built map.
+        const firstPlayable = this.players.findIndex(p => p.participating)
+        if (firstPlayable > 0) this.currentPlayer = firstPlayable
         return
       }
       if (this.loadGame) {

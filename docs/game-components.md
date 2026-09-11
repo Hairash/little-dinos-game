@@ -162,6 +162,66 @@ controller's `immediate: true` watchers aren't lost.
 See [`tutorial.md`](./tutorial.md) for the full event table and the
 scenario / step schema.
 
+### Endgame Flow (single-player / hotseat)
+
+Design decisions (confirmed August 2026):
+
+- Endgame messages are shown **only on a player's own turn slot** (via
+  `ReadyLabel`). This is deliberate hotseat design: players pass the
+  device at the ready screen and don't watch each other's turns, so a
+  message shown mid-rotation would reach the wrong eyes. Eliminated
+  players sit beside the device and see later labels that way.
+- **Win-by-score (`scoresToWin`) is deprecated.** The check stays in
+  `checkEndOfGame` but the mode is no longer supported or offered.
+- **After any win the only recommendation is to exit** — the old
+  "Or you may continue playing" note was removed on purpose.
+- **Player 0 is always human** in every launch path (game setup,
+  saved maps, scenarios — the editor cannot reorder seats). The
+  rotation-wrap logic depends on this: `selectNextPlayerAndCheckPhases`
+  breaks at seat 0 when `humanPhase !== progress`, which is what gives
+  an eliminated human a turn slot to watch the bot fight from.
+
+Mechanics:
+
+- Elimination is detected **lazily at the start of the player's own
+  turn**, not when their last unit dies: production yielding 0 buildings
+  and 0 units sets `active = false`, and `updateEndgamePhases()` runs in
+  the same move so the lose label carries all of its context at once.
+- Three phase machines, each `progress → <event> → informed`
+  ("informed" = the label was dismissed): `winPhase`, `humanPhase`
+  (all humans eliminated), `lastPlayerPhase` (one **bot** left — a lone
+  surviving *human* is converted to `winPhase` instead).
+- Phases persist via `GAME_STATUS_FIELDS`; `loadGameStatus` rewinds
+  `informed` one step back so each label re-shows once after a resume
+  (and `informed_lose` is reset on all players at load).
+- **Watching the bot fight** is manually paced on purpose: the
+  eliminated human at seat 0 presses End turn once per round to let the
+  bots continue.
+
+Message matrix (`ReadyLabel`, `isSingleHuman` = exactly one human seat,
+derived from the players array so it survives resumes/saved maps):
+
+| Situation | Headline | Notes |
+|-----------|----------|-------|
+| Single human wins | "You win" | exit |
+| Single human loses | "You lose" | exit + watch bots (only if >1 bot left) |
+| Hotseat mid-game loser | "Player N, sorry, you lose" | none (device passes on) |
+| Hotseat last human eliminated | "Player M, sorry, you lose" + "All human players were defeated" | exit + watch bots (only if >1 bot left) |
+| Hotseat winner | "Player Q, you win" | exit |
+| Bot-fight endpoint (watcher already informed) | "Player X wins!" / "Player X is the only left" | exit |
+
+Label composition rules: the "get ready" block is suppressed whenever a
+winner headline shows; the "only left" notice is suppressed while a lose
+headline is up ("You lose" already tells the story when one bot remains);
+if an elimination simultaneously makes another human the winner, the
+loser's label also shows "Player Q wins!" so they learn the game ended.
+The bot-fight endpoint labels were kept deliberately — without them the
+watched fight has no end signal.
+
+Tests: `tests/ReadyLabel/readylabel.spec.js` (message matrix),
+`tests/DinoGame/dinogame.endgame.spec.js` (phase transitions, same-move
+elimination).
+
 ---
 
 ## MultiplayerDinoGame.vue
@@ -281,15 +341,48 @@ Both components use `gameCoreMixin` which provides:
 
 ---
 
+## Player Identity: currentPlayer vs viewingPlayer vs myPlayerOrder
+
+Three different "player" values flow through the game components.
+Picking the wrong one is a recurring bug source — enemy unit speed used
+to leak during bot turns because `GameCell` compared unit owners against
+`currentPlayer`, which follows the turn onto the enemy's side.
+
+| Value | Meaning | Single-player / hotseat | Multiplayer |
+|-------|---------|-------------------------|-------------|
+| `currentPlayer` | Whose turn it is right now | Rotates through humans **and bots** | Set by server patches |
+| `viewingPlayer` | Whose perspective the screen renders from | `currentPlayer` on a human turn; latched to the most recent human (`lastHumanPlayer`) during bot turns | The local user; the turn-taker for spectators |
+| `myPlayerOrder` | The local user's seat | Always `null` | Seat index matched by user id |
+
+Rule of thumb: any **"is this MY unit / building"** check in display
+code must compare against `myPlayerOrder` (multiplayer) or
+`viewingPlayer` (single-player) — never `currentPlayer` alone, which is
+correct only while a human is actually taking their turn.
+
+Current usage:
+
+- `GameCell.showMovePoints()` (hide-enemy-speed) —
+  `myPlayerOrder !== null ? myPlayerOrder : (viewingPlayer ?? currentPlayer)`.
+- `CellContextHelp` receives `viewingPlayer ?? currentPlayer` as its
+  `current-player` (tooltip own/enemy phrasing).
+- `GameCell.showTowerLimitWarning` still compares against
+  `currentPlayer` — safe today only because it requires a selected unit,
+  and selection is impossible outside the viewer's own turn. Switch it
+  to the viewer if that precondition ever changes.
+- `DinoGame.displayVisibilityCoords` is the fog-of-war analog: during
+  bot turns `cell.isHidden` reflects the **bot's** view (the AI needs
+  it), so this override keeps rendering the human's visibility instead.
+
 ## Child Components
 
 ### GameGrid.vue
 Renders the game board as a grid of cells.
 
-**Props:** `field`, `currentPlayer`, `cellSize`, `enableFogOfWar`, `currentStats`
+**Props:** `field`, `currentPlayer`, `viewingPlayer`, `myPlayerOrder`, `hideEnemySpeed`, `cellSize`, `enableFogOfWar`, `currentStats`
 
 ### GameCell.vue
-Renders individual cell with unit/building.
+Renders individual cell with unit/building. Decides per-unit whether the
+speed label shows the value or `*` (see *Player Identity* above).
 
 **Events:** Emits `moveUnit` on click
 
@@ -299,7 +392,9 @@ Bottom HUD showing stats and controls.
 **Props:** `currentStats`, `handleEndTurnBtnClick`, `handleUnitClick`
 
 ### ReadyLabel.vue / MultiplayerReadyLabel.vue
-Turn transition overlay.
+Turn transition overlay; also renders every endgame message. See
+*Endgame Flow* under `DinoGame.vue` for the full message matrix and the
+`isSingleHuman` phrasing switch.
 
 ### VisibilityFrame.vue
 Displays unit visibility radius as a colored frame overlay.

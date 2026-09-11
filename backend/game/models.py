@@ -29,6 +29,14 @@ class Game(models.Model):
     # Pending undo state (reset at turn end). Owned by game.services.undo_state;
     # see that module for the JSON schema. None means "no undo pending".
     undo_state = models.JSONField(null=True, blank=True)
+    # Lobby-phase map selection, synced by the creator when they pick a
+    # map via "Load Map" (name + how many seats the map supports). Lets
+    # the lobby broadcast the choice to joiners and lets `join_game`
+    # refuse joins beyond the map's capacity. Null means "random game".
+    # The full map JSON still travels with the start request — these two
+    # fields are only the lobby-visible summary.
+    picked_map_name = models.CharField(max_length=120, null=True, blank=True)
+    picked_map_seats = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -44,6 +52,8 @@ class Game(models.Model):
             "status": self.status,
             "settings": self.settings,
             "field": self.field,
+            "pickedMapName": self.picked_map_name,
+            "pickedMapSeats": self.picked_map_seats,
             "turnPlayer": self.turn_player.username if self.turn_player else None,
             "players": [
                 {

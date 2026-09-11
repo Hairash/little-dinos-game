@@ -57,7 +57,7 @@
     :can-undo="canUndo && isMyTurn && winner === null"
     :handle-undo-click="undoLastMove"
     :is-animating="isAnimating"
-    :can-save-map="true"
+    :can-save-map="canSaveMap"
     @menu-open="handleMenuOpen"
   />
   <ExitDialog
@@ -104,7 +104,7 @@ import { FieldEngine } from '@/game/fieldEngine'
 import { GameWebSocket } from '@/game/websocket/gameWebSocket'
 import { whoami } from '@/services/auth'
 import { normalizeField, getPlayerColor } from '@/game/helpers'
-import { todayDateStr } from '@/game/mapStorage'
+import { todayDateStr, saveMap, mapNameExists } from '@/game/mapStorage'
 import {
   ACTIONS,
   BIRTH_ANIMATION_DELAY,
@@ -247,6 +247,14 @@ export default {
       if (this.iAmSpectator) return this.currentPlayer
       return this.myPlayerOrder !== null ? this.myPlayerOrder : this.currentPlayer
     },
+    // Only random maps are saveable. The server stamps
+    // `fromInitialMap: true` into the game settings when the lobby
+    // seeded the game from a picked map (scenario or saved map), so the
+    // Save-map button hides for those games.
+    canSaveMap() {
+      const settings = this.localSettings || this.settings || {}
+      return !settings.fromInitialMap
+    },
     minSpeed() {
       const settings = this.localSettings || this.settings || {}
       return settings.minSpeed || 1
@@ -359,6 +367,32 @@ export default {
       // The dialog stays open; map_saved / map_save_error from the
       // server flips saveMapBusy back and either closes or shows error.
     },
+    // Multiplayer saves land in the SAME localStorage bucket single-player
+    // saves use, so they show up in the editor's Saved-maps tab and the
+    // saved-maps picker. The server builds the canonical map (the client's
+    // own field is fog-filtered) and returns it in the `map_saved` reply;
+    // the server also keeps its own SavedMap row. A local name collision
+    // (this browser already has an unrelated map under that name) gets a
+    // `-N` suffix rather than overwriting. Returns the stored name, or
+    // null when the payload carried no map / storage failed.
+    storeMapLocally(payload) {
+      if (!payload || !payload.map) return null
+      try {
+        const map = JSON.parse(JSON.stringify(payload.map))
+        let name = map.name || payload.name || 'multiplayer-map'
+        if (mapNameExists(name)) {
+          let n = 1
+          while (mapNameExists(`${name}-${n}`)) n += 1
+          name = `${name}-${n}`
+        }
+        map.name = name
+        saveMap(map)
+        return name
+      } catch (e) {
+        log.warn('Could not store the saved map locally:', e)
+        return null
+      }
+    },
     initializeFromProps() {
       // Initialize field from prop and normalize to model instances
       if (this.field && this.field.length > 0) {
@@ -462,11 +496,27 @@ export default {
       // Store original player data with usernames for turn notifications
       this.playersData = playersData
 
-      this.players = playersData.map((p, idx) => {
+      // `players` is indexed by SEAT, not by array position. When the
+      // game was started from a map, the server hands each player the
+      // seat they actually play (blue/yellow/purple on a map that skips
+      // colours is orders [0, 3, 6]), and `currentPlayer`, unit
+      // ownership and colours are all that seat index. Unseated slots in
+      // between are inactive, non-participating placeholders so
+      // `players[currentPlayer]` and `getPlayerColor(order)` stay right.
+      const seats = playersData.map((p, idx) => (p.order !== undefined ? p.order : idx))
+      const highestSeat = seats.length > 0 ? Math.max(...seats) : -1
+      this.players = Array.from({ length: highestSeat + 1 }, () => {
+        const placeholder = new Models.Player(Models.PlayerTypes.HUMAN)
+        placeholder.participating = false
+        placeholder.active = false
+        return placeholder
+      })
+      playersData.forEach((p, idx) => {
+        const seat = seats[idx]
         // Find my player order - use the order from server, not array index
         // Compare both id and check if currentUserId is set
         if (this.currentUserId !== null && p.id === this.currentUserId) {
-          this.myPlayerOrder = p.order !== undefined ? p.order : idx
+          this.myPlayerOrder = seat
           log.debug(
             `Found my player order: ${this.myPlayerOrder} for user ${this.currentUserId} (player id: ${p.id})`
           )
@@ -476,7 +526,7 @@ export default {
             p
           )
         }
-        return new Models.Player(Models.PlayerTypes.HUMAN)
+        this.players[seat] = new Models.Player(Models.PlayerTypes.HUMAN)
       })
 
       // Set current player from turnPlayer - use order from server
@@ -622,7 +672,8 @@ export default {
             this.saveMapBusy = false
             this.saveMapError = ''
             this.showSaveMapDialog = false
-            this.showNotification(`Map "${payload.name}" saved`, 'info')
+            const localName = this.storeMapLocally(payload)
+            this.showNotification(`Map "${localName || payload.name}" saved`, 'info')
           },
           onMapSaveError: payload => {
             log.debug('Map save error:', payload)
