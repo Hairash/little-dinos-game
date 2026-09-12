@@ -30,6 +30,11 @@ little-dinos-game/
 │   │   │   ├── botEngine.js     # AI player logic
 │   │   │   ├── createFieldEngine.js  # Field generation
 │   │   │   ├── tutorialScenarios.js  # Tutorial scenarios + helpers
+│   │   │   ├── scenarios/       # Default scenarios: one JSON map per file
+│   │   │   │                    #   + a folder loader (see scenarios.md)
+│   │   │   ├── mapSchema.js     # Canonical Map JSON (v1) + seat helpers
+│   │   │   ├── mapStorage.js    # Saved maps in localStorage (`savedMaps`)
+│   │   │   ├── mapEditorStorage.js  # Editor scenarios + unified accessors
 │   │   │   ├── mixins/          # Vue mixins
 │   │   │   │   └── gameCoreMixin.js  # Shared component logic
 │   │   │   ├── gameWebSocket.js # WebSocket client for game

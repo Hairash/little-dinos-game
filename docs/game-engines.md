@@ -58,8 +58,19 @@ new FieldEngine(
 | `captureBuildingIfNeeded(x, y, player)` | coords, player | boolean | Capture building for player (respects base limit) |
 | `getVisibleObjRadius(x, y, player, ...)` | coords, player | number | Get visibility radius of object |
 | `areAllUnitsOnBuildings(player)` | player index | boolean | Check if all units are on buildings |
+| `areAllPlayersOccupied(player)` | player index | boolean | Win check: no rival unit is left on the field and every rival tower has a unit standing on it. |
+| `hasPlayableAssets(player)` | player index | boolean | Single-player loss check: is this player still in it? True while they hold a unit, or a tower **no opponent is standing on**. A tower with an enemy parked on it produces nothing and can't be retaken without units, so holding only those is a defeat. Multiplayer deliberately differs — see `get_active_players` / `get_playable_players` in `backend/game/services/game_logic.py`, where an ally may still free the tower. |
 
 ### Visibility System
+
+`getCurrentVisibilitySet(player)` walks the cells returned by
+`getPlayerObjectCoords(player)` — which include a cell when **either** the
+unit **or** the base there belongs to that player. Each contribution
+carries its own ownership check, so only the player's own unit lends its
+`visibility` and only their own base lends `fogOfWarRadius`; an enemy
+parked on your tower doesn't extend your sight, and your unit on an enemy
+tower doesn't borrow the tower's. When both objects are yours the larger
+radius wins.
 
 The engine tracks what each player can see:
 

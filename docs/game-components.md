@@ -204,7 +204,7 @@ derived from the players array so it survives resumes/saved maps):
 | Situation | Headline | Notes |
 |-----------|----------|-------|
 | Single human wins | "You win" | exit |
-| Single human loses | "You lose" | exit + watch bots (only if >1 bot left) |
+| Single human loses | "You lose" | exit + watch bots (only if >1 bot left **and** not a scenario) |
 | Hotseat mid-game loser | "Player N, sorry, you lose" | none (device passes on) |
 | Hotseat last human eliminated | "Player M, sorry, you lose" + "All human players were defeated" | exit + watch bots (only if >1 bot left) |
 | Hotseat winner | "Player Q, you win" | exit |
@@ -213,10 +213,21 @@ derived from the players array so it survives resumes/saved maps):
 Label composition rules: the "get ready" block is suppressed whenever a
 winner headline shows; the "only left" notice is suppressed while a lose
 headline is up ("You lose" already tells the story when one bot remains);
-if an elimination simultaneously makes another human the winner, the
-loser's label also shows "Player Q wins!" so they learn the game ended.
-The bot-fight endpoint labels were kept deliberately — without them the
-watched fight has no end signal.
+a lone player's own defeat screen also drops the third-person "Player X
+wins!" (`showOtherWinner`) — "You lose" plus the way out is the whole
+message, and which bot came top is noise at that moment. A hotseat table
+still gets the winner's name, and a lone player who stays to watch the
+bot fight finish still sees it afterwards, so the watched fight keeps its
+end signal. The "watch bot fighting" offer is gated on `canWatchBots`
+(false for a scenario, whose End-turn button is disabled — there would be
+no fight to watch).
+
+**Two skins, one set of messages.** Hotseat renders the full-screen black
+plate and a **Ready** button, and `GameGrid` is blanked behind it: the
+device is about to change hands. A single-human game renders the compact
+centred plate `MultiplayerReadyLabel` uses — settings/exit icon hint,
+**OK** button — over a still-visible board, since there's nobody to hide
+the map from and the label only appears at the end of a run.
 
 Tests: `tests/ReadyLabel/readylabel.spec.js` (message matrix),
 `tests/DinoGame/dinogame.endgame.spec.js` (phase transitions, same-move
@@ -392,9 +403,11 @@ Bottom HUD showing stats and controls.
 **Props:** `currentStats`, `handleEndTurnBtnClick`, `handleUnitClick`
 
 ### ReadyLabel.vue / MultiplayerReadyLabel.vue
-Turn transition overlay; also renders every endgame message. See
-*Endgame Flow* under `DinoGame.vue` for the full message matrix and the
-`isSingleHuman` phrasing switch.
+Turn transition overlay; `ReadyLabel` also renders every single-player
+endgame message, in either of two skins (hotseat black plate, or the
+compact multiplayer-style plate for a lone player). See *Endgame Flow*
+under `DinoGame.vue` for the message matrix, the `isSingleHuman` phrasing
+switch and the skin split.
 
 ### VisibilityFrame.vue
 Displays unit visibility radius as a colored frame overlay.

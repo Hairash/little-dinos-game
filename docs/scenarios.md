@@ -566,6 +566,28 @@ map-seeded games — deliberately left as-is. The backend already ships
 spectators the full field on every patch rather than a sparse diff, so
 their map doesn't flicker between moves either.
 
+### Who is out, and who can move
+
+Three predicates, deliberately different, all derived from the field:
+
+| Predicate | Where | True while you hold… |
+| --------- | ----- | -------------------- |
+| `get_active_players` | `backend/.../game_logic.py` | a unit, or **any** tower — even one an opponent is sitting on |
+| `get_playable_players` | same file | a unit, or a tower **free** to spawn one |
+| `FieldEngine.hasPlayableAssets` | `frontend/src/game/fieldEngine.js` | a unit, or a tower free of opponents (the single-player rule) |
+
+Multiplayer uses the first for "still in the game" — spectator mode, and
+who is reported as newly eliminated — so being sat on never knocks you
+out by itself; an ally may free the tower. It uses the second for two
+things: whose turn comes next (a player with nothing to move is skipped,
+without being declared out) and **who has won** — `check_game_ended`
+returns the sole player who can still act, so occupying every rival's
+towers ends the game even though none of them is individually eliminated.
+
+Single-player collapses the two: with no ally to free anything, being
+fully occupied *is* a loss, which is what `hasPlayableAssets` encodes.
+The win side already matched via `FieldEngine.areAllPlayersOccupied`.
+
 ### Sight radius on a shared cell
 
 `FieldEngine.getCurrentVisibilitySet` walks the cells returned by
