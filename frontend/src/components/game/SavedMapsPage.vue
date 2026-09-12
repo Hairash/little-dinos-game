@@ -39,6 +39,17 @@
       <div class="saved-maps-body">
         <div ref="listRef" class="saved-maps-list-pane">
           <div class="saved-maps-list">
+            <!-- Import straight from the lobby so setting up a game around
+                 a scenario someone sent you doesn't mean backing out to the
+                 main menu and in again. It lands in the same bucket the
+                 single-player Scenarios page imports into. -->
+            <button
+              v-if="showImport"
+              class="saved-maps-list-item saved-maps-list-item-new"
+              @click="triggerImport"
+            >
+              ↑ Import scenario from file
+            </button>
             <button
               v-for="m in maps"
               :key="m.name"
@@ -181,6 +192,18 @@
         </div>
       </div>
 
+      <div v-if="importError" class="saved-maps-import-error">{{ importError }}</div>
+
+      <!-- Hidden file picker for the Import item; the value is cleared on
+           every open so re-importing the same file fires `change` again. -->
+      <input
+        ref="importInput"
+        type="file"
+        accept=".ldm,.json,application/json"
+        class="saved-maps-import-input"
+        @change="onImportFile"
+      />
+
       <div class="saved-maps-bottom-buttons">
         <button
           class="saved-maps-btn saved-maps-btn-primary"
@@ -216,7 +239,7 @@
 <script>
 import emitter from '@/game/eventBus'
 import { listSavedMaps, deleteSavedMap, getSavedMap } from '@/game/mapStorage'
-import { listEditorScenarios } from '@/game/mapEditorStorage'
+import { listEditorScenarios, importEditorScenario } from '@/game/mapEditorStorage'
 import { getActualPlayerCounts } from '@/game/mapSchema'
 import { getImagePath } from '@/game/helpers'
 import { GAME_STATES } from '@/game/const'
@@ -258,11 +281,19 @@ export default {
       // ConfirmDialog. Holding the name (not a boolean) lets the dialog
       // render the target's name in its message.
       deleteCandidate: null,
+      // Surface for import failures (bad JSON, schema mismatch, etc.).
+      importError: '',
     }
   },
   computed: {
     selectedMap() {
       return this.maps.find(m => m.name === this.selectedName) || null
+    },
+    // Import belongs to the custom-scenarios tab, which only the lobby
+    // picker shows. The single-player saved-maps browser has no scenarios
+    // tab, and scenarios have their own page there.
+    showImport() {
+      return this.mode === 'pick' && this.pickTab === 'scenarios'
     },
     // Playable seats of the selected map, split human/bot — an empty
     // colour slot is nobody's seat, so a 7-slot map with three colours
@@ -331,8 +362,33 @@ export default {
     async switchPickTab(tab) {
       if (this.pickTab === tab) return
       this.pickTab = tab
+      this.importError = ''
       await this.refresh()
       this.selectedName = this.maps[0]?.name ?? null
+    },
+    triggerImport() {
+      this.importError = ''
+      // Resetting the input value lets the user re-import the SAME file
+      // path twice in a row — without it `change` only fires when a
+      // *different* file is chosen.
+      if (this.$refs.importInput) this.$refs.importInput.value = ''
+      this.$refs.importInput?.click()
+    },
+    async onImportFile(event) {
+      const file = event.target.files?.[0]
+      if (!file) return
+      try {
+        const text = await file.text()
+        const parsed = JSON.parse(text)
+        // Same bucket the editor and the single-player Scenarios page use,
+        // so a scenario imported here is available everywhere afterwards.
+        const entry = importEditorScenario(parsed)
+        this.importError = ''
+        await this.refresh()
+        this.selectedName = entry.map.name
+      } catch (e) {
+        this.importError = `Import failed: ${e.message || 'unable to read file'}`
+      }
     },
     isMobileLayout() {
       // Single source of truth for the "list stacks above preview"
@@ -592,6 +648,31 @@ export default {
   background: #deae88;
   color: #000;
   text-shadow: none;
+}
+
+/* Import action item — same dashed affordance the Scenarios page and the
+   Map Editor list use, so it reads the same wherever it appears. */
+.saved-maps-list-item-new {
+  background: rgba(94, 62, 38, 0.85);
+  text-align: center;
+  font-weight: bold;
+  border: 1px dashed #deae88;
+}
+
+.saved-maps-list-item-new:hover {
+  background: rgba(94, 62, 38, 1);
+}
+
+.saved-maps-import-error {
+  color: #a00;
+  font-size: 12px;
+  text-align: center;
+  margin: 10px auto 0;
+  max-width: 480px;
+}
+
+.saved-maps-import-input {
+  display: none;
 }
 
 .saved-maps-list-empty {

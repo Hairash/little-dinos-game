@@ -109,12 +109,17 @@ describe('DinoGame endgame phase detection', () => {
       vm.showTurnNotification = vi.fn()
       vm.setVisibilityStartTurn = vi.fn()
       vm.applyTutorialFirstProductionOverride = vi.fn()
-      // The human produces nothing — they are eliminated this turn.
+      // The human produces nothing and has nothing left on the field —
+      // they are eliminated this turn. Elimination reads the field via
+      // `hasPlayableAssets` (its own rules are covered in
+      // tests/game/occupiedTowerLoss.spec.js); this test is about the
+      // endgame phases moving in the same turn.
       vm.fieldEngine.restoreAndProduceUnits = vi.fn(() => ({
         buildingsNum: 0,
         unitsNum: 0,
         births: [],
       }))
+      vm.fieldEngine.hasPlayableAssets = vi.fn(player => player !== 0)
 
       await vm.startTurn()
 

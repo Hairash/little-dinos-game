@@ -420,6 +420,9 @@ export default {
         height: map.metadata.height,
         enableScoutMode: true,
         initialMap: map,
+        // Test launches from either tab; only the Scenarios tab counts as
+        // a scenario for the lose rules.
+        isScenario: this.activeTab === ENTRY_SOURCES.scenario,
         loadGame: false,
       })
     },

@@ -69,6 +69,7 @@
     :load-game="settings.loadGame"
     :field="settings.field"
     :initial-map="settings.initialMap"
+    :is-scenario="!!settings.isScenario"
   />
   <MultiplayerDinoGame
     v-if="state === GAME_STATES.game && currentGameCode"
@@ -493,7 +494,11 @@ export default {
         this.setError('No saved game found. Start a new game first.')
         return
       }
-      this.settings = INITIAL_SETTINGS
+      // Copy, don't alias: the loop below writes into `this.settings`, and
+      // with INITIAL_SETTINGS itself that would permanently contaminate the
+      // shared defaults with this save's values (a resumed scenario would
+      // leave `isScenario: true` behind for the next random game).
+      this.settings = { ...INITIAL_SETTINGS }
       const fieldsToLoad = FIELDS_TO_SAVE.filter(item => item !== 'field')
       for (const field of fieldsToLoad) {
         const value = localStorage.getItem(field)

@@ -13,10 +13,15 @@
     :winner="prepareWinner()"
     :last-player="prepareLastPlayer()"
     :is-single-human="isSingleHumanGame"
+    :can-watch-bots="!isScenario"
   />
+  <!-- `is-hidden` blanks the board, which is a hotseat measure: the device
+       is about to change hands. With a single human there's nobody to hide
+       it from, and the ready label only appears at the end of a run, so the
+       board stays visible behind its plate. -->
   <GameGrid
     ref="gameGridRef"
-    :is-hidden="state === STATES.ready"
+    :is-hidden="state === STATES.ready && !isSingleHumanGame"
     :fog-of-war-radius="fogOfWarRadius"
     :enable-fog-of-war="enableFogOfWar"
     :enable-scout-mode="enableScoutMode"
@@ -61,6 +66,7 @@
     :handle-undo-click="undoLastMove"
     :tutorial-input-blocked="tutorialInputBlocked"
     :tutorial-end-turn-blocked="tutorialEndTurnBlocked"
+    :end-turn-blocked="lostMapGame"
     :is-animating="isAnimating"
     :can-save-map="canSaveMap"
     @menu-open="handleMenuOpen"
@@ -184,6 +190,12 @@ export default {
     // engines are still constructed locally — only the initial state
     // differs from a random roll.
     initialMap: { type: Object, default: null },
+    // True when `initialMap` is a SCENARIO (default or custom) rather than
+    // a saved map. Both arrive as the same canonical map, so the launching
+    // page has to say which it is: scenarios are puzzles to be replayed and
+    // keep their fog on a loss, while a saved map behaves like the random
+    // game it was saved from.
+    isScenario: { type: Boolean, default: false },
     // eslint-disable-next-line vue/no-dupe-keys
     // Note: field is intentionally both a prop and data property - the data property shadows the prop
     // when in single-player mode (generates field locally), but uses the prop in multiplayer mode
@@ -326,6 +338,33 @@ export default {
     isSingleHumanGame() {
       return this.players.filter(p => p._type === Models.PlayerTypes.HUMAN).length === 1
     },
+    // True once a SCENARIO (default or custom) has been lost. The turn can
+    // no longer be passed: with fog on there is nothing to watch (the map
+    // keeps its fog), and with fog off the board is already revealed —
+    // either way the run is over and Exit from the menu is the way on.
+    // Random games and saved maps keep the button so the bot fight can
+    // still be watched.
+    //
+    // Only ever true when every human is out: the rotation skips
+    // eliminated players and stops on one only after `humanPhase` leaves
+    // `progress`, so this can't strand a hotseat rival mid-game.
+    lostMapGame() {
+      const player = this.players?.[this.currentPlayer]
+      return (
+        this.isScenario &&
+        !!player &&
+        // Bots pass through this state constantly: elimination is detected
+        // lazily, at the start of the dead player's own turn, so the
+        // rotation lands on them and `startTurn` deactivates them there.
+        // Blocking `processEndTurn` for them would stall the game on that
+        // seat forever — which is exactly what it used to do.
+        player._type === Models.PlayerTypes.HUMAN &&
+        !player.active &&
+        // And only once EVERY human is out. A hotseat player who loses
+        // while others play on still has to hand the turn over.
+        this.humanPhase !== this.HUMAN_PHASES.progress
+      )
+    },
     // Drives the "Next unit" button. Enabled only on human turns —
     // there's no UI to click during bot moves anyway, but explicitly
     // gating keeps the cursor and disabled state consistent.
@@ -351,6 +390,22 @@ export default {
       if (this.players[this.currentPlayer]._type === Models.PlayerTypes.HUMAN) return null
       const human = this.findHumanPlayerOrder()
       if (human === null || !this.fieldEngine) return null
+      // Spectating after a loss: the field was revealed once on the
+      // losing turn, but every bot turn recomputes `cell.isHidden` for
+      // the bot's own AI, which would re-fog the board between moves.
+      // Re-assert the reveal here so it stays put.
+      //
+      // A lost map-launched game keeps its fog instead (see
+      // `keepsFogAfterLoss`) and falls through: an eliminated player owns
+      // nothing, so the set below comes out empty and the board stays
+      // dark rather than exposing the bot's view.
+      if (!this.players[human].active && !this.keepsFogAfterLoss()) {
+        const all = new Set()
+        for (let x = 0; x < this.width; x++) {
+          for (let y = 0; y < this.height; y++) all.add(`${x},${y}`)
+        }
+        return all
+      }
       const set = new Set()
       for (const [x, y] of this.fieldEngine.getCurrentVisibilitySet(human)) {
         set.add(`${x},${y}`)
@@ -620,7 +675,12 @@ export default {
       // call is a no-op for subsequent turns. No-op outside tutorial.
       this.applyTutorialFirstProductionOverride(births)
 
-      if (counters.buildingsNum === 0 && counters.unitsNum === 0) {
+      // Elimination is checked AFTER production: a free base has just
+      // spawned a defender, so only a player left with nothing — no units
+      // and no base an opponent isn't sitting on — is actually out. The
+      // counters above can't answer this: `buildingsNum` counts owned
+      // bases whether or not an enemy occupies them (it feeds scoring).
+      if (!this.fieldEngine.hasPlayableAssets(this.currentPlayer)) {
         this.players[this.currentPlayer].active = false
         // Recompute endgame phases in the same move as the elimination —
         // the ready-label about to render must already combine "you lose"
@@ -697,14 +757,20 @@ export default {
       this.isAnimating = true
       try {
         const humanPlayer = this.findHumanPlayerOrder()
-        const humanVisibility =
-          this.doesVisibilityMakeSense() && humanPlayer !== null
-            ? new Set(
-                Array.from(this.fieldEngine.getCurrentVisibilitySet(humanPlayer)).map(
-                  ([hx, hy]) => `${hx},${hy}`
-                )
-              )
-            : null
+        const humanIsPlaying = humanPlayer !== null && !!this.players[humanPlayer]?.active
+        // null means "don't filter": fog is off, or the viewer is a
+        // spectator watching a revealed field and should see every birth.
+        // A spectator whose map keeps its fog (a lost map game) sees none.
+        let humanVisibility = null
+        if (this.doesVisibilityMakeSense() && humanIsPlaying) {
+          humanVisibility = new Set(
+            Array.from(this.fieldEngine.getCurrentVisibilitySet(humanPlayer)).map(
+              ([hx, hy]) => `${hx},${hy}`
+            )
+          )
+        } else if (!humanIsPlaying && this.keepsFogAfterLoss()) {
+          humanVisibility = new Set()
+        }
 
         // Filter to births visible to the local player and pre-mark them
         // all as `pendingBirth` BEFORE any await so they render at opacity
@@ -823,8 +889,14 @@ export default {
       // human's last unit, otherwise the post-walk kill would shrink live
       // visibility and hide the cells the bot just walked through.
       const humanPlayer = this.findHumanPlayerOrder()
+      // An eliminated human owns nothing, so their live visibility is
+      // empty — freezing it here would black the board out for the whole
+      // move animation. Leave the snapshot null instead and let
+      // `displayVisibilityCoords` decide what a spectator sees (the
+      // revealed field, or fog for a lost map game).
+      const humanIsPlaying = humanPlayer !== null && !!this.players[humanPlayer]?.active
       const humanVisibility =
-        this.doesVisibilityMakeSense() && humanPlayer !== null
+        this.doesVisibilityMakeSense() && humanIsPlaying
           ? new Set(
               Array.from(this.fieldEngine.getCurrentVisibilitySet(humanPlayer)).map(
                 ([hx, hy]) => `${hx},${hy}`
@@ -991,6 +1063,13 @@ export default {
     // Pick the player whose visibility gates animations. With a single human
     // player (most common case) it's that player; otherwise we fall back to
     // the current player (bot vs bot — invisible anyway when fog is off).
+    // True when losing must NOT reveal the field: a fog-of-war game that
+    // was launched from a map (default scenario, custom scenario or saved
+    // map), all of which can be replayed. Random games reveal as before,
+    // and a game with fog off has nothing to hide either way.
+    keepsFogAfterLoss() {
+      return this.isScenario && this.enableFogOfWar
+    },
     findHumanPlayerOrder() {
       for (let i = 0; i < this.players.length; i++) {
         if (this.players[i]._type === Models.PlayerTypes.HUMAN) return i
@@ -1002,6 +1081,9 @@ export default {
     processEndTurn() {
       if (this.isAnimating) return
       if (this.state === this.STATES.ready) return
+      // A lost map-launched game has no next turn — see `lostMapGame`.
+      // Guards the 'e' shortcut as well as the button.
+      if (this.lostMapGame) return
       // [tutorial] Block the button + 'e' path while the End-turn
       // lock is engaged (forceUndo / lockAll / OK step).
       if (this.tutorialEndTurnBlocked) return
@@ -1274,7 +1356,17 @@ export default {
     //   }
     // },
     setVisibilityStartTurn() {
-      if (this.doesVisibilityMakeSense()) {
+      // `doesVisibilityMakeSense()` goes false either because fog is off
+      // for this game, or because the player is eliminated — the second
+      // case is what hands a loser the whole map.
+      //
+      // Games launched from a map keep their fog after a loss: the layout
+      // of a scenario or saved map is the puzzle, and it can be replayed,
+      // so handing it over on defeat spoils it. A freshly generated random
+      // map is one-off, so revealing it there stays. Recomputing for an
+      // eliminated player yields an empty visibility set, i.e. the field
+      // simply stays hidden.
+      if (this.doesVisibilityMakeSense() || this.keepsFogAfterLoss()) {
         this.setVisibility()
       } else {
         this.showField()

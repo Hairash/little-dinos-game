@@ -109,9 +109,28 @@ Hidden areas appear darker and don't show enemy positions.
 
 ## Victory Conditions
 
-You win when all other players are eliminated. A player is eliminated when they have:
-- No towers AND
-- No units
+You win when all other players are eliminated. A player is eliminated when
+they have no units left and no tower they can still use.
+
+**A tower with an enemy dino standing on it doesn't count as yours** for
+this purpose — it produces nothing while they sit there. (An opponent can
+park on your tower without capturing it when they've hit their own tower
+limit.)
+
+Single-player and multiplayer differ on purpose:
+
+| | No units, every tower occupied |
+|---|---|
+| **Single-player** | You lose — there's nobody who could free the tower for you |
+| **Multiplayer** | You stay in the game; another player may drive the occupier off. Your turns are skipped while you have nothing to move, and you rejoin the moment a tower frees up |
+
+**Occupation is asymmetric.** It never loses the game for the occupied
+player on its own — but it does *win* it for the occupier. Once every
+rival is out of units with every tower of theirs sat on, nobody else can
+ever move again, so the last player who can still act has won and the
+rest have lost. This is the same in single-player and multiplayer: you
+can't be knocked out by occupation alone in multiplayer, but you can be
+finished off by it when you're the last one holding out.
 
 ## Game Settings
 

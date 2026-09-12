@@ -132,7 +132,9 @@
           class="infoBtn endTurnBtn"
           @click="handleEndTurnBtnClick"
           @contextmenu.prevent="showContextHelp($event, 'End turn')"
-          :disabled="!isMyTurn || menuOpen || tutorialEndTurnBlocked || isAnimating"
+          :disabled="
+            !isMyTurn || menuOpen || tutorialEndTurnBlocked || endTurnBlocked || isAnimating
+          "
           title="End turn"
         >
           <img
@@ -223,6 +225,13 @@ export default {
     players: Array[Models.Player],
     currentStats: Object,
     handleEndTurnBtnClick: Function,
+    // Generic "the turn cannot be passed" lock, separate from the
+    // tutorial's own. Set once a map-launched game is lost: there is
+    // nothing to advance to, so Exit is the only way on.
+    endTurnBlocked: {
+      type: Boolean,
+      default: false,
+    },
     handleUnitClick: Function,
     cellSize: Number,
     handleChangeCellSize: Function,

@@ -68,6 +68,11 @@ export const FIELDS_TO_SAVE = [
   'hideEnemySpeed',
   'killAtBirth',
   'enableUndo',
+  // Whether this run came from a scenario (default or custom) rather than
+  // a random or saved map. Persisted because the lose rules depend on it:
+  // a resumed scenario must still keep its fog and its disabled End turn,
+  // and without this a reloaded game would reveal the map it had hidden.
+  'isScenario',
   // Canonical Map snapshot captured at game start (before any move).
   // Persisted so a resumed game can still be saved as a map. Stays null
   // for tutorial sessions and for games started before this feature

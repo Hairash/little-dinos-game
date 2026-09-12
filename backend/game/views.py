@@ -22,6 +22,7 @@ from .services.map_snapshot import (
     reconcile_seats,
     validate_map,
 )
+from .services.unit_production import restore_and_produce_units
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -391,6 +392,23 @@ def start_game(request, game_code):
         game.field = field
     else:
         game.field = generate_field(settings_dict)
+
+    # Run the opening player's start-of-turn production. Every other turn
+    # gets this from `apply_end_turn_txn`, which produces for the player
+    # whose turn is about to start — but nobody ends a turn before the
+    # first one, so without this the opening player's empty towers would
+    # stay empty until their SECOND turn, while everyone else spawns
+    # normally. Single-player has always done this (`DinoGame.startTurn`
+    # produces on every turn, the first included).
+    first_player = GamePlayer.objects.filter(game=game, player=game.turn_player).first()
+    if first_player is not None:
+        restore_and_produce_units(
+            game.field,
+            settings_dict.get("width", 20),
+            settings_dict.get("height", 20),
+            first_player.order,
+            settings_dict,
+        )
 
     game.status = "playing"
     game.settings = settings_dict

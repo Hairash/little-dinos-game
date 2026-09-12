@@ -4,8 +4,9 @@ import MapEditorListPage from '@/components/editor/MapEditorListPage.vue'
 import SavedMapsPage from '@/components/game/SavedMapsPage.vue'
 import ScenariosPage from '@/components/game/ScenariosPage.vue'
 import emitter from '@/game/eventBus'
-import { createNewScenario, buildScenarioFile } from '@/game/mapEditorStorage'
+import { createNewScenario, buildScenarioFile, listEditorScenarios } from '@/game/mapEditorStorage'
 import { saveMap } from '@/game/mapStorage'
+import { SCENARIOS } from '@/game/scenarios'
 
 function seedScenario(name) {
   const entry = createNewScenario({ width: 6, height: 6 })
@@ -164,6 +165,55 @@ describe('SavedMapsPage pick-mode tabs (lobby picker)', () => {
     expect(wrapper.vm.previewViewingPlayer).toBe(0)
   })
 
+  describe('import from file', () => {
+    function fakeFileEvent(content) {
+      return { target: { files: [{ text: async () => content }] } }
+    }
+
+    it('offers Import only on the custom-scenarios tab', async () => {
+      seedSavedMap('Saved One')
+      const wrapper = mountPicker()
+      await flushPromises()
+      expect(wrapper.vm.showImport).toBe(false)
+      await wrapper.vm.switchPickTab('scenarios')
+      expect(wrapper.vm.showImport).toBe(true)
+    })
+
+    it('never offers Import in single-player launch mode', async () => {
+      seedSavedMap('Saved One')
+      const wrapper = mount(SavedMapsPage, { props: { mode: 'launch' }, shallow: true })
+      await flushPromises()
+      expect(wrapper.vm.showImport).toBe(false)
+    })
+
+    it('imports into the shared scenarios bucket and selects the new map', async () => {
+      const entry = createNewScenario({ width: 6, height: 6 })
+      entry.map.name = 'Shared Map'
+      const file = JSON.stringify(buildScenarioFile(entry))
+      localStorage.clear()
+
+      const wrapper = mountPicker()
+      await flushPromises()
+      await wrapper.vm.switchPickTab('scenarios')
+      await wrapper.vm.onImportFile(fakeFileEvent(file))
+
+      expect(wrapper.vm.importError).toBe('')
+      expect(wrapper.vm.maps.map(m => m.name)).toContain('Shared Map')
+      expect(wrapper.vm.selectedName).toBe('Shared Map')
+      // Same bucket the editor and the single-player page read, so it's
+      // available everywhere afterwards.
+      expect(listEditorScenarios().map(e => e.map.name)).toContain('Shared Map')
+    })
+
+    it('surfaces a readable error for a bad file', async () => {
+      const wrapper = mountPicker()
+      await flushPromises()
+      await wrapper.vm.switchPickTab('scenarios')
+      await wrapper.vm.onImportFile(fakeFileEvent('not json at all'))
+      expect(wrapper.vm.importError).toMatch(/Import failed/)
+    })
+  })
+
   it('forces enableScoutMode in launch settings', () => {
     const map = seedSavedMap('Saved One')
     const vm = mountPicker().vm
@@ -179,7 +229,9 @@ describe('ScenariosPage default badge', () => {
     const vm = mount(ScenariosPage, { shallow: true }).vm
     const builtins = vm.scenarios.filter(s => s.isBuiltin)
     const users = vm.scenarios.filter(s => !s.isBuiltin)
-    expect(builtins.length).toBe(10)
+    // Count comes from the folder — adding a scenario file is a content
+    // change and must not break the suite.
+    expect(builtins.length).toBe(SCENARIOS.length)
     expect(users.map(s => s.map.name)).toEqual(['My Scenario'])
   })
 
@@ -187,7 +239,7 @@ describe('ScenariosPage default badge', () => {
     seedScenario('My Scenario')
     const wrapper = mount(ScenariosPage)
     const badges = wrapper.findAll('.scenarios-list-badge')
-    expect(badges).toHaveLength(10)
+    expect(badges).toHaveLength(SCENARIOS.length)
     expect(badges[0].text().toLowerCase()).toBe('default')
   })
 })

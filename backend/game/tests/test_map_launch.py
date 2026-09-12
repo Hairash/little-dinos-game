@@ -369,3 +369,69 @@ class TestSaveMapReturnsCanonical:
         assert res["map"]["version"] == 1
         assert res["map"]["name"] == "local copy"
         assert res["map"]["metadata"]["width"] == 6
+
+
+class TestFirstTurnProduction:
+    """The opening player must spawn at their empty towers like everyone
+    else. Production normally runs in `apply_end_turn_txn` for the player
+    whose turn is starting — but no turn ends before the first one, so
+    `start_game` has to run it for the opening player itself."""
+
+    def _start(self, api_client, lobby, user, initial_map):
+        return api_client.post(
+            f"/games/{lobby.game_code}/start/",
+            data=json.dumps({"initialMap": initial_map}),
+            content_type="application/json",
+            **headers_for(user),
+        )
+
+    def test_the_opening_player_spawns_at_an_empty_tower(self, api_client, lobby, user):
+        m = make_canonical_map(capacity=2, placed=[0, 1])
+        # Seat 0 keeps its base but starts with no unit on it.
+        m["field"][0][1]["unit"] = None
+        response = self._start(api_client, lobby, user, m)
+        assert response.status_code == 200
+        lobby.refresh_from_db()
+        # The base at [0][0] produced a defender for the opening player.
+        assert lobby.field[0][0]["unit"] is not None
+        assert lobby.field[0][0]["unit"]["player"] == 0
+
+    def test_other_players_towers_are_untouched_at_start(self, api_client, lobby, user):
+        m = make_canonical_map(capacity=2, placed=[0, 1])
+        m["field"][1][1]["unit"] = None  # seat 1's base is empty too
+        response = self._start(api_client, lobby, user, m)
+        assert response.status_code == 200
+        lobby.refresh_from_db()
+        # Seat 1 spawns on THEIR turn, not on seat 0's.
+        assert lobby.field[1][0]["unit"] is None
+
+    def test_a_tower_that_already_holds_a_unit_produces_nothing_extra(
+        self, api_client, lobby, user
+    ):
+        m = make_canonical_map(capacity=2, placed=[0, 1])
+        # Seat 0's base already has its starter standing on it.
+        m["field"][0][0]["unit"] = unit_at_base = {"player": 0, "_type": "dino1"}
+        assert unit_at_base
+        response = self._start(api_client, lobby, user, m)
+        assert response.status_code == 200
+        lobby.refresh_from_db()
+        units = sum(
+            1
+            for col in lobby.field
+            for cell in col
+            if cell.get("unit") and cell["unit"]["player"] == 0
+        )
+        # The pre-placed starter at the base plus the one at [0][1]; the
+        # occupied base adds nothing.
+        assert units == 2
+
+    def test_random_games_start_the_same_way(self, api_client, lobby, user):
+        response = api_client.post(
+            f"/games/{lobby.game_code}/start/",
+            data=json.dumps({"width": 10, "height": 10, "minSpeed": 1, "maxSpeed": 3}),
+            content_type="application/json",
+            **headers_for(user),
+        )
+        assert response.status_code == 200
+        lobby.refresh_from_db()
+        assert lobby.status == "playing"

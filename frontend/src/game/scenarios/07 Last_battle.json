@@ -1,0 +1,7460 @@
+{
+  "kind": "little-dinos-scenario",
+  "version": 1,
+  "description": "Every tower is lost. The last warriors stand ready for a final battle against a larger army. Our strength is unity. Charge!",
+  "map": {
+    "version": 1,
+    "name": "Last battle",
+    "metadata": {
+      "playersNum": 6,
+      "humanPlayersNum": 1,
+      "botPlayersNum": 5,
+      "width": 30,
+      "height": 30
+    },
+    "settings": {
+      "enableFogOfWar": true,
+      "fogOfWarRadius": 3,
+      "visibilitySpeedRelation": true,
+      "minSpeed": 1,
+      "maxSpeed": 5,
+      "speedMinVisibility": 10,
+      "maxUnitsNum": 5,
+      "maxBasesNum": 3,
+      "unitModifier": 3,
+      "baseModifier": 3,
+      "buildingRates": {
+        "base": 0,
+        "habitation": 0,
+        "temple": 0,
+        "well": 0,
+        "storage": 0,
+        "obelisk": 0
+      },
+      "hideEnemySpeed": false,
+      "killAtBirth": true,
+      "enableUndo": true
+    },
+    "field": [
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino1",
+            "player": 0,
+            "movePoints": 1
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino1",
+            "player": 0,
+            "movePoints": 9
+          }
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino1",
+            "player": 0,
+            "movePoints": 6
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": {
+            "_type": "well",
+            "player": null
+          },
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": {
+            "_type": "obelisk",
+            "player": null
+          },
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino1",
+            "player": 0,
+            "movePoints": 2
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 9
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 3
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 7
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 8
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 6
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 2
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 1
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 5
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 10
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino1",
+            "player": 0,
+            "movePoints": 8
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 5
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": {
+            "_type": "obelisk",
+            "player": null
+          },
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino1",
+            "player": 0,
+            "movePoints": 7
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino1",
+            "player": 0,
+            "movePoints": 0
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 3
+          }
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 1
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 6
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 4
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 7
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 4
+          }
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 10
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 8
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 9
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino5",
+            "player": 4,
+            "movePoints": 2
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": {
+            "_type": "obelisk",
+            "player": null
+          },
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": {
+            "_type": "well",
+            "player": null
+          },
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino1",
+            "player": 0,
+            "movePoints": 10
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino1",
+            "player": 0,
+            "movePoints": 5
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino1",
+            "player": 0,
+            "movePoints": 3
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": {
+            "_type": "dino1",
+            "player": 0,
+            "movePoints": 4
+          }
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        }
+      ],
+      [
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 3
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "mountain",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 8
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 9
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 7
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 2
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 4
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 1
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 6
+          },
+          "building": null,
+          "unit": null
+        },
+        {
+          "terrain": {
+            "kind": "empty",
+            "idx": 5
+          },
+          "building": null,
+          "unit": null
+        }
+      ]
+    ],
+    "players": [
+      {
+        "_type": "human"
+      },
+      {
+        "_type": "bot"
+      },
+      {
+        "_type": "bot"
+      },
+      {
+        "_type": "bot"
+      },
+      {
+        "_type": "bot"
+      },
+      {
+        "_type": "bot"
+      }
+    ]
+  }
+}

@@ -211,6 +211,10 @@ export default {
         // legacy permissive mode (false) is not a playable option here.
         enableScoutMode: true,
         initialMap: map,
+        // A scenario is a puzzle to replay, so losing keeps its fog and
+        // ends the run — unlike a saved map, which behaves like the
+        // random game it came from.
+        isScenario: true,
         loadGame: false,
       })
     },

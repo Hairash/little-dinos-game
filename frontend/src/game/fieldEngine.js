@@ -85,6 +85,35 @@ export class FieldEngine {
     return visibleCoordsSet
   }
 
+  // Is this player still in the single-player game? Yes while they hold a
+  // unit, or a base no opponent is standing on. A base with an enemy
+  // parked on it produces nothing, and without units there is no way to
+  // drive them off — so holding only occupied bases is a loss.
+  //
+  // Multiplayer deliberately differs: there an owned base keeps you in the
+  // game however it's occupied, because another player may free it. See
+  // `get_active_players` / `get_playable_players` in
+  // `backend/game/services/game_logic.py`.
+  hasPlayableAssets(player) {
+    for (let x = 0; x < this.width; x++) {
+      for (let y = 0; y < this.height; y++) {
+        const cell = this.field[x][y]
+        if (cell.unit && cell.unit.player === player) return true
+        // Reached only when the cell holds no unit of this player's, so
+        // an empty cell is the one that still counts.
+        if (
+          !cell.unit &&
+          cell.building &&
+          cell.building._type === Models.BuildingTypes.BASE &&
+          cell.building.player === player
+        ) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
   getPlayerObjectCoords(player) {
     const coords = []
     for (let curX = 0; curX < this.width; curX++) {

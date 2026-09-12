@@ -248,6 +248,11 @@ Start a game. Requires authentication and being the game creator (order=0).
 }
 ```
 
+Starting also runs the opening player's start-of-turn production, so
+their empty towers spawn on turn 1. Every later turn gets this from the
+end-turn handler, which produces for the player about to start — but no
+turn ends before the first one.
+
 To start from a picked map (saved map or custom scenario), include the
 full canonical Map JSON under `initialMap`. The server validates it
 (schema v1 shape, dimensions 5–50, ≤ 8 seats, ≤ 3 MB body), hydrates the

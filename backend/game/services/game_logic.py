@@ -310,7 +310,10 @@ def apply_move_txn(game_code: str, user_id: int, payload: dict, client_seq: int)
         newly_eliminated = sorted(active_before - active_after)
         if newly_eliminated:
             patch["newlyEliminated"] = newly_eliminated
-        winner_order = next(iter(active_after)) if len(active_after) == 1 else None
+        # Winning is decided on who can still act, not who is still in the
+        # game — see `check_game_ended`. Occupying every rival's towers
+        # ends it even though none of them is individually "eliminated".
+        winner_order = check_game_ended(field, width, height)
         write_fields = ["field", "undo_state"]
         if winner_order is not None:
             # Game ended - clear undo state (no further actions are possible) and
@@ -506,10 +509,18 @@ def apply_end_turn_txn(game_code: str, user_id: int, client_seq: int):
         height_for_active = settings_for_active.get("height", 20)
         all_orders_now = set(GamePlayer.objects.filter(game=game).values_list("order", flat=True))
         active_before = get_active_players(field_for_active, width_for_active, height_for_active)
-        eliminated_before = all_orders_now - active_before
+        playable_before = get_playable_players(
+            field_for_active, width_for_active, height_for_active
+        )
 
-        # Advance to next ACTIVE player (we'll produce units for them).
-        next_player_id = compute_next_player(game, user_id, eliminated_before)
+        # Advance to the next player who can actually MOVE. That skips the
+        # eliminated, and also anyone whose only bases are occupied by an
+        # opponent: they have nothing to spawn and nothing to move, so
+        # handing them the turn would stall the game on a player with no
+        # legal action. They stay in the game (see `get_active_players`)
+        # and rejoin the rotation as soon as a base frees up.
+        skip_orders = all_orders_now - playable_before
+        next_player_id = compute_next_player(game, user_id, skip_orders)
 
         # Clear scout-revealed coordinates for the current player (turn is ending)
         try:
@@ -577,7 +588,7 @@ def apply_end_turn_txn(game_code: str, user_id: int, client_seq: int):
         # into spectator mode. Game ends iff a single player remains.
         active_after = get_active_players(field, width, height)
         newly_eliminated_orders = sorted(active_before - active_after)
-        winner_order = next(iter(active_after)) if len(active_after) == 1 else None
+        winner_order = check_game_ended(field, width, height)
 
         # Persist changes to DB
         tick = now_ms()
@@ -829,10 +840,20 @@ def apply_scout_txn(game_code: str, user_id: int, payload: dict, client_seq: int
 def get_active_players(field, width, height) -> set[int]:
     """Return the set of player orders still in the game.
 
-    A player counts as active if they have at least one unit OR own at
-    least one building that isn't occupied by an opposing unit. This is
-    the inverse of the "eliminated" predicate used to skip dead players'
-    turns and to mark them as spectators.
+    A player counts as active while they have at least one unit OR own at
+    least one building — **including one an opponent is currently sitting
+    on**. A parked opponent produces a stalemate, not a defeat: someone
+    else can drive them off and hand the base back, so the owner keeps
+    their seat, their view, and their place in the standings.
+
+    This is the inverse of the "eliminated" predicate, which drives
+    spectator mode and the winner check. It is NOT the predicate for
+    whose turn comes next — a player with only an occupied base cannot
+    act, so see `get_playable_players`.
+
+    Single-player deliberately differs: there the same situation is a
+    loss (`FieldEngine.hasPlayableAssets`), because the human has no
+    ally who might free the tower.
     """
     active: set[int] = set()
     for x in range(width):
@@ -845,17 +866,57 @@ def get_active_players(field, width, height) -> set[int]:
                 active.add(unit["player"])
             building = cell.get("building")
             if building and building.get("player") is not None:
-                owner = building["player"]
-                if not unit or unit.get("player") == owner:
-                    active.add(owner)
+                active.add(building["player"])
     return active
 
 
-def check_game_ended(field, width, height, players_num: int) -> int | None:
-    """Return the surviving player's order if only one is left, else None."""
-    active_players = get_active_players(field, width, height)
-    if len(active_players) == 1:
-        return next(iter(active_players))
+def get_playable_players(field, width, height) -> set[int]:
+    """Return the orders that can actually take a turn.
+
+    A turn is only meaningful with something to move: a unit already on
+    the field, or a base that will spawn one (no unit standing on it).
+    A player holding nothing but bases an opponent is parked on gets
+    skipped — they'd have no move to make — but stays in the game per
+    `get_active_players`, and rejoins the rotation the moment a base
+    frees up or a unit reappears.
+    """
+    playable: set[int] = set()
+    for x in range(width):
+        for y in range(height):
+            cell = field[x][y]
+            if not cell:
+                continue
+            unit = cell.get("unit")
+            if unit and unit.get("player") is not None:
+                playable.add(unit["player"])
+                # A base under a unit produces nothing this turn, so it
+                # adds no one beyond that unit's owner.
+                continue
+            building = cell.get("building")
+            if building and building.get("player") is not None:
+                playable.add(building["player"])
+    return playable
+
+
+def check_game_ended(field, width, height, players_num: int = 0) -> int | None:
+    """Return the winner's order if the game is over, else None.
+
+    The test is on who can still ACT, not on who is still nominally in the
+    game. Occupation is asymmetric by design:
+
+    * Being occupied never loses the game for you on its own — an ally may
+      drive the occupier off, so you keep your seat (`get_active_players`)
+      and simply have your turns skipped.
+    * But it does win the game for the occupier. Once every rival is out
+      of units with every tower of theirs sat on, nobody else can move
+      again, so the last player who can act has won and the rest have lost.
+
+    Holding a tower nobody is standing on still counts — it spawns a
+    defender next turn, so that player is very much still in it.
+    """
+    playable = get_playable_players(field, width, height)
+    if len(playable) == 1:
+        return next(iter(playable))
     return None
 
 

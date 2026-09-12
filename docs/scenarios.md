@@ -21,16 +21,24 @@ Built-ins are one JSON file per scenario in
 `frontend/src/game/scenarios/`, using the **same wrapper format the Map
 Editor's Export produces** (`{ kind, version, description, map }`). To
 add or change a default scenario, author it in the editor, Export it,
-and drop the file into the folder (both `.json` and `.ldm` names are
-picked up; a numeric `NN-` filename prefix controls the picker order and
-is stripped from the entry id). Built-ins never appear in the Map Editor
+and drop the file into the folder — both `.json` and `.ldm` names are
+picked up.
+
+**Ordering**: files are listed in filename order, so a numeric prefix
+controls the picker order (easiest first, say). **Zero-pad it** — the
+sort is lexicographic, so an unpadded `2-foo.json` lands after
+`10-bar.json`. Any separator after the digits works (`01-ambush.json`,
+`01 Wild world.json`), and the prefix is stripped from the entry id so
+renumbering to reorder the list never changes a scenario's identity.
+Leaving gaps (`10-`, `20-`, `30-`) means inserting a scenario later is
+one new file instead of renaming every file after it. Built-ins never appear in the Map Editor
 and cannot be edited — the old override layer is gone (existing
 overrides are migrated into user scenarios once, see _Legacy override
 migration_).
 
 | File                                              | Role                                                                                                                                                                                                              |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `frontend/src/game/scenarios/*.json`              | The 10 shipped scenarios, one wrapper-format file each (deterministic terrain indices baked in so they look identical every load).                                                                                |
+| `frontend/src/game/scenarios/*.json`              | The shipped scenarios, one wrapper-format file each. Content, not code — add, remove or renumber freely; the tests assert the folder's contract, never a particular set.                                          |
 | `frontend/src/game/scenarios/index.js`            | Folder loader: `import.meta.glob` over `./*.json` / `./*.ldm`, sorted by filename. Exports `SCENARIOS` (array of `{ id, description, map }`) and `getScenarioById`.                                               |
 | `frontend/src/components/game/ScenariosPage.vue`  | List + preview + Start Game UI. Mirrors `SavedMapsPage.vue`; lists built-ins from `SCENARIOS` **merged with user-authored scenarios from `mapEditorStorage`**, with an "↑ Import scenario from file" item on top of the list (same `.ldm`/`.json` import the editor offers — lands in the user bucket). |
 | `frontend/src/components/game/NewGameSubmenu.vue` | The "Scenarios" button that routes to the page.                                                                                                                                                                   |
@@ -181,7 +189,7 @@ maps are static JSON now, and new maps are authored in the Map Editor.)
    `11-my-scenario.json` (rename freely — the id derives from the
    filename with the prefix stripped).
 6. **Walk the map.** Launch the scenario, open the fog, check that every player can reach every other player. Verify no buildings are stranded behind a wall the bot can't navigate.
-7. **Lint and test.** `npm run format && npm run lint:fix && npm run lint && npm run test` (`tests/game/builtinScenarios.spec.js` pins the folder contract — update the expected count).
+7. **Lint and test.** `npm run format && npm run lint:fix && npm run lint && npm run test` (`tests/game/builtinScenarios.spec.js` pins the folder contract (valid maps, unique prefix-free ids, blue placed) and adapts to whatever the folder holds).
 
 ---
 
@@ -257,6 +265,10 @@ Custom scenarios and saved maps can seed multiplayer games. The lobby's
 maps_ and _Custom scenarios_ — both reading the client's localStorage
 (built-ins are excluded). Flow:
 
+0. The Custom scenarios tab carries an "↑ Import scenario from file"
+   item, the same one the single-player Scenarios page offers and writing
+   to the same `mapEditor.scenarios.v1` bucket — so a scenario someone
+   sends you can be imported and played without backing out of the lobby.
 1. The creator picks a map. The pick's summary (name + seat count) is
    synced to the server (`POST /games/{code}/map/`) and broadcast to the
    lobby, so joiners see which map they're getting. Picking "Setup Random
@@ -500,6 +512,59 @@ legacy bucket stays in localStorage, it just stops being read.
 ### Export / import
 
 **Export** (`buildScenarioFile`) wraps an entry as `{ kind: SCENARIO_FILE_KIND, version: SCENARIO_FILE_VERSION, description, map }`, serialises it, and triggers a download via a temporary Blob URL + a synthetic `<a download>` click (revoked afterward). The filename uses the **`.ldm`** extension ("Little Dinos Map" — plain JSON inside, like `.geojson`/`.ipynb`). **Import** accepts `.ldm` plus legacy `.json` exports (`accept=".ldm,.json,application/json"`), `JSON.parse`s the file, and passes it to `importEditorScenario`, which validates the wrapper `kind`/`version` and the inner `map` (via `validateMap`) — validity is decided by the wrapper, never the extension — then saves it as a **new user entry** with a fresh id. A malformed or wrong-`kind` file is rejected with an error rather than partially imported. Import always lands in the Scenarios bucket, whatever the file's origin.
+
+### Fog after a loss
+
+Losing normally lifts the fog so the player can watch the rest play out
+(`setVisibilityStartTurn` → `showField` once
+`doesVisibilityMakeSense()` goes false for an eliminated player). **Scenarios** — default or custom — keep
+their fog instead (`keepsFogAfterLoss`): the layout is the puzzle and the
+scenario can be replayed, so handing it over on defeat spoils it. A
+**saved map** behaves like the random game it was saved from: revealed,
+with the bots still watchable. A game with fog switched off reveals
+either way.
+
+Both arrive as the same canonical map, so the launching page states which
+it is via an `isScenario` flag on the `startGame` payload —
+`ScenariosPage` always sets it, the editor's **Test** button sets it only
+from the Scenarios tab, and `SavedMapsPage` leaves it off. The flag is in
+`FIELDS_TO_SAVE`, so a **resumed** game keeps its rules; without that a
+reloaded scenario would count as a random game and reveal the map it had
+been hiding. (`App.loadGame` also copies `INITIAL_SETTINGS` rather than
+aliasing it, so a resumed scenario can't leave the flag behind in the
+shared defaults.)
+
+A lost scenario also drops the "Or you may watch bot fighting" offer
+(`canWatchBots` on `ReadyLabel`): its End-turn button is disabled, so
+there is no bot fight to watch.
+
+There is no "explored memory" in the engine — visibility is recomputed
+each turn from the units and bases a player currently owns. An
+eliminated player owns nothing, so keeping the fog means they see
+nothing. That is why **losing a scenario also blocks End turn**
+(`lostMapGame`, passed to `InfoPanel` as `endTurnBlocked` and guarding
+`processEndTurn`, so the `e` shortcut is covered too): there is nothing
+to advance to, and Exit from the menu is the only way on. The block
+applies whether or not fog is on — with fog off the board is revealed but
+the run is still over. Random games and saved maps keep the button. It can only trigger once every human is out, since
+the rotation stops on an eliminated player only after `humanPhase` leaves
+`progress`, so it can't strand a hotseat rival.
+
+**Spectating never re-fogs.** After a random game is lost the field is
+revealed once, but bot turns keep recomputing `cell.isHidden` for the
+bot's own AI, which would black the board out between moves. Three places
+re-assert the reveal for an eliminated viewer: `displayVisibilityCoords`
+(returns the full coord set), the move-animation snapshot (left null
+rather than freezing the spectator's empty visibility), and the
+birth-animation filter (unfiltered, so spawns still animate). A lost
+scenario takes the opposite branch in each — empty set, stays dark.
+
+**Multiplayer always reveals** and enters spectator mode, both for an
+eliminated player and for everyone once the game ends
+(`effective_fog_of_war` in `backend/game/consumers.py`), including for
+map-seeded games — deliberately left as-is. The backend already ships
+spectators the full field on every patch rather than a sparse diff, so
+their map doesn't flicker between moves either.
 
 ### Sight radius on a shared cell
 
