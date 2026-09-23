@@ -29,15 +29,21 @@ export async function animateMovePath(field, path, unit, opts = {}) {
   const isVisible = opts.isVisible ?? (() => true)
   const isCancelled = opts.isCancelled ?? (() => false)
 
+  let placedIndex = 0
   for (let i = 1; i < path.length; i++) {
     if (isCancelled()) return
-    const [px, py] = path[i - 1]
+    const visibleStep = isVisible(path[i]) || isVisible(path[i - 1])
+    // Do not mutate every cell in a hidden stretch. On a large reactive
+    // board, even invisible placements trigger rendering work.
+    if (!visibleStep && i < path.length - 1) continue
+    const [px, py] = path[placedIndex]
     const [nx, ny] = path[i]
     if (field[nx] && field[nx][ny]) field[nx][ny].unit = unit
     if (field[px] && field[px][py]) field[px][py].unit = null
+    placedIndex = i
     // Only burn real time on steps that the local player can actually see.
-    // Invisible steps still update the field so post-walk state is correct.
-    if (isVisible(path[i]) || isVisible(path[i - 1])) {
+    // The final placement still happens even when the remaining path is hidden.
+    if (visibleStep) {
       await sleep(delay)
     }
   }

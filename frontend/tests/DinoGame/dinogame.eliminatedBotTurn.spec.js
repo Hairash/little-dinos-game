@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import DinoGame from '@/components/game/DinoGame.vue'
 import { FieldEngine } from '@/game/fieldEngine.js'
+import emitter from '@/game/eventBus.js'
 import Models from '@/game/models.js'
 
 // Regression: a saved map with many bots (1 human + 7 bots) stalled when a
@@ -161,5 +162,26 @@ describe('a bot wiped out before its first move', () => {
     // Humans remain, so the run isn't over — the turn must still pass.
     expect(vm.humanPhase).toBe(vm.HUMAN_PHASES.progress)
     expect(vm.lostMapGame).toBe(false)
+  })
+})
+
+describe('a bot with only stationary units', () => {
+  it('passes the turn without calculating moves or cached sight', async () => {
+    const vm = launch()
+    vm.currentPlayer = 1
+    vm.localField[4][4].unit.movePoints = 0
+    const moveSpy = vi.spyOn(vm.botEngine, 'makeBotUnitMove')
+    const sightSpy = vi.spyOn(vm.botEngine, 'prepareTurnVisibility')
+    const emitSpy = vi.spyOn(emitter, 'emit').mockImplementation(() => {})
+
+    try {
+      await vm.makeBotMove()
+      expect(moveSpy).not.toHaveBeenCalled()
+      expect(sightSpy).not.toHaveBeenCalled()
+      expect(vm.unitCoordsArr).toEqual([])
+      expect(emitSpy).toHaveBeenCalledWith('processEndTurn')
+    } finally {
+      emitSpy.mockRestore()
+    }
   })
 })

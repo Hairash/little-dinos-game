@@ -78,6 +78,26 @@ describe('animateMovePath', () => {
     expect(field[1][0].unit).toBeNull()
   })
 
+  it('jumps over hidden cells while still animating visible steps', async () => {
+    const field = makeField(6, 1)
+    const unit = { player: 1 }
+    field[0][0].unit = unit
+    const path = [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]]
+    const visible = ([x]) => x === 3 || x === 4
+
+    const promise = animateMovePath(field, path, unit, { delay: 100, isVisible: visible })
+    // The first two hidden cells are never used as intermediate placements.
+    expect(field[1][0].unit).toBeNull()
+    expect(field[2][0].unit).toBeNull()
+    expect(field[3][0].unit).toBe(unit)
+
+    await vi.advanceTimersByTimeAsync(300)
+    await promise
+    expect(field[5][0].unit).toBe(unit)
+    expect(field[3][0].unit).toBeNull()
+    expect(field[4][0].unit).toBeNull()
+  })
+
   it('aborts mid-walk when isCancelled flips true', async () => {
     const field = makeField(5, 5)
     const unit = { player: 0 }

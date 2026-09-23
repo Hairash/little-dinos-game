@@ -20,11 +20,7 @@
             <template v-for="(cellData, x) in line" :key="`cell-${x}-${y}`">
               <!-- TODO: Why do we have isHidden applied to field and not to fieldOutput? -->
               <GameCell
-                :hidden="
-                  displayVisibilityCoords
-                    ? !displayVisibilityCoords.has(`${x},${y}`)
-                    : field[x][y].isHidden
-                "
+                :hidden="isCellHiddenForViewer(x, y)"
                 :dying="dyingCells ? dyingCells.has(`${x},${y}`) : false"
                 :borning="borningCells ? borningCells.has(`${x},${y}`) : false"
                 :pending-birth="pendingBirthCells ? pendingBirthCells.has(`${x},${y}`) : false"
@@ -36,6 +32,10 @@
                 :building="cellData.building"
                 :selected="selectedCoords && selectedCoords[0] === x && selectedCoords[1] === y"
                 :highlighted="fieldOutput[x][y].isHighlighted"
+                :enemy-reachable="enemyReachableCoords.has(`${x},${y}`)"
+                :enemy-selected="
+                  enemyPreviewCoords?.[0] === x && enemyPreviewCoords?.[1] === y
+                "
                 :current-player="currentPlayer"
                 :viewing-player="viewingPlayer"
                 :my-player-order="myPlayerOrder"
@@ -231,6 +231,12 @@ export default {
       infoPanelContextHelpVisible: false,
       // Visibility frame state: {x, y, visibility, player} or null (shown on right-click)
       visibilityFrameUnit: null,
+      // Legal destinations for the enemy unit selected with a left click.
+      // Kept separate from player move highlights so it never changes a
+      // pending friendly move.
+      enemyReachableCoords: new Set(),
+      enemyPreviewCoords: null,
+      enemyPreviewUnit: null,
       // Scout preview state: {x, y} or null (shown on hover/right-click in scout mode)
       scoutPreviewCoords: null,
       // Tutorial-only: extra cells flagged for a pulsing highlight overlay.
@@ -297,6 +303,15 @@ export default {
         player: this.currentPlayer,
       }
     },
+    previewedEnemyAlive() {
+      if (!this.enemyPreviewCoords || !this.enemyPreviewUnit) return false
+      const [x, y] = this.enemyPreviewCoords
+      return (
+        this.field?.[x]?.[y]?.unit === this.enemyPreviewUnit &&
+        !this.dyingCells?.has(`${x},${y}`) &&
+        !this.isCellHiddenForViewer(x, y)
+      )
+    },
   },
   created() {
     // Initialize fieldOutput
@@ -318,6 +333,12 @@ export default {
     this.fieldEngine = new FieldEngine(this.field, this.width, this.height, this.fogOfWarRadius)
   },
   watch: {
+    previewedEnemyAlive: {
+      handler(alive) {
+        if (!alive && this.enemyPreviewCoords) this.clearEnemyMovePreview()
+      },
+      flush: 'sync',
+    },
     field: {
       handler(newField, oldField) {
         // Update engines when field prop changes
@@ -393,11 +414,17 @@ export default {
     document.removeEventListener('click', this.hideContextHelpOnOutsideClick)
   },
   methods: {
+    isCellHiddenForViewer(x, y) {
+      return this.displayVisibilityCoords
+        ? !this.displayVisibilityCoords.has(`${x},${y}`)
+        : this.field?.[x]?.[y]?.isHidden
+    },
     initTurn(scrollCoords = null) {
       // console.log(scrollCoords);
       this.selectedCoords = null
       this.selectedAction = null
       this.visibilityFrameUnit = null
+      this.clearEnemyMovePreview()
       this.scoutPreviewCoords = null
       this.removeHighlights()
       if (scrollCoords) {
@@ -456,6 +483,13 @@ export default {
         return
       }
 
+      // Fog may be a display-only mask during bot turns. Do not inspect a
+      // hidden unit or change the current selection when clicking that cell.
+      // Scouting intentionally targets fog, so it remains exempt.
+      if (this.selectedAction !== ACTIONS.scouting && this.isCellHiddenForViewer(x, y)) {
+        return
+      }
+
       // Check if any context window is open
       const wasContextHelpVisible = this.contextHelpVisible || this.infoPanelContextHelpVisible
 
@@ -491,6 +525,21 @@ export default {
           } else {
             this.selectUnit(x, y, unit.movePoints)
           }
+        } else if (unit.player !== this.currentPlayer) {
+          // Enemy inspection is independent of the selected friendly unit:
+          // it can be toggled without cancelling that unit's planned move.
+          if (
+            this.enemyPreviewCoords &&
+            this.enemyPreviewCoords[0] === x &&
+            this.enemyPreviewCoords[1] === y
+          ) {
+            this.clearEnemyMovePreview()
+          } else {
+            this.clearEnemyMovePreview()
+            this.setEnemyMovePreview(x, y, unit.movePoints)
+            this.enemyPreviewUnit = unit
+            this.enemyPreviewCoords = [x, y]
+          }
         }
       } else if (this.selectedCoords && this.waveEngine.canMove(this.selectedCoords, [x, y])) {
         // Move unit to clicked cell - this will emit 'moveUnit' event
@@ -509,6 +558,7 @@ export default {
     },
     setAction(action) {
       this.selectedAction = action
+      this.clearEnemyMovePreview()
       // Clear scout preview when action is cleared
       if (!action) {
         this.scoutPreviewCoords = null
@@ -605,37 +655,51 @@ export default {
         this.fieldOutput[curX][curY].isHighlighted = true
       }
     },
+    setEnemyMovePreview(x, y, movePoints) {
+      const reachableCoords = this.waveEngine.getReachableCoordsArr(x, y, movePoints)
+      this.enemyReachableCoords = new Set(
+        reachableCoords
+          .filter(([curX, curY]) => !this.isCellHiddenForViewer(curX, curY))
+          .map(([curX, curY]) => `${curX},${curY}`)
+      )
+    },
+    clearEnemyMovePreview() {
+      this.enemyReachableCoords = new Set()
+      this.enemyPreviewCoords = null
+      this.enemyPreviewUnit = null
+    },
     handleContextMenu(coords) {
       const { x, y } = coords
       if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+        // The field's fog can belong to a bot while the grid displays the
+        // human's visibility override. Never inspect an unseen cell.
+        if (this.isCellHiddenForViewer(x, y)) return
         const cell = this.field[x][y]
-        // Only show context help for visible cells
-        if (!cell.isHidden) {
-          // Close InfoPanel context help if open
-          if (this.infoPanelContextHelpVisible) {
-            emitter.emit('infoPanelContextHelpChanged', false)
-          }
-          this.contextHelpX = x
-          this.contextHelpY = y
-          this.contextHelpCell = cell
-          this.contextHelpVisible = true
+        // Close InfoPanel context help if open
+        if (this.infoPanelContextHelpVisible) {
+          emitter.emit('infoPanelContextHelpChanged', false)
+        }
+        this.contextHelpX = x
+        this.contextHelpY = y
+        this.contextHelpCell = cell
+        this.contextHelpVisible = Boolean(
+          cell.building || cell.terrain?.kind === Models.TerrainTypes.MOUNTAIN
+        )
 
-          // In scout mode: show scout preview instead of unit visibility
-          if (this.selectedAction === ACTIONS.scouting) {
-            this.scoutPreviewCoords = { x, y }
-            this.visibilityFrameUnit = null
-          } else {
-            // Show visibility frame if fog of war is enabled and the cell has a unit
-            if (this.enableFogOfWar && cell.unit) {
-              this.visibilityFrameUnit = {
-                x,
-                y,
-                visibility: cell.unit.visibility,
-                player: cell.unit.player,
-              }
-            } else {
-              this.visibilityFrameUnit = null
+        // In scout mode: show scout preview instead of unit visibility
+        if (this.selectedAction === ACTIONS.scouting) {
+          this.scoutPreviewCoords = { x, y }
+          this.visibilityFrameUnit = null
+        } else {
+          if (this.enableFogOfWar && cell.unit) {
+            this.visibilityFrameUnit = {
+              x,
+              y,
+              visibility: cell.unit.visibility,
+              player: cell.unit.player,
             }
+          } else {
+            this.visibilityFrameUnit = null
           }
         }
       }

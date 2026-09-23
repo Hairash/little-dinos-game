@@ -26,7 +26,8 @@
           🌿 To apply effect of habitations, wells, temples and storages your dino should stay on
           them at the beginning of the turn.<br />
           🌿 Effect of obelisk applies when dino ends move on it.<br />
-          🌿 You should eliminate all other players to win.<br />
+          🌿 You should eliminate all other players to win - kill all enemy dinos and capture or
+          occupy all the enemy towers<br />
         </div>
         <br />
         <h3>Description</h3>
@@ -48,6 +49,13 @@
           captures the tower and it becomes yours.
           <br />
           <div class="context-help-example">
+            Left click on the enemy dino to highlight area it can move.
+          </div>
+          <br />
+          <br />
+
+          <h3 style="text-align: center">Buildings</h3>
+          <div class="context-help-example">
             Any time in the game you may get help by pressing right mouse button on any cell. You
             will see a tooltip with information about the building.
           </div>
@@ -61,7 +69,6 @@
             </span>
           </div>
           <br />
-          Buildings.<br />
           While tower is a main building in the game, there are others giving bonuses:<br />
           <div style="height: 10px"></div>
           <div class="building-row">
@@ -118,14 +125,15 @@
           </div>
           <br />
           <br />
-          Bottom panel buttons.<br />
+
+          <h3 style="text-align: center">Bottom panel buttons</h3>
           <div class="building-row">
             <div class="icon">
               <img class="building-img" :src="`/images/settings_icon.png`" alt="Menu" />
             </div>
             <span class="building-desc">
-              <span class="building-desc-title">Menu:</span> open the in-game menu with statistics
-              and exit / zoom controls.
+              <span class="building-desc-title">Menu [Esc]:</span> open the in-game menu with
+              statistics and exit / zoom controls.
             </span>
           </div>
           <div class="building-row">
@@ -133,7 +141,7 @@
               <img class="building-img" :src="`/images/undo.png`" alt="Undo" />
             </div>
             <span class="building-desc">
-              <span class="building-desc-title">Undo:</span> revert your last move this turn, as
+              <span class="building-desc-title">Undo [U]:</span> revert your last move this turn, as
               long as it didn't reveal new cells.
             </span>
           </div>
@@ -142,8 +150,8 @@
               <img class="building-img" :src="`/images/dino1.png`" alt="Next unit" />
             </div>
             <span class="building-desc">
-              <span class="building-desc-title">Next unit:</span> select your next dino that hasn't
-              moved yet. Free dinos come first, then dinos sitting on buildings.
+              <span class="building-desc-title">Next unit [N]:</span> select your next dino that
+              hasn't moved yet. Free dinos come first, then dinos sitting on buildings.
             </span>
           </div>
           <div class="building-row">
@@ -151,8 +159,8 @@
               <img class="building-img" :src="`/images/arrow.png`" alt="End turn" />
             </div>
             <span class="building-desc">
-              <span class="building-desc-title">End turn:</span> finish your turn and pass play to
-              the next player.
+              <span class="building-desc-title">End turn [E]:</span> finish your turn and pass play
+              to the next player.
             </span>
           </div>
           <div class="context-help-example">
@@ -160,6 +168,68 @@
           </div>
           <br />
           <br />
+
+          <h3 style="text-align: center">In-game menu buttons</h3>
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/arrow.png`" alt="Back" style="transform: scaleX(-1);" />
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Back [Esc]:</span> close the menu and return to the
+              game.
+            </span>
+          </div>
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/plus.png`" alt="Zoom in" />
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Zoom in [+ or =]:</span> make the map cells larger.
+            </span>
+          </div>
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/minus.png`" alt="Zoom out" />
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Zoom out [-]:</span> make the map cells smaller.
+            </span>
+          </div>
+          <div class="building-row">
+            <div class="icon">
+              <img
+                class="building-img"
+                :src="`/images/bot_fast_forward_icon.png`"
+                alt="Fast-forward"
+              />
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Fast-forward [F]:</span> toggle bot move animations
+              in single-player games.
+            </span>
+          </div>
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/save_icon.png`" alt="Save map" />
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Save map [S]:</span> save a random map's layout for
+              a future game.
+            </span>
+          </div>
+          <div class="building-row">
+            <div class="icon">
+              <img class="building-img" :src="`/images/exit_icon.png`" alt="Quit" />
+            </div>
+            <span class="building-desc">
+              <span class="building-desc-title">Quit [Q]:</span> open the confirmation to leave the
+              game.
+            </span>
+          </div>
+          <br />
+          <br />
+          <br />
+
           Before you dive in, note that there are a few game settings available. Kindly recommend
           you to start with the "fog of war" option disabled and towers only to understand what's
           going on.

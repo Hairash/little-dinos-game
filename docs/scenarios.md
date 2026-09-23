@@ -41,7 +41,7 @@ migration_).
 | `frontend/src/game/scenarios/*.json`              | The shipped scenarios, one wrapper-format file each. Content, not code — add, remove or renumber freely; the tests assert the folder's contract, never a particular set.                                          |
 | `frontend/src/game/scenarios/index.js`            | Folder loader: `import.meta.glob` over `./*.json` / `./*.ldm`, sorted by filename. Exports `SCENARIOS` (array of `{ id, description, map }`) and `getScenarioById`.                                               |
 | `frontend/src/components/game/ScenariosPage.vue`  | List + preview + Start Game UI. Mirrors `SavedMapsPage.vue`; lists built-ins from `SCENARIOS` **merged with user-authored scenarios from `mapEditorStorage`**, with an "↑ Import scenario from file" item on top of the list (same `.ldm`/`.json` import the editor offers — lands in the user bucket). |
-| `frontend/src/components/game/NewGameSubmenu.vue` | The "Scenarios" button that routes to the page.                                                                                                                                                                   |
+| `frontend/src/components/game/NewGameSubmenu.vue` | The "Scenario" button that routes to the page.                                                                                                                                                                    |
 | `frontend/src/App.vue`                            | The `v-if="state === GAME_STATES.scenarios"` branch that mounts `ScenariosPage`; plus the editor branches (see below).                                                                                            |
 | `frontend/src/game/const.js`                      | `GAME_STATES.scenarios`, `GAME_STATES.mapEditor`, `GAME_STATES.mapEditorCanvas`.                                                                                                                                  |
 
@@ -61,11 +61,11 @@ migration_).
 
 ## Runtime flow
 
-1. `New Game` → `NewGameSubmenu` → "Scenarios" → `emitter.emit('goToPage', GAME_STATES.scenarios)`.
-2. `App.vue` renders `ScenariosPage`. The page merges `SCENARIOS` with any **built-in overrides** applied (so an edited built-in previews its edited form) and appends user scenarios, then shows the description and a `MapPreview` for the selected entry. When the map has fog of war on, the preview is **masked to the human player's starting visibility** (`viewingPlayer`) so it doesn't spoil the layout — see _Fog-of-war preview masking_.
+1. `New Game` → `NewGameSubmenu` → "Scenario" → `emitter.emit('goToPage', GAME_STATES.scenarios)`.
+2. `App.vue` renders `ScenariosPage`. The page lists read-only built-ins from `SCENARIOS` alongside user scenarios. Legacy built-in overrides are migrated into separate user scenarios, not applied to the built-ins. It shows the description and a `MapPreview` for the selected entry. When the map has fog of war on, the preview is **masked to the human player's starting visibility** (`viewingPlayer`) so it doesn't spoil the layout — see _Fog-of-war preview masking_.
 3. "Start Game" emits `startGame` with the canonical map flattened into a settings payload (same shape as `SavedMapsPage.mapToStartSettings`) **plus** an explicit `enableScoutMode: true` (see _Rules_ below).
 4. `App.startGame` stores the payload as `settings` and switches state to `game`.
-5. `DinoGame` mounts, reads `initialMap`, rebuilds `Models.Cell`/`Building`/`Unit` instances, and reseeds each unit's `movePoints`/`visibility` via `createNewUnit(player, minSpeed, minSpeed, …)` — exactly as it does for saved maps. Starting unit speed is `minSpeed`, **except** editor maps that stamp an explicit `movePoints` (including `0`) on a starter, which is honoured instead — see _Honoring explicit unit speed_.
+5. `DinoGame` mounts, reads `initialMap`, rebuilds `Models.Cell`/`Building`/`Unit` instances, and reseeds each unit's `movePoints`/`visibility` via `createNewUnit(player, minSpeed, minSpeed, …)` — exactly as it does for saved maps. Starting unit speed is `minSpeed`, **except** maps that stamp an explicit `movePoints` (including `0`) on a starter, which is honoured instead — see _Honoring explicit unit speed_.
 
 There is no backend involvement and no localStorage write at launch. The map JSON lives in memory only.
 
@@ -459,33 +459,38 @@ The `map` is a canonical Map JSON (mapSchema v1) — identical shape to the buil
 `DinoGame.loadFieldOrGenerateNewField` was updated to detect an
 explicit `movePoints` on a starting unit and use it instead of the
 default `minSpeed` reseed (see the `// Map-editor scenarios can stamp
-an explicit movePoints` comment in `DinoGame.vue`). Built-in
-scenarios (and random maps) don't ship `movePoints` on starters, so
-they keep the original "everyone starts at minSpeed" behaviour —
-only editor maps with an explicit speed see varied starting speeds.
+an explicit movePoints` comment in `DinoGame.vue`). This also applies
+to built-in scenarios with explicit starting speeds; starters without
+`movePoints`, including those on random maps, begin at `minSpeed`.
 
 **Speed 0 is a valid explicit choice** (an immobile dino, as tutorial
 scenarios place). The detection test is `saved.movePoints >= 0` (not
 `> 0`), so a placed `0` is honoured rather than falling through to the
-`minSpeed` reseed. Four call sites use the `>= 0` test and must stay
-in sync: `DinoGame.vue` (the in-game reseed), `MapPreview.vue` (the
-picker's fog preview), the editor's cell speed badge in
-`MapEditorCanvasPage.vue` (`movePoints != null`, not a truthy check, so
-`0` renders instead of showing as blank), and the backend's
+`minSpeed` reseed. The launch and preview paths must stay in sync:
+`DinoGame.vue` (the in-game reseed), `MapPreview.vue` (the picker's fog
+preview), and the backend's
 `hydrate_field_for_game` in `backend/game/services/map_snapshot.py`
-(multiplayer launches from editor maps).
+(multiplayer launches from editor maps) accept nonnegative speeds. The
+editor's cell speed badge in `MapEditorCanvasPage.vue` uses
+`movePoints != null`, rather than a truthy check, so `0` appears on the badge.
 
 **Visibility is scaled against the game's `minSpeed`, never the unit's
 own speed.** `createNewUnit` uses its `min` bound for both the speed
 roll and the visibility scale, so handing it the explicit speed as the
 min would normalise every placed unit to `0` on the curve — i.e. the
 maximum visibility, whatever its speed. `DinoGame` therefore recomputes
-`calculateUnitVisibility(max(speed, minSpeed), minSpeed,
-speedMinVisibility, fogOfWarRadius)` after the reseed, and `MapPreview`
-mirrors it. Speeds below `minSpeed` (only `0`) clamp up, which keeps the
-rule that an immobile dino still sees as far as the slowest moving one.
+`calculateUnitVisibility(max(speed, minSpeed, 1), minSpeed,
+speedMinVisibility, fogOfWarRadius)` after the reseed for explicit speeds,
+and `MapPreview` mirrors it. Speed-0 units see as far as speed-1 units
+but have no possible moves; bases beneath them still provide normal sight.
 (Before this, a placed speed-3 dino on a fog-2 / threshold-5 map saw 3
 instead of 2 — every placed unit had slowest-unit sight.)
+
+The multiplayer map hydrator honours the same explicit speed, but its
+visibility calculation currently uses that speed as the curve's minimum.
+Consequently, an explicitly placed unit above the game's `minSpeed` may start
+with a different sight radius in multiplayer. This is a game-logic parity gap,
+not a map-preview rule.
 
 ### Random terrain idx
 
@@ -606,9 +611,32 @@ this is the frontend matching it.
 base is yours by the time the post-move visibility is added, so taking
 `max(unit.visibility, fogOfWarRadius)` there is correct.)
 
+### "Won" marks in the pickers
+
+Beating a scenario or saved map in single-player ticks it with a green
+check in the picker, the same cue `TutorialPage` shows for a completed
+tutorial. Cosmetic only — nothing gates on it.
+
+`frontend/src/game/mapProgress.js` holds a `{ key: true }` dict in
+localStorage under `mapsWon.v1`, mirroring the tutorial's completion
+store. Keys are **typed**: `scenario:<map name>` or `map:<map name>`.
+Scenarios and saved maps live in different buckets and may share a name,
+so the prefix stops a win on one from ticking the other; the name is what
+both pickers already render, so no entry id has to be plumbed through.
+
+`DinoGame.recordMapWin()` writes the entry at both points where a human
+is declared the winner (`checkEndOfGame` and the lone-surviving-human
+branch of `updateEndgamePhases`). It no-ops for a random game (no entry
+to tick), for a bot win, and for tutorials (they keep their own store).
+`ScenariosPage` and `SavedMapsPage` read the dict once on mount.
+
+Because the key is the map's name, renaming a saved map in the editor or
+importing a scenario under a new name starts it fresh, and the marks are
+per-browser like every other localStorage record.
+
 ### Fog-of-war preview masking
 
-`MapPreview` takes an optional `viewingPlayer` prop. When it's non-null **and** the map has `enableFogOfWar`, the preview computes the set of cells visible to that player at scenario start (`visibleSet`) and renders everything else as fog (`.map-preview-cell-fog`), hiding buildings/units there — so the picker doesn't spoil the layout. The visibility math mirrors the engine: each owned unit contributes its `visibility` (or, if only `movePoints` is set, `calculateUnitVisibility(speed, speed, threshold, fogR)` — min collapsed to the unit's own speed, matching `DinoGame`'s reseed); each owned base contributes `fogOfWarRadius`; ranges use Chebyshev distance. **Every browser opts in** — `ScenariosPage`, `MapEditorListPage` (both tabs) and `SavedMapsPage` (both launch and lobby-pick mode) each pass the first human seat's index, so no picker spoils a layout you're about to play blind. Maps saved from multiplayer mark every seat human, so that's seat 0 for them too.
+`MapPreview` takes an optional `viewingPlayer` prop. When it's non-null **and** the map has `enableFogOfWar`, the preview computes the set of cells visible to that player at scenario start (`visibleSet`) and renders everything else as fog (`.map-preview-cell-fog`), hiding buildings/units there — so the picker doesn't spoil the layout. The visibility math mirrors the engine: each owned unit contributes its `visibility` (or derives it from speed when absent); speed-0 units see as far as speed-1 units; each owned base contributes `fogOfWarRadius`; ranges use Chebyshev distance. **Every browser opts in** — `ScenariosPage`, `MapEditorListPage` (both tabs) and `SavedMapsPage` (both launch and lobby-pick mode) each pass the first human seat's index, so no picker spoils a layout you're about to play blind. Maps saved from multiplayer mark every seat human, so that's seat 0 for them too.
 
 ### Validation and feedback
 
@@ -640,5 +668,5 @@ Editor/scenario coverage lives under `frontend/tests/`:
 - `tests/game/builtinScenarios.spec.js` — the scenarios-folder contract (count, ids, order, schema validity).
 - `tests/game/saveGating.spec.js` — Save-map gating for SP/MP map-seeded games and the MP `map_saved` → localStorage write.
 - `tests/editor/mapEditorCanvas.spec.js` — mounts `MapEditorCanvasPage` and exercises placement (incl. a speed-0 dino), single-step undo capture/restore, `performMove`, the "deselect tool after a move" rule, PC drag-select finalisation, Esc-to-cancel, and the destination hover preview (`moveDestPreviewRect`, incl. edge clamping).
-- `tests/editor/mapPreview.fog.spec.js` — fog-of-war preview masking via `viewingPlayer`, the no-mask cases, and speed-0/speed-1 radius parity.
-- `tests/game/helpers.spec.js` — `calculateUnitVisibility` speed-0 vs speed-1 parity (the core of the immobile-dino rule).
+- `tests/editor/mapPreview.fog.spec.js` — fog-of-war preview masking via `viewingPlayer`, the no-mask cases, and speed-0/speed-1 sight parity.
+- `tests/game/helpers.spec.js` — `calculateUnitVisibility` gives speed-0 units the same sight as speed-1 units.

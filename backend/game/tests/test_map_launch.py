@@ -217,8 +217,12 @@ class TestHydrateExplicitSpeed:
         zero = self._hydrate_unit({"player": 0, "_type": "dino1", "movePoints": 0})
         one = self._hydrate_unit({"player": 0, "_type": "dino1", "movePoints": 1})
         assert zero["movePoints"] == 0
-        # An immobile dino sees as far as the slowest moving one.
         assert zero["visibility"] == one["visibility"]
+
+        stale = self._hydrate_unit(
+            {"player": 0, "_type": "dino1", "movePoints": 0, "visibility": 9}
+        )
+        assert stale["visibility"] == 9
 
     def test_explicit_visibility_wins(self):
         unit = self._hydrate_unit({"player": 0, "_type": "dino1", "movePoints": 1, "visibility": 9})

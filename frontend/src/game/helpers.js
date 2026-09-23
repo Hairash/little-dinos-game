@@ -65,6 +65,8 @@ export function createNewUnit(
 }
 
 export function calculateUnitVisibility(movePoints, minSpeed, maxSpeed, avgVisibility) {
+  // An immobile unit sees like a speed-1 unit; it simply cannot move.
+  movePoints = Math.max(movePoints, 1)
   // console.log(`Speed: ${movePoints}, minSpeed: ${minSpeed}, maxSpeed: ${maxSpeed}, avgVisibility: ${avgVisibility}`);
   if (movePoints > maxSpeed) {
     return 1

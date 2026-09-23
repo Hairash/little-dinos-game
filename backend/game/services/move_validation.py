@@ -82,6 +82,8 @@ def can_reach(field, width, height, x0, y0, x1, y1, move_points, enable_scout_mo
     Check if destination (x1, y1) is reachable from (x0, y0) within move_points.
     Uses wave algorithm (BFS) to find shortest path.
     """
+    if move_points <= 0:
+        return False
     # print(f"[DEBUG] can_reach: from=({x0},{y0}), to=({x1},{y1}), move_points={move_points}")
     wave_field = get_wave_field(field, width, height, enable_scout_mode)
 

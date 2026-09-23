@@ -48,10 +48,7 @@ describe('MapPreview fog-of-war masking', () => {
     expect(w.vm.visibleSet).toBeNull()
   })
 
-  // The speed-0 fix: a stationary dino must preview the SAME fog radius
-  // as a speed-1 one (both collapse to normalizedSpeed 0). Mirrors the
-  // in-game reseed so the picker preview matches what you'll actually play.
-  it('previews the same radius for a speed-0 and a speed-1 dino', () => {
+  it('gives a speed-0 dino the same sight as speed 1 in the preview', () => {
     const mapWithSpeed = mp => ({
       settings: {
         enableFogOfWar: true,
@@ -68,7 +65,13 @@ describe('MapPreview fog-of-war masking', () => {
     })
     const w0 = mount(MapPreview, { props: { map: mapWithSpeed(0), viewingPlayer: 0 } })
     const w1 = mount(MapPreview, { props: { map: mapWithSpeed(1), viewingPlayer: 0 } })
-    expect(w0.vm.visibleSet.size).toBeGreaterThan(1)
-    expect(w0.vm.visibleSet.size).toBe(w1.vm.visibleSet.size)
+    expect(w0.vm.visibleSet).toEqual(w1.vm.visibleSet)
+    expect(w0.vm.visibleSet.size).toBeGreaterThan(0)
+
+    const withBase = mapWithSpeed(0)
+    withBase.field[7][7].building = { player: 0, _type: 'base' }
+    const wBase = mount(MapPreview, { props: { map: withBase, viewingPlayer: 0 } })
+    expect(wBase.vm.isVisible(7, 10)).toBe(true)
+    expect(wBase.vm.isVisible(7, 11)).toBe(true)
   })
 })

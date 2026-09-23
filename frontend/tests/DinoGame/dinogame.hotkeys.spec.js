@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import DinoGame from '@/components/game/DinoGame.vue'
 import Models from '@/game/models.js'
+import emitter from '@/game/eventBus'
 
 // The in-game hotkeys ('e' ends the turn, Enter dismisses the ready
 // label) act on the board, so they must stay quiet while the player is
@@ -56,6 +57,58 @@ describe('in-game hotkey suppression', () => {
     const spy = vi.spyOn(vm, 'processEndTurn').mockImplementation(() => {})
     vm.keyupHandlerRef(keyEvent('e', { tagName: 'DIV' }))
     expect(spy).toHaveBeenCalled()
+  })
+
+  it('does not end a bot turn when the player presses "e"', () => {
+    const vm = makeVm()
+    vm.currentPlayer = 1
+    const spy = vi.spyOn(vm, 'processEndTurn').mockImplementation(() => {})
+
+    vm.keyupHandlerRef(keyEvent('e', { tagName: 'DIV' }))
+
+    expect(spy).not.toHaveBeenCalled()
+  })
+
+  it('supports the game action hotkeys during normal play', () => {
+    const vm = makeVm()
+    vm.moveUndoState = { diff: [], canUndo: true }
+    vm.initialMapSnapshot = { metadata: {} }
+    const undo = vi.spyOn(vm, 'undoLastMove').mockImplementation(() => {})
+    const next = vi.spyOn(vm, 'findNextUnit').mockImplementation(() => {})
+    const zoom = vi.spyOn(vm, 'changeCellSize').mockImplementation(() => {})
+    const save = vi.spyOn(vm, 'openSaveMapDialog').mockImplementation(() => {})
+
+    vm.keyupHandlerRef(keyEvent('u', { tagName: 'DIV' }))
+    vm.keyupHandlerRef(keyEvent('n', { tagName: 'DIV' }))
+    vm.keyupHandlerRef(keyEvent('=', { tagName: 'DIV' }))
+    vm.keyupHandlerRef(keyEvent('-', { tagName: 'DIV' }))
+    vm.keyupHandlerRef(keyEvent('s', { tagName: 'DIV' }))
+    vm.keyupHandlerRef(keyEvent('q', { tagName: 'DIV' }))
+
+    expect(undo).toHaveBeenCalledOnce()
+    expect(next).toHaveBeenCalledOnce()
+    expect(zoom).toHaveBeenNthCalledWith(1, 10)
+    expect(zoom).toHaveBeenNthCalledWith(2, -10)
+    expect(save).toHaveBeenCalledOnce()
+    expect(vm.state).toBe(vm.STATES.exitDialog)
+  })
+
+  it('toggles fast-forward and announces its new state on "f"', () => {
+    const vm = makeVm()
+
+    vm.keyupHandlerRef(keyEvent('f', { tagName: 'DIV' }))
+
+    expect(vm.botMovementMode).toBe('fast_forward')
+    expect(vm.notifications.at(-1).message).toBe('Fast-forward bot moves turned on')
+  })
+
+  it('uses Escape to ask the info panel to toggle the game menu', () => {
+    const vm = makeVm()
+    const emit = vi.spyOn(emitter, 'emit')
+
+    vm.keyupHandlerRef(keyEvent('Escape', { tagName: 'DIV' }))
+
+    expect(emit).toHaveBeenCalledWith('toggleGameMenu')
   })
 
   it('ignores keys typed into a text input (Save-map name)', () => {

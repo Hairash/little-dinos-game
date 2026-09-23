@@ -53,9 +53,16 @@ export class FieldEngine {
     return override !== undefined ? override : this[key]
   }
 
-  getCurrentVisibilitySet(player) {
+  getCurrentVisibilitySet(
+    player,
+    { includeStationary = true, includeMoving = true, includeBases = true } = {}
+  ) {
     const visibleCoordsSet = new Set()
-    const playerObjectCoords = this.getPlayerObjectCoords(player)
+    const playerObjectCoords = this.getPlayerObjectCoords(player, {
+      includeStationary,
+      includeMoving,
+      includeBases,
+    })
     for (const coords of playerObjectCoords) {
       const [x, y] = coords
       let fogRadius = 0
@@ -66,11 +73,20 @@ export class FieldEngine {
       // enemy tower would borrow that tower's. Mirrors the per-source
       // checks in the backend's `calculate_visibility`.
       const unit = this.field[x][y].unit
-      if (unit && unit.player === player) {
+      if (
+        unit &&
+        unit.player === player &&
+        ((unit.movePoints === 0 && includeStationary) || (unit.movePoints !== 0 && includeMoving))
+      ) {
         fogRadius = Math.max(fogRadius, unit.visibility)
       }
       const building = this.field[x][y].building
-      if (building && building._type === Models.BuildingTypes.BASE && building.player === player) {
+      if (
+        includeBases &&
+        building &&
+        building._type === Models.BuildingTypes.BASE &&
+        building.player === player
+      ) {
         fogRadius = Math.max(fogRadius, this.fogOfWarRadius)
       }
       // console.log('%', fogRadius);
@@ -114,13 +130,20 @@ export class FieldEngine {
     return false
   }
 
-  getPlayerObjectCoords(player) {
+  getPlayerObjectCoords(
+    player,
+    { includeStationary = true, includeMoving = true, includeBases = true } = {}
+  ) {
     const coords = []
     for (let curX = 0; curX < this.width; curX++) {
       for (let curY = 0; curY < this.height; curY++) {
         if (
-          (this.field[curX][curY].unit && this.field[curX][curY].unit.player === player) ||
-          (this.field[curX][curY].building &&
+          (this.field[curX][curY].unit &&
+            this.field[curX][curY].unit.player === player &&
+            ((this.field[curX][curY].unit.movePoints === 0 && includeStationary) ||
+              (this.field[curX][curY].unit.movePoints !== 0 && includeMoving))) ||
+          (includeBases &&
+            this.field[curX][curY].building &&
             this.field[curX][curY].building._type === Models.BuildingTypes.BASE &&
             this.field[curX][curY].building.player === player)
         )

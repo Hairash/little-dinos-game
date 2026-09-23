@@ -30,6 +30,8 @@ def compute_path(
     """
     if x0 == x1 and y0 == y1:
         return [[x0, y0]]
+    if move_points <= 0:
+        return None
 
     wave_field = get_wave_field(field, width, height, enable_scout_mode)
     wave_field[x0][y0] = 0

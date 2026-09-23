@@ -97,6 +97,20 @@ describe('DinoGame animation input gating', () => {
     expect(vm.state).toBe(before)
   })
 
+  it('starts with normal bot movement and toggles fast-forward mode', () => {
+    const vm = makeWrapper()
+
+    expect(vm.botMovementMode).toBe('normal')
+    expect(vm.isFastForwardBotMovement).toBe(false)
+
+    vm.toggleBotMovementMode()
+    expect(vm.botMovementMode).toBe('fast_forward')
+    expect(vm.isFastForwardBotMovement).toBe(true)
+
+    vm.toggleBotMovementMode()
+    expect(vm.botMovementMode).toBe('normal')
+  })
+
   it('displayVisibilityCoords is null on a human turn (use cell.isHidden directly)', () => {
     const vm = makeWrapper(5, 5, true)
     vm.players = [{ _type: Models.PlayerTypes.HUMAN, active: true }]
@@ -185,6 +199,71 @@ describe('DinoGame animation input gating', () => {
     expect(spy).toHaveBeenCalledTimes(1)
     expect(spy.mock.calls[0][0]).toEqual([0, 0])
     vi.useRealTimers()
+  })
+
+  it('places a bot directly at its destination in fast-forward mode', async () => {
+    const vm = makeWrapper(5, 5, true)
+    vm.players = [
+      { _type: Models.PlayerTypes.HUMAN, active: true },
+      { _type: Models.PlayerTypes.BOT, active: true },
+    ]
+    vm.currentPlayer = 1
+    vm.fieldEngine.players = vm.players
+    vm.localField[4][4].unit = new Models.Unit(0, 'dino', 1, 4)
+    const botUnit = new Models.Unit(1, 'dino', 5, 1)
+    vm.localField[0][0].unit = botUnit
+    vm.botMovementMode = 'fast_forward'
+    const centerSpy = vi.spyOn(vm, 'centerOnCell').mockResolvedValue(false)
+
+    const move = vm.moveUnit([0, 0], [2, 0])
+
+    // No pre-scroll or path-walk timer: the destination is populated in
+    // the same synchronous part of the move call.
+    expect(centerSpy).not.toHaveBeenCalled()
+    expect(vm.localField[0][0].unit).toBeNull()
+    expect(vm.localField[2][0].unit).toMatchObject({ player: botUnit.player })
+    await move
+  })
+
+  it('skips bot attack animation and applies its kills immediately in fast-forward mode', async () => {
+    const vm = makeWrapper(5, 5, true)
+    vm.players = [
+      { _type: Models.PlayerTypes.HUMAN, active: true, killed: 0, lost: 0, score: 0 },
+      { _type: Models.PlayerTypes.BOT, active: true, killed: 0, lost: 0, score: 0 },
+    ]
+    vm.currentPlayer = 1
+    vm.fieldEngine.players = vm.players
+    vm.localField[4][4].unit = new Models.Unit(0, 'dino', 1, 4)
+    vm.localField[1][1].unit = new Models.Unit(0, 'dino', 1, 1)
+    vm.localField[0][0].unit = new Models.Unit(1, 'dino', 5, 1)
+    vm.botMovementMode = 'fast_forward'
+
+    const move = vm.moveUnit([0, 0], [1, 0])
+
+    expect(vm.dyingCells.size).toBe(0)
+    expect(vm.localField[1][1].unit).toBeFalsy()
+    await move
+  })
+
+  it('skips bot birth animation and camera movement in fast-forward mode', async () => {
+    const vm = makeWrapper(5, 5, true)
+    vm.players = [
+      { _type: Models.PlayerTypes.HUMAN, active: true, killed: 0, lost: 0, score: 0 },
+      { _type: Models.PlayerTypes.BOT, active: true, killed: 0, lost: 0, score: 0 },
+    ]
+    vm.currentPlayer = 1
+    vm.fieldEngine.players = vm.players
+    vm.botMovementMode = 'fast_forward'
+    const centerSpy = vi.spyOn(vm, 'centerOnCell').mockResolvedValue(false)
+
+    const births = [{ coords: [0, 0], killedCoords: [] }]
+    const sequence = vm.runBirthSequence(births)
+
+    expect(centerSpy).not.toHaveBeenCalled()
+    expect(vm.isAnimating).toBe(false)
+    expect(vm.borningCells.size).toBe(0)
+    expect(vm.pendingBirthCells.size).toBe(0)
+    await sequence
   })
 
   it("does not call centerOnCell for the human player's own move", async () => {
@@ -304,6 +383,32 @@ describe('DinoGame animation input gating', () => {
     await promise
     expect(vm.dyingCells.has('1,1')).toBe(false)
     expect(vm.localField[1][1].unit).toBeFalsy()
+    vi.useRealTimers()
+  })
+
+  it('finishes an unseen bot move and unseen kill without visual animation', async () => {
+    vi.useFakeTimers()
+    const vm = makeWrapper(5, 5, true)
+    vm.players = [
+      { _type: Models.PlayerTypes.HUMAN, active: true, killed: 0, lost: 0, score: 0 },
+      { _type: Models.PlayerTypes.BOT, active: true, killed: 0, lost: 0, score: 0 },
+      { _type: Models.PlayerTypes.BOT, active: true, killed: 0, lost: 0, score: 0 },
+    ]
+    vm.currentPlayer = 1
+    vm.fieldEngine.players = vm.players
+    vm.localField[4][4].unit = new Models.Unit(0, 'dino', 1, 1)
+    vm.localField[0][0].unit = new Models.Unit(1, 'dino', 5, 1)
+    vm.localField[1][1].unit = new Models.Unit(2, 'dino', 1, 1)
+    const centerSpy = vi.spyOn(vm, 'centerOnCell').mockResolvedValue(false)
+    const deathSpy = vi.spyOn(vm, 'playDeathAnimation')
+
+    await vm.moveUnit([0, 0], [1, 0])
+
+    expect(centerSpy).not.toHaveBeenCalled()
+    expect(vm.localField[1][0].unit?.player).toBe(1)
+    expect(vm.localField[1][1].unit).toBeFalsy()
+    expect(vm.dyingCells.size).toBe(0)
+    expect(deathSpy).toHaveBeenCalledWith([])
     vi.useRealTimers()
   })
 

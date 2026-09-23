@@ -132,8 +132,7 @@ export default {
             // when the relation is off).
             let unitVis = cell.unit.visibility
             if (!unitVis) {
-              // `>= 0` honours an explicit speed-0 (immobile) dino; only
-              // a missing/non-numeric movePoints falls back to minSpeed.
+              // Missing/non-numeric movePoints falls back to minSpeed.
               const speed =
                 typeof cell.unit.movePoints === 'number' && cell.unit.movePoints >= 0
                   ? cell.unit.movePoints
@@ -142,10 +141,9 @@ export default {
               // `DinoGame` does when it reseeds a starting unit — passing
               // the unit's own speed as the min would put every unit at
               // the bottom of the scale (maximum visibility) regardless
-              // of how fast it is. Speeds below minSpeed (0) clamp up, so
-              // an immobile dino previews the slowest mover's radius.
+              // of how fast it is.
               unitVis = s.visibilitySpeedRelation
-                ? calculateUnitVisibility(Math.max(speed, minSpeed), minSpeed, threshold, fogR)
+                ? calculateUnitVisibility(Math.max(speed, minSpeed, 1), minSpeed, threshold, fogR)
                 : fogR
             }
             radius = Math.max(radius, unitVis)

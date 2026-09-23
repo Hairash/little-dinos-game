@@ -47,6 +47,17 @@ def create_field(width, height):
 
 
 class TestCalculateVisibility:
+    def test_speed_zero_unit_provides_visibility_alongside_base(self):
+        field = create_field(7, 7)
+        field[3][3] = create_cell_with_unit(player=0, visibility=5)
+        field[3][3]["unit"]["movePoints"] = 0
+        assert len(calculate_visibility(field, 7, 7, 0, 2, True)) == 49
+
+        field[3][3]["building"] = create_cell_with_base(0)["building"]
+        visible = calculate_visibility(field, 7, 7, 0, 2, True)
+        assert (1, 1) in visible
+        assert (0, 0) in visible
+
     def test_fog_disabled_shows_all(self):
         field = create_field(5, 5)
         visible = calculate_visibility(

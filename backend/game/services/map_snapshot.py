@@ -248,15 +248,11 @@ def hydrate_field_for_game(canonical_field: list, settings: dict) -> list:
                 # on a starter (including 0 — an immobile dino); honour it
                 # instead of the default minSpeed reseed, mirroring the
                 # `movePoints >= 0` rule in `DinoGame.vue`'s saved-map
-                # branch. The min bound collapses to the unit's own speed
-                # so a speed-0 dino gets the same (max) visibility a
-                # speed-1 dino gets. Keep the three JS call sites and this
-                # one in sync (see docs/scenarios.md, "Honoring explicit
-                # unit speed").
+                # branch. Stationary units see as far as speed-1 units.
                 saved_speed = src["unit"].get("movePoints")
                 explicit = isinstance(saved_speed, (int, float)) and saved_speed >= 0
                 move_points = saved_speed if explicit else min_speed
-                min_for_roll = move_points
+                min_for_roll = max(move_points, 1)
                 visibility = fog_of_war_radius
                 if visibility_speed_relation:
                     # Same odd call shape `generate_field` uses for the
@@ -264,7 +260,7 @@ def hydrate_field_for_game(canonical_field: list, settings: dict) -> list:
                     # max_speed slot. Don't simplify without also
                     # changing the random-roll path.
                     visibility = calculate_unit_visibility(
-                        move_points, min_for_roll, speed_min_visibility, fog_of_war_radius
+                        max(move_points, 1), min_for_roll, speed_min_visibility, fog_of_war_radius
                     )
                 # An explicit saved visibility wins (truthy check mirrors
                 # the JS `if (saved?.visibility)`).

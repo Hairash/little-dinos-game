@@ -52,8 +52,8 @@ new FieldEngine(
 | `applyKillsAtCoords(player, coords)` | player, `[[x,y], ...]` | void | Apply kill-at-birth at the supplied cells (paired with `deferKills`). Used by the tutorial flow so the death animation can play before the units disappear. |
 | `setPlayerOverrides(overrides)` | `{ [playerIdx]: {...} }` or null | void | Tutorial hook. Stores per-player setting overrides (consulted by `playerSetting`). Affects production only — initial unit placement uses the values handed to the constructor. |
 | `playerSetting(player, key)` | player index, setting name | value | Returns `playerOverrides?.[player]?.[key]` if defined, else `this[key]`. |
-| `moveUnit(from, to)` | coord arrays | void | Move unit, handle capture |
-| `killNeighbours(x, y, player)` | coords, player | void | Kill adjacent enemy units |
+| `moveUnit(x0, y0, x1, y1, unit)` | source/destination coordinates, unit | void | Move the unit and mark it as moved; capture and combat are separate steps |
+| `killNeighbours(x, y, player)` | coordinates, player | void | Kill adjacent enemy units |
 | `findKillNeighbours(x, y, player)` | coords, player | `[[x,y], ...]` | Same predicate as `killNeighbours` but read-only; used to drive the death animation before the units are actually removed. |
 | `captureBuildingIfNeeded(x, y, player)` | coords, player | boolean | Capture building for player (respects base limit) |
 | `getVisibleObjRadius(x, y, player, ...)` | coords, player | number | Get visibility radius of object |
@@ -71,6 +71,11 @@ carries its own ownership check, so only the player's own unit lends its
 parked on your tower doesn't extend your sight, and your unit on an enemy
 tower doesn't borrow the tower's. When both objects are yours the larger
 radius wins.
+
+Speed-0 units contribute normal sight (calculated like speed-1 units), even
+though they cannot move. `getCurrentVisibilitySet(player, options?)` accepts
+`includeStationary`, `includeMoving`, and `includeBases` flags; each defaults
+to `true`. A bot turn uses these flags to cache stationary sight separately.
 
 The engine tracks what each player can see:
 
@@ -141,7 +146,7 @@ Wave propagation (BFS):
 **Location:** `frontend/src/game/moveAnimator.js`
 
 ### Purpose
-Plays the cell-by-cell unit walk along a pre-computed path. Pure (DOM-free), so it works the same in single-player (animates own and bot moves locally) and multiplayer (animates the per-recipient `pathSlice` from server patches).
+Plays the visible portion of a pre-computed unit path. Hidden stretches jump to the next visible cell (or the destination) without per-cell updates or delay. Pure (DOM-free), so it works in single-player (animates own and bot moves locally) and multiplayer (animates the per-recipient `pathSlice` from server patches). A wholly hidden single-player bot move skips the animator, as do death effects for victims the viewer cannot see.
 
 ### API
 
@@ -165,7 +170,8 @@ The animator only handles the visual walk. Capture/kill/visibility recompute and
 **Location:** `frontend/src/game/botEngine.js`
 
 ### Purpose
-AI decision-making for bot players. Evaluates moves and selects optimal actions.
+AI decision-making for bot players. Chooses among reachable moves using
+building capture, nearby enemies, and a random fallback.
 
 ### Constructor
 
@@ -184,29 +190,24 @@ new BotEngine(
 
 | Method | Parameters | Returns | Description |
 |--------|------------|---------|-------------|
-| `makeBotUnitMove(unitCoords, player, moveCallback)` | coords array, player, callback | void | Move one bot unit |
-| `evaluateMove(from, to, player)` | coords, player | number | Score a potential move |
+| `prepareTurnVisibility(player)` | player | void | Cache stationary-unit sight once for the bot turn |
+| `makeBotUnitMove(unitCoords, player, moveCallback)` | mutable coords array, player, async callback | `Promise<void>` | Remove one queued unit and decide its move |
 
 ### AI Strategy
 
-```
-For each unit:
-1. Get reachable coordinates
-2. Score each destination:
-   - Can capture enemy unit? +high
-   - Can capture building? +medium
-   - Move toward enemy base? +low
-   - Stay safe? +low
-3. Select highest-scoring move
-4. Call moveCallback(from, to)
-```
+The controller excludes speed-0 units from the move queue. If all units are
+stationary, it ends the turn without move or visibility calculations. In a
+mixed army, the bot retains their cached sight and refreshes only moving-unit
+and base sight after each move.
 
-### Bot Behavior Priorities
-
-1. **Kill enemy units** - Eliminate threats
-2. **Capture buildings** - Especially bases
-3. **Advance toward enemies** - Apply pressure
-4. **Avoid danger** - Don't suicide
+For each mobile unit, the bot finds reachable cells and, under fog of war,
+targets buildings and enemies only through currently visible cells. A unit already on an
+enemy base stays put. One on another capturable building may stay or attack a
+nearby visible enemy. Otherwise the bot considers a habitation (with a random
+choice), a base, another building, then a nearby enemy; if none applies, it
+picks a random reachable cell. If scout mode is on, pathfinding excludes hidden
+cells; otherwise this fallback may enter fog. This is a heuristic with random
+choices, not a destination-scoring or optimal-path algorithm.
 
 ---
 
@@ -341,14 +342,20 @@ startTurn() {
 }
 
 moveUnit(from, to) {
-  this.fieldEngine.moveUnit(from, to)
-  this.fieldEngine.killNeighbours(to[0], to[1], player)
+  const unit = this.localField[from[0]][from[1]].unit
+  this.fieldEngine.moveUnit(from[0], from[1], to[0], to[1], unit)
+  this.fieldEngine.killNeighbours(to[0], to[1], unit.player)
 }
 
-makeBotTurn() {
-  while (unitsRemain) {
-    this.botEngine.makeBotUnitMove(units, player, this.moveUnit)
+async makeBotMove() {
+  const units = this.getCurrentUnitCoords().filter(
+    ([x, y]) => this.localField[x][y].unit?.movePoints > 0
+  )
+  if (units.length) this.botEngine.prepareTurnVisibility(this.currentPlayer)
+  while (units.length) {
+    await this.botEngine.makeBotUnitMove(units, this.currentPlayer, this.moveUnit)
   }
+  // Hand off to end-turn processing.
 }
 ```
 

@@ -30,6 +30,7 @@ class WaveEngine {
   }
 
   getReachableCoordsArr(x0, y0, movePoints) {
+    if (movePoints <= 0) return []
     const waveField = this.getWaveField()
     const reachableCoordsArr = []
     waveField[x0][y0] = 0
@@ -68,6 +69,7 @@ class WaveEngine {
   }
 
   canReach(x0, y0, x1, y1, movePoints) {
+    if (movePoints <= 0) return false
     const waveField = this.getWaveField()
     waveField[x0][y0] = 0
     const wave = [[x0, y0]]
@@ -96,6 +98,7 @@ class WaveEngine {
   // within `movePoints`. The returned list always includes both endpoints.
   getPath(x0, y0, x1, y1, movePoints) {
     if (x0 === x1 && y0 === y1) return [[x0, y0]]
+    if (movePoints <= 0) return null
     const waveField = this.getWaveField()
     waveField[x0][y0] = 0
     const parents = new Map() // "x,y" -> "px,py"

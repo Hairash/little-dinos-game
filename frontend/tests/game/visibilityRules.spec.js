@@ -106,10 +106,49 @@ describe('explicitly placed units are scaled against the game minSpeed', () => {
     expect(vm.localField[2][2].unit.visibility).toBe(1)
   })
 
-  it('an immobile speed-0 dino still sees as far as the slowest mover', () => {
+  it('an immobile speed-0 dino sees as far as a speed-1 dino', () => {
     const vm = launch(mapWithUnits([{ x: 2, y: 2, player: 0, movePoints: 0 }]))
     expect(vm.localField[2][2].unit.movePoints).toBe(0)
     expect(vm.localField[2][2].unit.visibility).toBe(3)
+    expect(vm.localField[5][2].isHidden).toBe(false)
+  })
+
+  it('combines stationary unit sight with base sight', () => {
+    const field = Array.from({ length: 7 }, () =>
+      Array.from({ length: 7 }, () => ({ unit: null, building: null }))
+    )
+    field[3][3].unit = { player: 0, movePoints: 0, visibility: 5 }
+    const engine = new FieldEngine(field, 7, 7, 2)
+    expect(engine.getCurrentVisibilitySet(0).size).toBe(49)
+
+    field[3][3].building = { player: 0, _type: Models.BuildingTypes.BASE }
+    const visible = [...engine.getCurrentVisibilitySet(0)].map(coords => coords.join(','))
+    expect(visible).toContain('1,1')
+    expect(visible).toContain('0,0')
+  })
+
+  it('splits stationary and live sight without losing either contribution', () => {
+    const field = Array.from({ length: 12 }, () =>
+      Array.from({ length: 12 }, () => ({ unit: null, building: null }))
+    )
+    field[2][2].unit = { player: 0, movePoints: 0, visibility: 2 }
+    field[8][8].unit = { player: 0, movePoints: 5, visibility: 1 }
+    field[11][11].building = { player: 0, _type: Models.BuildingTypes.BASE }
+    const engine = new FieldEngine(field, 12, 12, 2)
+    const keys = coords => new Set([...coords].map(pair => pair.join(',')))
+    const all = keys(engine.getCurrentVisibilitySet(0))
+    const stationary = keys(
+      engine.getCurrentVisibilitySet(0, {
+        includeMoving: false,
+        includeBases: false,
+      })
+    )
+    const live = keys(engine.getCurrentVisibilitySet(0, { includeStationary: false }))
+    expect(new Set([...stationary, ...live])).toEqual(all)
+    expect(stationary.has('0,0')).toBe(true)
+    expect(live.has('0,0')).toBe(false)
+    expect(live.has('8,8')).toBe(true)
+    expect(live.has('11,11')).toBe(true)
   })
 
   it('an explicit per-unit visibility still wins', () => {

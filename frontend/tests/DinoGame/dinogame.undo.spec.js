@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import DinoGame from '@/components/game/DinoGame.vue'
 import { FieldEngine } from '@/game/fieldEngine.js'
+import { computeFieldDiff } from '@/game/fieldDiff.js'
 import { ACTIONS } from '@/game/const.js'
 import emitter from '@/game/eventBus'
 import Models from '@/game/models.js'
@@ -151,6 +152,48 @@ describe('DinoGame stacked undo (move + scout)', () => {
     expect(vm.localField[3][3].isHidden).toBe(true)
     expect(vm.localField[2][2].isHidden).toBe(false)
     expect(vm.scoutUndoState).toBeNull()
+  })
+
+  it('keeps a scout reveal after undoing a later move, then clears it next turn', () => {
+    const vm = makeWrapper()
+    vm.localField[0][0].unit = new Models.Unit(0, 'dino1', 1, 1)
+    vm.setVisibility()
+    vm.handleScoutArea({ x: 4, y: 4, fogRadius: 0 })
+    expect(vm.localField[4][4].isHidden).toBe(false)
+
+    // A subsequent move replaces the scout undo layer. Undoing that move
+    // restores its unit and recalculates fog without losing the scout reveal.
+    const beforeMove = JSON.parse(JSON.stringify(vm.localField))
+    vm.localField[1][0].unit = vm.localField[0][0].unit
+    vm.localField[0][0].unit = null
+    const diff = computeFieldDiff(beforeMove, vm.localField, 5, 5)
+    vm.scoutUndoState = null
+    vm.moveUndoState = { diff, canUndo: true }
+    vm.undoLastMove()
+
+    expect(vm.localField[0][0].unit).not.toBeNull()
+    expect(vm.localField[1][0].unit).toBeNull()
+    expect(vm.localField[4][4].isHidden).toBe(false)
+    expect(vm.tempVisibilityCoords.has('4,4')).toBe(true)
+
+    vm.setVisibilityStartTurn()
+    expect(vm.localField[4][4].isHidden).toBe(true)
+    expect(vm.tempVisibilityCoords.size).toBe(0)
+  })
+
+  it('removes a no-new-cells scout from temporary visibility when undone immediately', () => {
+    const vm = makeWrapper()
+    vm.localField[2][2].unit = new Models.Unit(0, 'dino1', 1, 1)
+    vm.setVisibility()
+    vm.handleScoutArea({ x: 2, y: 2, fogRadius: 0 })
+    expect(vm.scoutUndoState.canUndo).toBe(true)
+
+    vm.undoLastMove()
+    expect(vm.tempVisibilityCoords.has('2,2')).toBe(false)
+
+    vm.localField[2][2].unit = null
+    vm.setVisibility()
+    expect(vm.localField[2][2].isHidden).toBe(true)
   })
 
   it('processEndTurn clears both undo layers', () => {

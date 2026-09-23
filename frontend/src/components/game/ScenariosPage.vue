@@ -23,6 +23,14 @@
               @click="handleSelect(s.id)"
             >
               <div class="scenarios-list-name">
+                <!-- Beaten in single-player. Same cue the tutorial list
+                     uses; cosmetic only. -->
+                <span
+                  v-if="wonMaps[wonKey(s.map.name, true)]"
+                  class="scenarios-list-won"
+                  title="Won"
+                  >✓</span
+                >
                 {{ s.map.name }}
                 <!-- Tags the read-only scenarios that ship with the game
                      (JSON files in src/game/scenarios/), as opposed to
@@ -87,6 +95,7 @@ import { getImagePath } from '@/game/helpers'
 import { GAME_STATES } from '@/game/const'
 import { SCENARIOS } from '@/game/scenarios'
 import { getActualPlayerCounts } from '@/game/mapSchema'
+import { loadWonMaps, wonKey } from '@/game/mapProgress'
 import {
   listEditorScenarios,
   migrateLegacyBuiltinOverrides,
@@ -126,6 +135,8 @@ export default {
       selectedId: merged[0]?.id ?? null,
       // Surface for import failures (bad JSON, schema mismatch, etc.).
       importError: '',
+      // `{ key: true }` of scenarios already beaten in single-player.
+      wonMaps: loadWonMaps(),
     }
   },
   computed: {
@@ -146,6 +157,7 @@ export default {
   },
   methods: {
     getImagePath,
+    wonKey,
     actualPlayers(map) {
       return getActualPlayerCounts(map).total
     },
@@ -359,11 +371,18 @@ export default {
   font-size: 14px;
 }
 
+/* "Beaten" tick, matching the tutorial list's cue. */
+.scenarios-list-won {
+  color: #7ddb7d;
+  margin-right: 4px;
+}
+
 /* Inline "default" tag on the shipped scenarios. Small pill so it
    doesn't dominate the row but is obvious enough to disambiguate a
    user's own copy from the original. */
 .scenarios-list-badge {
-  display: inline-block;
+  /* display: inline-block; */
+  float: right;
   margin-left: 6px;
   padding: 1px 6px;
   font-size: 10px;

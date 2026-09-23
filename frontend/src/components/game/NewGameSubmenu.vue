@@ -6,7 +6,7 @@
         <button @click="goTutorial">Tutorial</button>
         <button @click="goRandom">Random map</button>
         <button @click="goSavedMaps">Saved map</button>
-        <button @click="goScenarios">Scenarios</button>
+        <button @click="goScenarios">Scenario</button>
         <button class="back-btn" @click="goBack">Back</button>
       </div>
     </div>

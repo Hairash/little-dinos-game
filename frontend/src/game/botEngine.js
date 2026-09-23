@@ -11,6 +11,23 @@ export class BotEngine {
     this.enableFogOfWar = enableFogOfWar
     this.fieldEngine = fieldEngine
     this.waveEngine = waveEngine
+    this.stationaryVisibility = null
+  }
+
+  prepareTurnVisibility(player) {
+    this.stationaryVisibility = this.enableFogOfWar
+      ? {
+          player,
+          coords: new Set(
+            Array.from(
+              this.fieldEngine.getCurrentVisibilitySet(player, {
+                includeMoving: false,
+                includeBases: false,
+              })
+            ).map(coords => JSON.stringify(coords))
+          ),
+        }
+      : null
   }
 
   async makeBotUnitMove(unitCoordsArr, currentPlayer, moveUnit) {
@@ -24,14 +41,25 @@ export class BotEngine {
       return
     }
     const coords = unitCoordsArr.shift()
-    let visibilitySet = this.enableFogOfWar
-      ? this.fieldEngine.getCurrentVisibilitySet(currentPlayer)
-      : new Set()
-    visibilitySet = new Set(Array.from(visibilitySet).map(coords => JSON.stringify(coords)))
+    const [x, y] = coords
+    // A unit may have been removed after its move was queued. Stationary
+    // units need neither fog nor pathfinding work.
+    const unit = this.field[x]?.[y]?.unit
+    if (!unit || unit.movePoints <= 0) return
+    const visibilitySet = new Set(
+      this.stationaryVisibility?.player === currentPlayer ? this.stationaryVisibility.coords : []
+    )
+    if (this.enableFogOfWar) {
+      const liveVisibility = this.fieldEngine.getCurrentVisibilitySet(
+        currentPlayer,
+        this.stationaryVisibility?.player === currentPlayer
+          ? { includeStationary: false }
+          : undefined
+      )
+      for (const coords of liveVisibility) visibilitySet.add(JSON.stringify(coords))
+    }
     // console.log(visibilitySet);
 
-    const [x, y] = coords
-    const unit = this.field[x][y].unit
     const reachableCoordsArr = this.waveEngine.getReachableCoordsArr(x, y, unit.movePoints)
     if (reachableCoordsArr.length === 0) return
 

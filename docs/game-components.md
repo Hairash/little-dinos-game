@@ -96,6 +96,7 @@ Controls single-player games with bot opponents. Manages local game state, AI tu
 | `updateEndgamePhases()` | Recompute `humanPhase` / `lastPlayerPhase` / `winPhase` from the players' `active` flags. Called from the rotation wrap and right after an elimination. A lone surviving human becomes the winner (`winPhase`) instead of triggering the "only player left" notice, which is reserved for a lone surviving bot |
 | `moveUnit(from, to)` | Execute unit movement with combat and capture |
 | `makeBotMove()` | Execute AI turn |
+| `toggleBotMovementMode()` | Toggle the single-player bot movement mode between `normal` and `fast_forward` |
 | `checkEndOfGame()` | Check victory conditions |
 | `saveState()` | Save to localStorage |
 | `undoLastMove()` | Undo whichever layer is set: scoutUndoState re-hides the revealed cells and re-emits `setAction(scouting)` to re-arm scout-pick mode; moveUndoState applies the field diff and recalculates visibility. Always emits `initTurn` first to deselect the unit. |
@@ -103,6 +104,14 @@ Controls single-player games with bot opponents. Manages local game state, AI tu
 | `showTurnNotification(playerOrder)` | Display "Player {n} turn" notification with player color |
 | `showNotification(message, type, playerOrder)` | Add notification to display queue |
 | `dismissNotification(id)` | Remove notification by ID |
+
+### Bot movement mode
+
+Single-player games start in `normal` bot movement mode. The in-game menu button immediately to the right of Zoom Out toggles it to `fast_forward`; its icon switches between normal-movement and fast-forward states. In fast-forward mode, bot production, movement, and combat are all applied without camera movement, path-walk, birth, or attack animations. Movement rules, captures, visibility updates, and combat resolution are unchanged. The mode is kept as a string so future speed choices can extend it; it is intentionally not shown in multiplayer, where the server supplies movement state.
+
+### In-game keyboard shortcuts
+
+Desktop games in both modes support `Esc` (toggle menu), `E` (end your turn), `U` (undo when allowed), `N` (next unit), `=` / `+` (zoom in), `-` (zoom out), `S` (open Save map on a random map), and `Q` (open the exit confirmation). `Enter` dismisses a ready label. `F` toggles fast-forward bot moves only in single-player and announces the new mode; multiplayer has no bot-movement toggle. In single-player, middle-click also undoes an eligible move. Letter keys are case-insensitive; text inputs, modifier chords, and open dialogs suppress action shortcuts. `Esc` remains available while the in-game menu is open so it can close it. Multiplayer additionally blocks turn actions when it is not your turn, after a winner is declared, or during an animation.
 
 ### Engines Used
 
@@ -390,6 +399,8 @@ Current usage:
 Renders the game board as a grid of cells.
 
 **Props:** `field`, `currentPlayer`, `viewingPlayer`, `myPlayerOrder`, `hideEnemySpeed`, `cellSize`, `enableFogOfWar`, `currentStats`
+
+Left-clicking a visible enemy previews its reachable cells in red, clipped to the viewer's visible area. Hidden cells ignore inspection clicks, including right-click hints and visibility frames; an armed scout action may still target fogged terrain. During bot turns, the display-only visibility mask rather than the bot's `cell.isHidden` value decides what can be inspected.
 
 ### GameCell.vue
 Renders individual cell with unit/building. Decides per-unit whether the

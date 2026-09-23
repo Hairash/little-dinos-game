@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { WaveEngine } from '../src/game/waveEngine'
 import Models from '../src/game/models'
 
@@ -33,6 +33,15 @@ function buildField(width, height, fillEmpty = true) {
 }
 
 describe('WaveEngine.getPath', () => {
+  it('skips building the wave field for stationary units', () => {
+    const wave = new WaveEngine(buildField(5, 5), 5, 5, 3, false)
+    const buildWave = vi.spyOn(wave, 'getWaveField')
+    expect(wave.getReachableCoordsArr(2, 2, 0)).toEqual([])
+    expect(wave.canReach(2, 2, 3, 2, 0)).toBe(false)
+    expect(wave.getPath(2, 2, 3, 2, 0)).toBeNull()
+    expect(buildWave).not.toHaveBeenCalled()
+  })
+
   it('returns single-cell path when start equals destination', () => {
     const field = buildField(5, 5)
     const wave = new WaveEngine(field, 5, 5, 3, false)

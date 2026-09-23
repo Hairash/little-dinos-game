@@ -58,6 +58,7 @@
     :handle-undo-click="undoLastMove"
     :is-animating="isAnimating"
     :can-save-map="canSaveMap"
+    :external-menu-hotkeys="true"
     @menu-open="handleMenuOpen"
   />
   <ExitDialog
@@ -314,6 +315,7 @@ export default {
     // handler.
     this.contextmenuHandlerRef = e => e.preventDefault()
     window.addEventListener('contextmenu', this.contextmenuHandlerRef)
+    window.addEventListener('keyup', this.handleGameHotkey)
 
     // Track user activity for inactivity tip
     this.setupActivityTracking()
@@ -332,6 +334,7 @@ export default {
     if (this.contextmenuHandlerRef) {
       window.removeEventListener('contextmenu', this.contextmenuHandlerRef)
     }
+    window.removeEventListener('keyup', this.handleGameHotkey)
 
     // Clean up inactivity timer and event listeners
     this.clearInactivityTimer()
@@ -347,6 +350,66 @@ export default {
     }
   },
   methods: {
+    handleGameHotkey(e) {
+      const tag = e.target?.tagName || ''
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable) return
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
+      // The menu's own Escape listener is disabled via externalMenuHotkeys.
+      // Handle both opening and closing here, even while the menu is open.
+      if (key === 'Escape') {
+        if (this.state === this.STATES.play && !this.showSaveMapDialog && !this.showReadyLabel) {
+          emitter.emit('toggleGameMenu')
+        }
+        return
+      }
+      if (key === 'Enter' && this.showReadyLabel) {
+        this.handleReadyLabelClose()
+        return
+      }
+      if (
+        this.menuOpen ||
+        this.showSaveMapDialog ||
+        this.showReadyLabel ||
+        this.state === this.STATES.exitDialog
+      )
+        return
+
+      if (
+        key === 'e' &&
+        this.state === this.STATES.play &&
+        this.isMyTurn &&
+        this.winner === null &&
+        !this.isAnimating
+      ) {
+        this.processEndTurn()
+      } else if (
+        key === 'u' &&
+        this.canUndo &&
+        this.isMyTurn &&
+        this.winner === null &&
+        !this.isAnimating
+      ) {
+        this.undoLastMove()
+      } else if (
+        key === 'n' &&
+        this.state === this.STATES.play &&
+        this.isMyTurn &&
+        this.winner === null &&
+        !this.isAnimating
+      ) {
+        this.findNextUnit()
+      } else if (key === '=' || key === '+') {
+        this.changeCellSize(10)
+      } else if (key === '-') {
+        this.changeCellSize(-10)
+      } else if (key === 's' && this.state === this.STATES.play && this.canSaveMap) {
+        this.openSaveMapDialog()
+      } else if (key === 'q' && this.state === this.STATES.play) {
+        this.state = this.STATES.exitDialog
+      }
+    },
     handleMenuOpen(isOpen) {
       this.menuOpen = isOpen
     },

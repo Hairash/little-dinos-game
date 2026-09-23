@@ -57,7 +57,19 @@
               :class="{ 'saved-maps-list-item-selected': selectedName === m.name }"
               @click="handleSelectMap(m.name)"
             >
-              <div class="saved-maps-list-name">{{ m.name }}</div>
+              <div class="saved-maps-list-name">
+                <!-- Beaten in single-player. Same cue the tutorial and
+                     scenarios lists use; cosmetic only. On the lobby's
+                     custom-scenarios tab the entries are scenarios, so
+                     the key is typed accordingly. -->
+                <span
+                  v-if="wonMaps[wonKey(m.name, pickTab === 'scenarios')]"
+                  class="saved-maps-list-won"
+                  title="Won"
+                  >✓</span
+                >
+                {{ m.name }}
+              </div>
               <div class="saved-maps-list-meta">
                 <!-- Playable seats, not the map's declared capacity. -->
                 {{ actualPlayers(m).total }}p · {{ m.metadata.width }}×{{ m.metadata.height }}
@@ -241,6 +253,7 @@ import emitter from '@/game/eventBus'
 import { listSavedMaps, deleteSavedMap, getSavedMap } from '@/game/mapStorage'
 import { listEditorScenarios, importEditorScenario } from '@/game/mapEditorStorage'
 import { getActualPlayerCounts } from '@/game/mapSchema'
+import { loadWonMaps, wonKey } from '@/game/mapProgress'
 import { getImagePath } from '@/game/helpers'
 import { GAME_STATES } from '@/game/const'
 import MapPreview from '@/components/game/MapPreview.vue'
@@ -283,6 +296,8 @@ export default {
       deleteCandidate: null,
       // Surface for import failures (bad JSON, schema mismatch, etc.).
       importError: '',
+      // `{ key: true }` of maps already beaten in single-player.
+      wonMaps: loadWonMaps(),
     }
   },
   computed: {
@@ -344,6 +359,7 @@ export default {
   },
   methods: {
     getImagePath,
+    wonKey,
     actualPlayers(map) {
       return getActualPlayerCounts(map)
     },
@@ -608,6 +624,12 @@ export default {
 .saved-maps-list-name {
   font-weight: bold;
   font-size: 14px;
+}
+
+/* "Beaten" tick, matching the tutorial and scenarios lists. */
+.saved-maps-list-won {
+  color: #7ddb7d;
+  margin-right: 4px;
 }
 
 .saved-maps-list-meta {

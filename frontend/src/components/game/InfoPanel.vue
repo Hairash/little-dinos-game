@@ -9,7 +9,7 @@
           @click="toggleMenu"
           @contextmenu.prevent="showContextHelp($event, 'Menu')"
           :disabled="menuOpen"
-          title="Menu"
+          title="Menu (Esc)"
         >
           <img
             style="margin-left: 1px; margin-top: 1px"
@@ -23,7 +23,7 @@
           @click="handleUndoClick"
           @contextmenu.prevent="showContextHelp($event, 'Undo last move')"
           :disabled="!canUndo || menuOpen"
-          title="Undo last move"
+          title="Undo last move (U)"
         >
           <img
             style="margin-left: 1px; margin-top: 1px"
@@ -50,6 +50,7 @@
             tutorialInputBlocked ||
             isAnimating
           "
+          title="Next unit (N)"
         >
           <img
             v-if="areAllUnitsOnBuildings && currentStats.units.active > 0"
@@ -186,6 +187,9 @@
         :handle-zoom-in="handleMenuZoomIn"
         :handle-zoom-out="handleMenuZoomOut"
         :handle-resume="toggleMenu"
+        :external-menu-hotkeys="externalMenuHotkeys"
+        :bot-movement-mode="botMovementMode"
+        :handle-bot-movement-mode-toggle="handleBotMovementModeToggle"
         :handle-save-map="canSaveMap ? handleMenuSaveMap : null"
         :can-save-map="canSaveMap"
       />
@@ -298,6 +302,22 @@ export default {
     // Show the in-menu "Save map" button. The controller turns this off
     // for tutorials and for resumed games that lack an initial snapshot.
     canSaveMap: {
+      type: Boolean,
+      default: false,
+    },
+    // Single-player supplies this optional control. Multiplayer leaves the
+    // handler null, so its shared in-game menu does not show the setting.
+    botMovementMode: {
+      type: String,
+      default: 'normal',
+    },
+    handleBotMovementModeToggle: {
+      type: Function,
+      default: null,
+    },
+    // DinoGame owns Escape so it can toggle the menu both open and closed.
+    // Multiplayer keeps GameMenuOverlay's close-only Escape behavior.
+    externalMenuHotkeys: {
       type: Boolean,
       default: false,
     },
@@ -456,10 +476,12 @@ export default {
 
     // Listen for events to close context help when GameGrid opens its own
     emitter.on('infoPanelContextHelpChanged', this.onContextHelpChanged)
+    emitter.on('toggleGameMenu', this.toggleMenu)
   },
   beforeUnmount() {
     document.removeEventListener('click', this.hideContextHelp)
     emitter.off('infoPanelContextHelpChanged', this.onContextHelpChanged)
+    emitter.off('toggleGameMenu', this.toggleMenu)
   },
   methods: {
     getImagePath,

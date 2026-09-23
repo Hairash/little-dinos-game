@@ -151,6 +151,13 @@ describe('helpers', () => {
       expect(unit.visibility).toBe(4) // avgVisibility
     })
 
+    it('gives stationary units the same visibility as speed-1 units', () => {
+      expect(createNewUnit(0, 0, 0, 7, 3, false).visibility).toBe(3)
+      expect(createNewUnit(0, 0, 0, 7, 3, true).visibility).toBe(
+        calculateUnitVisibility(1, 0, 7, 3)
+      )
+    })
+
     it('calculates visibility when relation enabled', () => {
       const unit = createNewUnit(0, 1, 5, 5, 3, true)
       expect(unit.visibility).toBeGreaterThanOrEqual(1)
@@ -179,23 +186,17 @@ describe('helpers', () => {
       }
     })
 
-    // A speed-0 starter (immobile dino) must see as far as a speed-1
-    // one. DinoGame/MapPreview reseed with min=max collapsed to the
-    // unit's own speed, so both resolve to normalizedSpeed 0 → the same
-    // visibility. Guards the speed-0 map-editor feature (see scenarios.md
-    // → "Honoring explicit unit speed").
-    it('gives speed 0 the same visibility as speed 1 (min=max collapsed)', () => {
+    it('gives speed 0 the same visibility as speed 1', () => {
       const threshold = 7
       const avg = 3
       const visSpeed0 = calculateUnitVisibility(0, 0, threshold, avg)
-      const visSpeed1 = calculateUnitVisibility(1, 1, threshold, avg)
-      expect(visSpeed0).toBe(visSpeed1)
+      expect(visSpeed0).toBe(calculateUnitVisibility(1, 0, threshold, avg))
     })
 
     it('does not produce NaN/Infinity for a speed-0 collapsed unit', () => {
       const vis = calculateUnitVisibility(0, 0, 7, 3)
       expect(Number.isFinite(vis)).toBe(true)
-      expect(vis).toBeGreaterThanOrEqual(1)
+      expect(vis).toBe(calculateUnitVisibility(1, 0, 7, 3))
     })
   })
 

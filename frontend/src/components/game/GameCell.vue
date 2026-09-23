@@ -21,6 +21,12 @@
       :style="{ width: `${width}px`, height: `${height}px` }"
     ></div>
     <div
+      v-if="!hidden && (enemyReachable || enemySelected)"
+      class="enemyReachableSelection"
+      :class="{ enemySelected: enemySelected }"
+      :style="{ width: `${width}px`, height: `${height}px` }"
+    ></div>
+    <div
       v-if="tutorialHighlight"
       class="tutorialHighlight"
       :style="{ width: `${width}px`, height: `${height}px` }"
@@ -82,6 +88,8 @@ export default {
     },
     selected: Boolean,
     highlighted: Boolean,
+    enemyReachable: Boolean,
+    enemySelected: Boolean,
     hidden: Boolean,
     currentPlayer: Number,
     // The player whose perspective the screen renders from. In single-player
@@ -255,6 +263,16 @@ div.cell .cellSelection.selected {
 }
 div.cell .cellSelection.highlighted {
   background-color: rgba(66, 185, 131, 0.5);
+}
+div.cell .enemyReachableSelection {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  background-color: rgba(220, 53, 69, 0.4);
+}
+div.cell .enemyReachableSelection.enemySelected {
+  background-color: rgba(220, 53, 69, 0.75);
 }
 
 .tower-limit-warning {

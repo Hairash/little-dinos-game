@@ -134,7 +134,7 @@
             @click="handleZoomIn"
             @contextmenu.prevent="showHint($event, 'Zoom In')"
             class="menu-btn"
-            title="Zoom In"
+            title="Zoom In (=)"
           >
             <img class="btn-icon" :src="getImagePath('plus')" alt="Zoom In" loading="lazy" />
           </button>
@@ -142,16 +142,30 @@
             @click="handleZoomOut"
             @contextmenu.prevent="showHint($event, 'Zoom Out')"
             class="menu-btn"
-            title="Zoom Out"
+            title="Zoom Out (-)"
           >
             <img class="btn-icon" :src="getImagePath('minus')" alt="Zoom Out" loading="lazy" />
+          </button>
+          <button
+            v-if="handleBotMovementModeToggle"
+            @click="handleBotMovementModeToggle"
+            @contextmenu.prevent="showHint($event, botMovementHint)"
+            class="menu-btn"
+            :title="`${botMovementHint} (F)`"
+          >
+            <img
+              class="btn-icon"
+              :src="getImagePath(isFastForwardBotMovement ? 'bot_fast_forward_icon' : 'bot_normal_movement_icon')"
+              :alt="botMovementHint"
+              loading="lazy"
+            />
           </button>
           <button
             v-if="handleSaveMap"
             @click="handleSaveMap"
             @contextmenu.prevent="showHint($event, 'Save map')"
             class="menu-btn"
-            title="Save map"
+            title="Save map (S)"
             :disabled="!canSaveMap"
           >
             <img class="btn-icon" :src="getImagePath('save_icon')" alt="Save map" loading="lazy" />
@@ -160,7 +174,7 @@
             @click="handleExit"
             @contextmenu.prevent="showHint($event, 'Exit')"
             class="menu-btn"
-            title="Exit"
+            title="Exit (Q)"
           >
             <img class="btn-icon" :src="getImagePath('exit_icon')" alt="Exit" loading="lazy" />
           </button>
@@ -231,6 +245,23 @@ export default {
       type: Function,
       required: true,
     },
+    // Optional single-player setting. Kept as a mode string so future
+    // slow/fast movement choices can share the same public API.
+    botMovementMode: {
+      type: String,
+      default: 'normal',
+    },
+    handleBotMovementModeToggle: {
+      type: Function,
+      default: null,
+    },
+    // When true, the controller owns Escape to support menu open/close.
+    // The multiplayer controller leaves this false and retains the
+    // overlay's historical close-only Escape shortcut.
+    externalMenuHotkeys: {
+      type: Boolean,
+      default: false,
+    },
     // Optional: when supplied, a "Save map" button is rendered between
     // Zoom Out and Exit. The handler is called with no args; the parent
     // resumes the menu and opens the SaveMapDialog. `canSaveMap` gates
@@ -278,6 +309,12 @@ export default {
     }
   },
   computed: {
+    isFastForwardBotMovement() {
+      return this.botMovementMode === 'fast_forward'
+    },
+    botMovementHint() {
+      return this.isFastForwardBotMovement ? 'Fast-forward bot moves' : 'Normal bot movement'
+    },
     buildingTypes() {
       return [
         { type: Models.BuildingTypes.BASE, icon: 'base', name: 'Tower' },
@@ -481,14 +518,17 @@ export default {
     },
   },
   mounted() {
-    // Close menu on Escape key
-    document.addEventListener('keydown', this.handleKeyDown)
+    if (!this.externalMenuHotkeys) {
+      document.addEventListener('keydown', this.handleKeyDown)
+    }
     // Dismiss the right-click hint on any non-hint click or scroll.
     document.addEventListener('click', this.hideHint)
     document.addEventListener('scroll', this.hideHint, true)
   },
   beforeUnmount() {
-    document.removeEventListener('keydown', this.handleKeyDown)
+    if (!this.externalMenuHotkeys) {
+      document.removeEventListener('keydown', this.handleKeyDown)
+    }
     document.removeEventListener('click', this.hideHint)
     document.removeEventListener('scroll', this.hideHint, true)
   },
@@ -552,9 +592,7 @@ export default {
       return count
     },
     handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        this.handleResume()
-      }
+      if (event.key === 'Escape') this.handleResume()
     },
   },
 }

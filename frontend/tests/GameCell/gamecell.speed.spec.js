@@ -30,6 +30,11 @@ function mountGameCell(propsOverrides = {}) {
 }
 
 describe('GameCell move points visibility (hideEnemySpeed)', () => {
+  it('does not render the enemy movement overlay under fog', () => {
+    const wrapper = mountGameCell({ hidden: true, enemyReachable: true, enemySelected: true })
+    expect(wrapper.find('.enemyReachableSelection').exists()).toBe(false)
+  })
+
   it('shows speed for every unit when hideEnemySpeed is off', () => {
     const wrapper = mountGameCell({
       hideEnemySpeed: false,

@@ -101,8 +101,8 @@ Combat is simple and automatic:
 
 When enabled, you can only see:
 
-- Areas around your units (visibility radius)
-- Areas around your buildings
+- Areas around your units (including immobile speed-0 units, which see as far as speed-1 units)
+- Areas around your bases
 - Areas revealed by Obelisk scouting
 
 Hidden areas appear darker and don't show enemy positions.
@@ -139,7 +139,7 @@ finished off by it when you're the last one holding out.
 | Map Size | 20x20 | Width and height of the game field |
 | Players | 2 | Number of players (human + AI) |
 | Fog of War | On | Whether hidden areas are enabled |
-| Fog Radius | 3 | Visibility range around units |
+| Fog Radius | 3 | Base sight radius; unit sight may vary with speed |
 | Unit Modifier | 3 | Units per Habitation |
 | Tower Modifier | 3 | Towers per Storage |
 | Min Speed | 1 | Minimum unit movement points |

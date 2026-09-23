@@ -384,6 +384,7 @@ def calculate_unit_visibility(move_points, min_speed, max_speed, avg_visibility)
     Note: This matches the JavaScript signature where max_speed parameter
     actually receives speed_min_visibility value in the initial unit creation.
     """
+    move_points = max(move_points, 1)
     if move_points > max_speed:
         return 1
     if min_speed == max_speed:

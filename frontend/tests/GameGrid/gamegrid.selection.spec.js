@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { nextTick, reactive } from 'vue'
 import GameGrid from '@/components/game/GameGrid.vue'
 import Models from '@/game/models.js'
 import { ACTIONS } from '@/game/const.js'
@@ -9,13 +10,11 @@ function makeGrid(w = 5, h = 5, hidden = false) {
   const field = Array.from({ length: w }, () =>
     Array.from(
       { length: h },
-      () =>
-        new Models.Cell({
-          terrain: { kind: 'empty', idx: 0 },
-          building: null,
-          unit: null,
-          isHidden: hidden,
-        })
+      () => {
+        const cell = new Models.Cell({ kind: 'empty', idx: 0 })
+        cell.isHidden = hidden
+        return cell
+      }
     )
   )
   return field
@@ -147,6 +146,17 @@ describe('GameGrid unit selection and deselection', () => {
       // selectedAction should be cleared (scouting action was executed)
       expect(vm.selectedAction).toBeNull()
     })
+
+    it('still allows a scout action to target a hidden cell', () => {
+      field[2][2].isHidden = true
+      wrapper = mountGameGrid({ enableFogOfWar: true, enableScoutMode: true })
+      const vm = wrapper.vm
+      vm.selectedAction = ACTIONS.scouting
+
+      vm.processClick({}, 2, 2)
+
+      expect(vm.selectedAction).toBeNull()
+    })
   })
 
   describe('selection edge cases', () => {
@@ -193,6 +203,201 @@ describe('GameGrid unit selection and deselection', () => {
       // Animation lock active — left click is swallowed before selection.
       vm.processClick({}, 2, 2)
       expect(vm.selectedCoords).toBeNull()
+    })
+  })
+
+  describe('enemy movement preview', () => {
+    it('only marks destinations visible to the viewer', () => {
+      field[2][2].unit = createUnit(1, 1)
+      wrapper = mountGameGrid({ displayVisibilityCoords: new Set(['2,2', '1,2']) })
+      const vm = wrapper.vm
+
+      vm.processClick({}, 2, 2)
+
+      expect(vm.enemyPreviewCoords).toEqual([2, 2])
+      expect(vm.enemyReachableCoords).toEqual(new Set(['1,2']))
+    })
+
+    it('ignores an enemy hidden by the cell fog without changing a friendly selection', () => {
+      field[0][0].unit = createUnit(0, 1)
+      field[2][2].unit = createUnit(1, 3)
+      field[2][2].isHidden = true
+      wrapper = mountGameGrid({ enableFogOfWar: true })
+      const vm = wrapper.vm
+      vm.processClick({}, 0, 0)
+      const selected = vm.selectedCoords
+
+      vm.processClick({}, 2, 2)
+
+      expect(vm.selectedCoords).toEqual(selected)
+      expect(vm.enemyPreviewCoords).toBeNull()
+      expect(vm.enemyReachableCoords.size).toBe(0)
+    })
+
+    it('uses the displayed fog mask when deciding whether an enemy can be inspected', async () => {
+      field[2][2].unit = createUnit(1, 1)
+      wrapper = mountGameGrid({ displayVisibilityCoords: new Set(['0,0']) })
+      const vm = wrapper.vm
+
+      vm.processClick({}, 2, 2)
+      expect(vm.enemyPreviewCoords).toBeNull()
+
+      // The field's isHidden flag may reflect a bot's view instead of the
+      // human's; the displayed mask is the authority for this interaction.
+      field[2][2].isHidden = true
+      await wrapper.setProps({ displayVisibilityCoords: new Set(['2,2']) })
+      vm.processClick({}, 2, 2)
+      expect(vm.enemyPreviewCoords).toEqual([2, 2])
+    })
+
+    it('clears an enemy preview when the enemy becomes hidden by the display mask', async () => {
+      field[2][2].unit = createUnit(1, 1)
+      wrapper = mountGameGrid({ displayVisibilityCoords: new Set(['2,2']) })
+      const vm = wrapper.vm
+      vm.processClick({}, 2, 2)
+      expect(vm.enemyPreviewCoords).toEqual([2, 2])
+
+      await wrapper.setProps({ displayVisibilityCoords: new Set() })
+
+      expect(vm.enemyPreviewCoords).toBeNull()
+      expect(vm.enemyReachableCoords.size).toBe(0)
+    })
+
+    it('leaves the current preview untouched when another hidden cell is clicked', () => {
+      field[2][2].unit = createUnit(1, 1)
+      field[3][3].unit = createUnit(1, 1)
+      field[3][3].isHidden = true
+      wrapper = mountGameGrid({ enableFogOfWar: true })
+      const vm = wrapper.vm
+      vm.processClick({}, 2, 2)
+
+      vm.processClick({}, 3, 3)
+
+      expect(vm.enemyPreviewCoords).toEqual([2, 2])
+      expect(vm.enemyReachableCoords.size).toBeGreaterThan(0)
+    })
+
+    it('shows an enemy unit\'s legal destinations on left-click without cancelling a friendly selection', () => {
+      field[2][2].unit = createUnit(1, 1, false)
+      field[0][0].unit = createUnit(0, 1, false)
+
+      wrapper = mountGameGrid()
+      const vm = wrapper.vm
+      vm.processClick({}, 0, 0)
+      vm.processClick({}, 2, 2)
+
+      expect(vm.selectedCoords).toEqual([0, 0])
+      expect(vm.enemyPreviewCoords).toEqual([2, 2])
+      expect(vm.enemyReachableCoords).toEqual(
+        new Set([
+          '1,2',
+          '3,2',
+          '2,1',
+          '2,3',
+        ])
+      )
+      expect(vm.fieldOutput[1][2].isHighlighted).toBe(false)
+    })
+
+    it('toggles the current enemy preview off and replaces it when another enemy is clicked', () => {
+      field[2][2].unit = createUnit(1, 1, false)
+      field[0][0].unit = createUnit(1, 1, false)
+
+      wrapper = mountGameGrid()
+      const vm = wrapper.vm
+      vm.processClick({}, 2, 2)
+      vm.processClick({}, 2, 2)
+
+      expect(vm.enemyReachableCoords).toEqual(new Set())
+      expect(vm.enemyPreviewCoords).toBeNull()
+      vm.processClick({}, 2, 2)
+      vm.processClick({}, 0, 0)
+      expect(vm.enemyPreviewCoords).toEqual([0, 0])
+      expect(vm.enemyReachableCoords).toEqual(new Set(['1,0', '0,1']))
+    })
+
+    it('clears the red preview when the highlighted enemy is killed in place', async () => {
+      field = reactive(field)
+      field[2][2].unit = createUnit(1, 1, false)
+      field[0][0].unit = createUnit(0, 1, false)
+
+      wrapper = mountGameGrid()
+      const vm = wrapper.vm
+      vm.processClick({}, 0, 0)
+      vm.processClick({}, 2, 2)
+
+      field[2][2].unit = null
+      await nextTick()
+
+      expect(vm.enemyReachableCoords).toEqual(new Set())
+      expect(vm.enemyPreviewCoords).toBeNull()
+      expect(vm.selectedCoords).toEqual([0, 0])
+    })
+
+    it('clears the red preview when the highlighted enemy starts dying', async () => {
+      field[2][2].unit = createUnit(1, 1, false)
+      wrapper = mountGameGrid()
+      const vm = wrapper.vm
+      vm.processClick({}, 2, 2)
+
+      await wrapper.setProps({ dyingCells: new Set(['2,2']) })
+
+      expect(vm.enemyReachableCoords).toEqual(new Set())
+      expect(vm.enemyPreviewCoords).toBeNull()
+    })
+  })
+
+  describe('right-click inspection', () => {
+    it('does not inspect a cell hidden by the viewer mask even when the field marks it visible', () => {
+      field[2][2].unit = createUnit(1, 1)
+      field[2][2].building = new Models.Building(1, Models.BuildingTypes.BASE)
+      wrapper = mountGameGrid({
+        enableFogOfWar: true,
+        displayVisibilityCoords: new Set(['0,0']),
+      })
+      const vm = wrapper.vm
+
+      vm.handleContextMenu({ x: 2, y: 2 })
+
+      expect(vm.contextHelpVisible).toBe(false)
+      expect(vm.visibilityFrameUnit).toBeNull()
+    })
+
+    it('inspects a cell revealed by the viewer mask even when the field marks it hidden', () => {
+      field[2][2].unit = createUnit(1, 1)
+      field[2][2].building = new Models.Building(1, Models.BuildingTypes.BASE)
+      field[2][2].isHidden = true
+      wrapper = mountGameGrid({
+        enableFogOfWar: true,
+        displayVisibilityCoords: new Set(['2,2']),
+      })
+      const vm = wrapper.vm
+
+      vm.handleContextMenu({ x: 2, y: 2 })
+
+      expect(vm.contextHelpVisible).toBe(true)
+      expect(vm.visibilityFrameUnit).toMatchObject({ x: 2, y: 2 })
+    })
+
+    it('shows a unit’s visibility frame together with a building hint', () => {
+      field[2][2].unit = createUnit(0, 1, false)
+      field[2][2].building = new Models.Building(0, Models.BuildingTypes.BASE)
+
+      wrapper = mountGameGrid({ enableFogOfWar: true })
+      const vm = wrapper.vm
+      vm.handleContextMenu({ x: 2, y: 2 })
+
+      expect(vm.contextHelpVisible).toBe(true)
+      expect(vm.visibilityFrameUnit).toMatchObject({ x: 2, y: 2, visibility: 2 })
+      expect(vm.contextHelpCell.building._type).toBe(Models.BuildingTypes.BASE)
+    })
+
+    it('does not show a hint for ordinary empty terrain', () => {
+      wrapper = mountGameGrid()
+      const vm = wrapper.vm
+      vm.handleContextMenu({ x: 2, y: 2 })
+
+      expect(vm.contextHelpVisible).toBe(false)
     })
   })
 })

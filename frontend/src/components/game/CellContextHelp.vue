@@ -89,7 +89,7 @@ export default {
       if (this.cell.terrain && this.cell.terrain.kind === Models.TerrainTypes.MOUNTAIN) {
         return { title: 'Rock', titleStyle: null, description: null, warning: false }
       }
-      return { title: 'Empty space', titleStyle: null, description: null, warning: false }
+      return null
     },
     positionStyle() {
       if (!this.visible) return {}

@@ -69,6 +69,9 @@
     :end-turn-blocked="lostMapGame"
     :is-animating="isAnimating"
     :can-save-map="canSaveMap"
+    :bot-movement-mode="botMovementMode"
+    :handle-bot-movement-mode-toggle="toggleBotMovementMode"
+    :external-menu-hotkeys="true"
     @menu-open="handleMenuOpen"
   />
   <ExitDialog
@@ -129,6 +132,7 @@ import {
   normalizeField,
 } from '@/game/helpers'
 import { toCanonicalMap, getOccupiedSeats } from '@/game/mapSchema'
+import { markMapWon } from '@/game/mapProgress'
 import { mapNameExists, nextDefaultName, saveMap, todayDateStr } from '@/game/mapStorage'
 import {
   ACTIONS,
@@ -249,17 +253,20 @@ export default {
       lastPlayer: null,
       // Undo states. Two independent stacked actions:
       //   moveUndoState  — { diff, canUndo }: set on every move, cleared by undo or by next move
-      //   scoutUndoState — { revealedCoords, canUndo }: set on every scout; sits on top of moveUndoState
+      //   scoutUndoState — { revealedCoords, addedTempCoords, canUndo }: set on every scout
       // The undo button reverts whichever is on top (scout first), preserving the layer underneath.
       moveUndoState: null,
       scoutUndoState: null,
       unitCoordsArr: [],
-      tempVisibilityCoords: new Set(), // Set of coord pairs (x, y) of obelisks that will be shown next turn
+      tempVisibilityCoords: new Set(), // Obelisk-revealed "x,y" cells kept visible for the current turn
       // Handler references for cleanup (to prevent memory leaks)
       keyupHandlerRef: null,
       contextmenuHandlerRef: null,
       mouseupHandlerRef: null,
       menuOpen: false,
+      // An enum rather than a boolean so later movement speeds can add
+      // values without changing the menu/controller contract.
+      botMovementMode: 'normal',
       notifications: [], // Array of notification objects: { id, message, type, playerOrder }
       // True while a unit is animating between cells. Gates new player input
       // (moves, scout, end-turn, undo) so we never start a second action mid-walk.
@@ -445,6 +452,15 @@ export default {
       if (this.moveUndoState) return this.moveUndoState.canUndo
       return false
     },
+    isFastForwardBotMovement() {
+      return this.botMovementMode === 'fast_forward'
+    },
+    isFastForwardBotTurn() {
+      return (
+        this.isFastForwardBotMovement &&
+        this.players[this.currentPlayer]?._type === Models.PlayerTypes.BOT
+      )
+    },
   },
   watch: {
     // Latch the last human seen so the panel can hold their identity
@@ -568,14 +584,39 @@ export default {
     // console.log(this.players);
     // Store handler references for cleanup in beforeUnmount
     this.keyupHandlerRef = e => {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
+      // Esc is the in-game menu toggle. It deliberately bypasses the
+      // regular menu-overlay guard so a second press can close the menu.
+      if (key === 'Escape') {
+        if (this.canToggleMenuWithHotkey(e)) emitter.emit('toggleGameMenu')
+        return
+      }
       if (this.areHotkeysBlocked(e)) return
-      if (e.key === 'Enter') this.state = this.STATES.play
-      // [tutorial] Skip the 'e' shortcut while the End-turn lock is
-      // engaged (forceUndo / lockAll / OK step).
-      if (e.key === 'e' && this.state === this.STATES.play && !this.tutorialEndTurnBlocked)
+
+      if (key === 'Enter') {
+        this.state = this.STATES.play
+      } else if (
+        key === 'e' &&
+        this.state === this.STATES.play &&
+        this.isHumanTurn &&
+        !this.tutorialEndTurnBlocked
+      ) {
         this.processEndTurn()
-      // TODO: Add test mode
-      // if (e.key === 'Enter') this.makeBotUnitMove();
+      } else if (key === 'u' && this.canUndo) {
+        this.undoLastMove()
+      } else if (key === 'n' && this.isHumanTurn && !this.tutorialInputBlocked) {
+        this.findNextUnit()
+      } else if (key === '=' || key === '+') {
+        this.changeCellSize(10)
+      } else if (key === '-') {
+        this.changeCellSize(-10)
+      } else if (key === 'f') {
+        this.toggleBotMovementMode()
+      } else if (key === 's' && this.canSaveMap) {
+        this.openSaveMapDialog()
+      } else if (key === 'q') {
+        this.handleExitClick()
+      }
     }
     this.contextmenuHandlerRef = e => {
       e.preventDefault()
@@ -634,8 +675,8 @@ export default {
     handleMenuOpen(isOpen) {
       this.menuOpen = isOpen
     },
-    // True when the in-game hotkeys ('e' = end turn, Enter = dismiss the
-    // ready label) must stay out of the way. Mirrors the map editor's
+    // True when board-changing in-game hotkeys must stay out of the way.
+    // Mirrors the map editor's
     // `handleKeydown` guard:
     //   - a text field has focus — typing a map name in the Save-map
     //     dialog must never end the turn on the "e" in "desert";
@@ -647,6 +688,12 @@ export default {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable) return true
       if (e.ctrlKey || e.metaKey || e.altKey) return true
       return this.menuOpen || this.showSaveMapDialog || this.state === this.STATES.exitDialog
+    },
+    canToggleMenuWithHotkey(e) {
+      const tag = (e.target && e.target.tagName) || ''
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable) return false
+      if (e.ctrlKey || e.metaKey || e.altKey) return false
+      return this.state === this.STATES.play && !this.showSaveMapDialog
     },
     handleExitClick() {
       this.state = this.STATES.exitDialog
@@ -754,6 +801,27 @@ export default {
     // Births in the local player's fog are skipped entirely.
     async runBirthSequence(births) {
       if (!births || births.length === 0) return
+
+      // Fast-forward applies the already-produced units' pending kills in
+      // one pass. No camera movement, fade-in, damage flash, or timer is
+      // involved, but tutorial event consumers still receive the same facts.
+      if (this.isFastForwardBotTurn) {
+        for (const birth of births) {
+          this.fieldEngine.applyKillsAtCoords(this.currentPlayer, birth.killedCoords)
+          if (birth.killedCoords.length > 0) {
+            emitter.emit('tutorial:unitKilled', {
+              coords: birth.killedCoords,
+              killerPlayer: this.currentPlayer,
+              count: birth.killedCoords.length,
+              cause: 'birth',
+            })
+          }
+        }
+        this.checkEndOfGame()
+        if (this.doesVisibilityMakeSense()) this.setVisibility()
+        return
+      }
+
       this.isAnimating = true
       try {
         const humanPlayer = this.findHumanPlayerOrder()
@@ -862,6 +930,11 @@ export default {
       if (this.isAnimating) return
       this.moveUnit(coordsDict.fromCoords, coordsDict.toCoords)
     },
+    toggleBotMovementMode() {
+      this.botMovementMode = this.isFastForwardBotMovement ? 'normal' : 'fast_forward'
+      const status = this.isFastForwardBotMovement ? 'on' : 'off'
+      this.showNotification(`Fast-forward bot moves turned ${status}`)
+    },
     // Change field after unit's move. Async because we walk the unit
     // cell-by-cell along the path before applying side-effects.
     async moveUnit(fromCoords, toCoords) {
@@ -872,7 +945,10 @@ export default {
       // Capture visibility BEFORE the move (if fog of war enabled)
       // Convert to Set of strings for proper comparison (arrays use reference equality)
       let visibleCoordsBefore = null
-      if (this.doesVisibilityMakeSense()) {
+      if (
+        this.doesVisibilityMakeSense() &&
+        this.players[this.currentPlayer]?._type === Models.PlayerTypes.HUMAN
+      ) {
         const rawSet = this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer)
         visibleCoordsBefore = new Set(Array.from(rawSet).map(coords => JSON.stringify(coords)))
       }
@@ -880,6 +956,9 @@ export default {
       const [x0, y0] = fromCoords
       const [x1, y1] = toCoords
       const unit = this.localField[x0][y0].unit
+      const isFastForwardBotMove =
+        this.isFastForwardBotMovement &&
+        this.players[unit.player]?._type === Models.PlayerTypes.BOT
 
       // Snapshot the human player's visibility for the duration of this move.
       // The same Set drives both the animator's sleep predicate (which steps
@@ -895,7 +974,7 @@ export default {
       // `displayVisibilityCoords` decide what a spectator sees (the
       // revealed field, or fog for a lost map game).
       const humanIsPlaying = humanPlayer !== null && !!this.players[humanPlayer]?.active
-      const humanVisibility =
+      let humanVisibility =
         this.doesVisibilityMakeSense() && humanIsPlaying
           ? new Set(
               Array.from(this.fieldEngine.getCurrentVisibilitySet(humanPlayer)).map(
@@ -903,6 +982,10 @@ export default {
               )
             )
           : null
+      // A defeated viewer of a scenario still sees fog. In a random game
+      // the field is revealed after defeat, so null correctly means all
+      // moves remain visible to that spectator.
+      if (!humanIsPlaying && this.keepsFogAfterLoss()) humanVisibility = new Set()
       // Fold in scout-revealed coords so areas the human revealed with an
       // obelisk this turn stay visible through the move animation (and
       // any subsequent bot move) — otherwise the snapshot overrides
@@ -912,7 +995,7 @@ export default {
           humanVisibility.add(key)
         }
       }
-      this.displayVisibilitySnapshot = humanVisibility
+      this.displayVisibilitySnapshot = isFastForwardBotMove ? null : humanVisibility
 
       // Walk the unit along the BFS path. fieldEngine.moveUnit is bypassed
       // because the animator already places the unit on the destination cell;
@@ -921,6 +1004,9 @@ export default {
         [x0, y0],
         [x1, y1],
       ]
+      const pathIsVisible =
+        humanVisibility === null ||
+        path.some(([cx, cy]) => humanVisibility.has(`${cx},${cy}`))
       // Centre the camera on the unit's starting cell (or the first
       // visible cell of its path, if it begins in fog) before the walk
       // begins. Smooth-centre awaits scrollend, so the user is looking at
@@ -930,7 +1016,7 @@ export default {
       // they're driving the move themselves, so the camera shouldn't
       // jerk away from where they clicked.
       const isOwnMove = humanPlayer !== null && unit.player === humanPlayer
-      if (SCROLL_TO_MOVES && !isOwnMove) {
+      if (SCROLL_TO_MOVES && !isOwnMove && !isFastForwardBotMove && pathIsVisible) {
         const firstVisibleCell = path.find(
           ([cx, cy]) => humanVisibility === null || humanVisibility.has(`${cx},${cy}`)
         )
@@ -944,10 +1030,16 @@ export default {
       }
       this.isAnimating = true
       try {
-        await animateMovePath(this.localField, path, unit, {
-          isVisible: ([cx, cy]) => humanVisibility === null || humanVisibility.has(`${cx},${cy}`),
-          isCancelled: () => this.wasUnmounted,
-        })
+        if (isFastForwardBotMove || (!isOwnMove && !pathIsVisible)) {
+          // Neither fast-forward nor a wholly hidden move needs a walk.
+          this.localField[x1][y1].unit = unit
+          this.localField[x0][y0].unit = null
+        } else {
+          await animateMovePath(this.localField, path, unit, {
+            isVisible: ([cx, cy]) => humanVisibility === null || humanVisibility.has(`${cx},${cy}`),
+            isCancelled: () => this.wasUnmounted,
+          })
+        }
         if (this.wasUnmounted) return
         unit.hasMoved = true
 
@@ -976,12 +1068,18 @@ export default {
           }
         }
         // Death animation for cells about to be killed by the move's
-        // neighbour-pass. `playDeathAnimation` flashes damage + fades the
-        // unit images, then we actually remove them. Same helper drives
-        // kill-at-birth in `startTurn` so every death uses one cadence.
+        // neighbour-pass. Fast-forward skips its visual delay and removes
+        // the victims immediately; normal movement still flashes damage
+        // before applying the exact same kill operation.
         const killedCoords = this.fieldEngine.findKillNeighbours(x1, y1, unit.player)
-        await this.playDeathAnimation(killedCoords)
-        if (this.wasUnmounted) return
+        if (!isFastForwardBotMove) {
+          const visibleKills =
+            isOwnMove || humanVisibility === null
+              ? killedCoords
+              : killedCoords.filter(([kx, ky]) => humanVisibility.has(`${kx},${ky}`))
+          await this.playDeathAnimation(visibleKills)
+          if (this.wasUnmounted) return
+        }
         this.fieldEngine.killNeighbours(x1, y1, unit.player)
         // [tutorial] Mirror of the birth-kill emit in runBirthSequence —
         // lets scenarios gate hints on the player's own kills.
@@ -1009,7 +1107,7 @@ export default {
 
         // Check if new cells were revealed (undo is not allowed if so)
         let canUndo = true
-        if (this.doesVisibilityMakeSense()) {
+        if (visibleCoordsBefore) {
           const visibleCoordsAfter = this.fieldEngine.getCurrentVisibilitySet(this.currentPlayer)
           // If any new coords are visible, undo is not allowed
           // Convert each coord to string for proper comparison (Set.has uses reference equality for arrays)
@@ -1069,6 +1167,16 @@ export default {
     // and a game with fog off has nothing to hide either way.
     keepsFogAfterLoss() {
       return this.isScenario && this.enableFogOfWar
+    },
+    // Tick the scenario or saved map the player just beat, so the picker
+    // can show it as won (same idea as the tutorial's completion marks).
+    // Cosmetic only — nothing gates on it. Random games have no entry to
+    // tick, and tutorials keep their own store.
+    recordMapWin() {
+      if (this.tutorialScenario || !this.initialMap) return
+      const winnerPlayer = this.players?.[this.winner]
+      if (winnerPlayer?._type !== Models.PlayerTypes.HUMAN) return
+      markMapWon(this.initialMap.name, this.isScenario)
     },
     findHumanPlayerOrder() {
       for (let i = 0; i < this.players.length; i++) {
@@ -1154,6 +1262,7 @@ export default {
       ) {
         this.winPhase = this.WIN_PHASES.has_winner
         this.winner = this.currentPlayer
+        this.recordMapWin()
         // [tutorial] Scenarios drive their own end-of-game UI via the
         // controller's `win` step + the scenario completion overlay,
         // so we never drop into the "Player X wins!" ReadyLabel.
@@ -1207,6 +1316,7 @@ export default {
             // (which is reserved for the watched bot fight's endpoint).
             this.winPhase = this.WIN_PHASES.has_winner
             this.winner = lastPlayerIdx
+            this.recordMapWin()
           } else if (this.players[lastPlayerIdx]._type === Models.PlayerTypes.BOT) {
             this.lastPlayerPhase = this.LAST_PLAYER_PHASES.last_player
             this.lastPlayer = lastPlayerIdx
@@ -1267,11 +1377,19 @@ export default {
         }
       }
 
+      const previousTempCoords = new Set(this.tempVisibilityCoords)
       this.addTempVisibilityForCoords(data.x, data.y, data.fogRadius)
+      const addedTempCoords = [...this.tempVisibilityCoords].filter(
+        key => !previousTempCoords.has(key)
+      )
 
       // Picking a scout target commits the move: from now on the only thing
       // undo can revert is the scout choice itself.
-      this.scoutUndoState = { revealedCoords, canUndo: revealedCoords.length === 0 }
+      this.scoutUndoState = {
+        revealedCoords,
+        addedTempCoords,
+        canUndo: revealedCoords.length === 0,
+      }
       this.moveUndoState = null
     },
     addVisibilityForCoords(x, y, fogRadius) {
@@ -1299,7 +1417,6 @@ export default {
           this.localField[curX][curY].isHidden = true
         }
       }
-      this.tempVisibilityCoords = new Set()
     },
     showField() {
       for (let curX = 0; curX < this.width; curX++) {
@@ -1314,6 +1431,12 @@ export default {
       for (const [curX, curY] of visibilitySet) {
         // console.log('setVisibility', curX, curY);
         this.localField[curX][curY].isHidden = false
+      }
+      // Recalculating unit visibility (including after move undo) must not
+      // discard obelisk reveals made earlier in this turn.
+      for (const key of this.tempVisibilityCoords) {
+        const [x, y] = key.split(',').map(Number)
+        if (this.fieldEngine.areExistingCoords(x, y)) this.localField[x][y].isHidden = false
       }
     },
     setVisibilityForArea(x, y, r) {
@@ -1356,6 +1479,7 @@ export default {
     //   }
     // },
     setVisibilityStartTurn() {
+      this.tempVisibilityCoords = new Set()
       // `doesVisibilityMakeSense()` goes false either because fog is off
       // for this game, or because the player is eliminated — the second
       // case is what hands a loser the whole map.
@@ -1488,13 +1612,11 @@ export default {
             // scale — i.e. maximum visibility, whatever its speed. Rescale
             // against the game's own minSpeed so an explicitly placed
             // speed-3 dino sees exactly what a rolled speed-3 dino sees.
-            // Speeds below minSpeed (0) clamp to minSpeed: the curve
-            // extrapolates absurdly below its own floor, and clamping
-            // keeps the documented rule that an immobile dino still sees
-            // as far as the slowest moving one.
+            // Speed-0 units see as far as speed-1 units, while remaining
+            // immobile. Use the game's visibility scale for both.
             if (explicitSpeed !== null && this.visibilitySpeedRelation) {
               cell.unit.visibility = calculateUnitVisibility(
-                Math.max(explicitSpeed, this.minSpeed),
+                Math.max(explicitSpeed, this.minSpeed, 1),
                 this.minSpeed,
                 this.speedMinVisibility,
                 this.fogOfWarRadius
@@ -1609,7 +1731,9 @@ export default {
       if (this.scoutUndoState) {
         for (const [x, y] of this.scoutUndoState.revealedCoords) {
           this.localField[x][y].isHidden = true
-          this.tempVisibilityCoords.delete(`${x},${y}`)
+        }
+        for (const key of this.scoutUndoState.addedTempCoords || []) {
+          this.tempVisibilityCoords.delete(key)
         }
         this.scoutUndoState = null
         // Deselect any selected unit and clear highlights, then re-arm scout
@@ -1649,7 +1773,12 @@ export default {
       await sleep(0)
       if (this.wasUnmounted) return
       console.log(`Bot player ${this.currentPlayer + 1} turn`)
-      this.unitCoordsArr = this.getCurrentUnitCoords()
+      this.unitCoordsArr = this.getCurrentUnitCoords().filter(
+        ([x, y]) => this.localField[x][y].unit?.movePoints > 0
+      )
+      // Stationary units still provide sight; their contribution cannot change
+      // during this bot turn, so cache it once for all moving units.
+      if (this.unitCoordsArr.length > 0) this.botEngine.prepareTurnVisibility(this.currentPlayer)
       // TODO: Choose order of moves (calculate, which move is more profitable) - ideal algorithm
       // TODO: Get visibility here and add visibility get from obelisks on each unit's move
       while (this.unitCoordsArr.length > 0) {
