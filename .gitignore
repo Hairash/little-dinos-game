@@ -2,6 +2,10 @@
 node_modules
 /dist
 
+# Source artwork and unused exports live in ../little-dinos-game-work-materials/
+/frontend/public/images/work_materials/
+/frontend/public/images/unused/
+
 # Vite
 .vite/
 
